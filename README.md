@@ -50,4 +50,4 @@ To see more on my journey of making this project, along with live demos, here is
 
 ---
 
-**Built by Abigail Endris ** : [yourportfolio.com] · [(https://www.linkedin.com/in/abigail-endris/)] · [endrisabigail@gmail.com]
+** Built by Abigail Endris ** : [yourportfolio.com] · [(https://www.linkedin.com/in/abigail-endris/)] · [endrisabigail@gmail.com]
