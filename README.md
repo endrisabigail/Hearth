@@ -18,7 +18,6 @@ Every 3D asset was modeled, lit, and rendered in Blender from scratch. Any 2D fe
 **Auth** : JWT (JSON Web Tokens)  
 **3D Assets** : Blender  
 **2D Assets** : Procreate
-**API** : REST  
 
 ---
 
