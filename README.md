@@ -16,7 +16,7 @@ Every 3D asset was modeled, lit, and rendered in Blender from scratch. Any 2D fe
 **Backend** : Node.js, Express.js  
 **Database** : MongoDB  
 **Auth** : JWT (JSON Web Tokens)  
-**3D Assets** : Blender  
+**3D Assets** : Blender & Nomad  
 **2D Assets** : Procreate
 
 ---
