@@ -3,7 +3,7 @@
 
 Hearth is a full-stack productivity app built around a cozy isometric game world. Instead of checkboxes and kanban boards, you manage your tasks inside a hand-crafted environment that allows you to earn XP, maintain streaks, and pick a character to call your own.
 
-Every 3D asset was modeled, lit, and rendered in Blender from scratch. Any 2D features were hand drawn and designed using Procreate.
+Every 3D asset was modeled, lit, and rendered in Nomad and Blender from scratch. Any 2D features were hand drawn and designed using Procreate.
 
 ---
 
@@ -49,4 +49,4 @@ To see more on my journey of making this project, along with live demos, here is
 
 ---
 
-**Built by Abigail Endris** : [yourportfolio.com] · [(https://www.linkedin.com/in/abigail-endris/)] · [endrisabigail@gmail.com]
+**Built by Abigail Endris** : [https://www.linkedin.com/in/abigail-endris/] · [endrisabigail@gmail.com]
