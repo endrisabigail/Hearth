@@ -1,0 +1,331 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
+
+.avatar-register-container {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  background: #e8f5e2;
+  font-family: "Nunito", sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* soft cloud decorations */
+.avatar-register-container::before,
+.avatar-register-container::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.avatar-register-container::before {
+  width: 280px;
+  height: 100px;
+  top: 24px;
+  left: -40px;
+}
+.avatar-register-container::after {
+  width: 240px;
+  height: 85px;
+  top: 14px;
+  right: 30px;
+}
+
+/* left character grid */
+
+.left-panel {
+  width: 220px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-right: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 0;
+  padding: 2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(6px);
+}
+
+.panel-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #6aaa5e;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+.char-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.char-thumb {
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.75);
+  border: 2.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.char-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.char-thumb:hover {
+  transform: scale(1.1) translateY(-2px);
+  border-color: #86c97a;
+  box-shadow: 0 6px 16px rgba(106, 170, 94, 0.25);
+}
+
+.char-thumb.active {
+  border-color: #5aaa4a;
+  background: #edfae9;
+  box-shadow:
+    0 0 0 3px rgba(90, 170, 74, 0.2),
+    0 6px 16px rgba(106, 170, 94, 0.3);
+  transform: scale(1.08);
+}
+
+/* Center Panel Three.js stage */
+
+.center-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* decorative grass at the bottom */
+.center-panel::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: #7bc96a;
+  clip-path: ellipse(65% 100% at 50% 100%);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.sculpture-stage {
+  position: relative;
+  width: 280px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Three.js canvas mounts here */
+.sculpture-stage canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50%;
+}
+
+.stage-blob {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.shadow-oval {
+  width: 100px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  filter: blur(5px);
+  margin-top: -14px;
+  animation: shadow-pulse 3.2s ease-in-out infinite;
+}
+
+.drag-hint {
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9bcf90;
+  letter-spacing: 0.1em;
+}
+
+/* Right Panel info & stats */
+
+.right-panel {
+  width: 230px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-left: 2px solid rgba(255, 255, 255, 0.75);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.1rem;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(6px);
+}
+
+.char-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #2d5a27;
+  margin: 0 0 3px;
+  line-height: 1.2;
+}
+
+.char-class {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6aaa5e;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.panel-divider {
+  height: 2px;
+  background: rgba(106, 170, 94, 0.15);
+  border-radius: 2px;
+}
+
+/* Stat bars */
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #8abf80;
+  text-transform: uppercase;
+}
+
+.stat-bar-bg {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* select button */
+
+.select-btn {
+  background: #5aaa4a;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.9rem 1rem;
+  font-family: "Nunito", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background 0.15s,
+    transform 0.12s;
+  box-shadow: 0 4px 16px rgba(90, 170, 74, 0.35);
+}
+
+.select-btn:hover {
+  background: #4a9a3a;
+  transform: translateY(-2px);
+}
+
+.select-btn:active {
+  transform: scale(0.97);
+}
+
+.select-btn.confirmed {
+  background: #f0a040;
+  box-shadow: 0 4px 16px rgba(240, 160, 64, 0.4);
+}
+
+/* Animations */
+
+.idle-float {
+  animation: float 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 20px rgba(90, 170, 74, 0.2));
+}
+
+.pose-anim {
+  animation: pop 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes shadow-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.72);
+    opacity: 0.45;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22) rotate(-6deg);
+  }
+  70% {
+    transform: scale(0.95) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}

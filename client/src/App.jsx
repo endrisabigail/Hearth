@@ -17,7 +17,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/map" element={<Map />} />
         <Route path="/join-party" element={<JoinParty />} />
-        <Route path="/avatar" element={<AvatarRegister />} />
+        <Route path="/avatarRegister" element={<AvatarRegister />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </Router>
