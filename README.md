@@ -35,7 +35,7 @@ Every 3D asset was modeled, lit, and rendered in Nomad and Blender from scratch.
 
 ## How It Works
 
-Users log in and are dropped into an isometric world where their tasks and projects exist as in-game objects. Completing a task awards XP (calculated server-side based on difficulty) and contributes to a daily streak. Progress is saved to MongoDB and synced on every session.
+Users are dropped into an isometric world where their tasks and projects exist as in-game objects. Completing a task awards XP (calculated server-side based on difficulty) and contributes to a daily streak. Progress is saved to MongoDB and synced on every session.
 
 Auth is handled with JWTs. Tokens are verified on the server before any protected route is accessed, keeping the client from touching anything it shouldn't.
 
@@ -43,9 +43,7 @@ Auth is handled with JWTs. Tokens are verified on the server before any protecte
 
 ## Background
 
-I built Hearth because I wanted to see if task management could actually feel enjoyable. The cozy-game genre (think Stardew Valley or Animal Crossing) has this quality where even repetitive actions feel rewarding. I wanted to bring that to productivity.
-
-To see more on my journey of making this project, along with live demos, here is a website to my portfolio: 
+I built Hearth because I wanted to see if task management could actually feel enjoyable. The cozy-game genre (e.g. Stardew Valley or Animal Crossing) has this quality where even repetitive actions feel rewarding. I wanted to bring that to productivity.
 
 ---
 
