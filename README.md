@@ -16,9 +16,8 @@ Every 3D asset was modeled, lit, and rendered in Blender from scratch. Any 2D fe
 **Backend** : Node.js, Express.js  
 **Database** : MongoDB  
 **Auth** : JWT (JSON Web Tokens)  
-**3D Assets** : Blender  
+**3D Assets** : Blender & Nomad  
 **2D Assets** : Procreate
-**API** : REST  
 
 ---
 
@@ -50,4 +49,4 @@ To see more on my journey of making this project, along with live demos, here is
 
 ---
 
-**Built by Abigail Endris ** : [yourportfolio.com] · [(https://www.linkedin.com/in/abigail-endris/)] · [endrisabigail@gmail.com]
+**Built by Abigail Endris** : [yourportfolio.com] · [(https://www.linkedin.com/in/abigail-endris/)] · [endrisabigail@gmail.com]
