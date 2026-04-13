@@ -1,42 +1,86 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const UserSchema = new mongoose.Schema({ // Define the schema for the User model
-    username: { // Define the username field
-        type: String,
-        required: true,
-        unique: true,
+const UserSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    password: { // Define the password field
-        type: String,
-        required: true,
+    password: {
+      type: String,
+      required: true,
     },
-    email: { // Define the email field
-        type: String,
-        required: true,
-        unique: true,
+    email: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    
-    rank: { // Define the "rank" title card field
-        type: String,
-        default:"New Member"
+    avatarId: {
+      type: String,
+      default: "frog",
     },
-    points: { // Define the points field for gamification
-       type: Map,
-       of: Number,
-       default: {}
-
+    rank: {
+      type: String,
+      default: "Fledgling",
     },
-    totalPoints:{
-        type: 
-        Number, default: 0 
+    bio: {
+      type: String,
+      default: "",
     },
-
-    badges: [{
+    points: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
+    totalPoints: {
+      type: Number,
+      default: 0,
+    },
+    badges: [
+      {
         badgeName: String,
         badgeDescription: String,
         badgeImage: String,
-        earnedAt: { type: Date, default: Date.now }
-    }]
-    
-}, { timestamps: true }); // Track automatically when a user has joined
-export default mongoose.model('User', UserSchema); // Export the User model based on the defined schema
+        earnedAt: { type: Date, default: Date.now },
+      },
+    ],
+    streak: {
+      current: { type: Number, default: 0 },
+      longest: { type: Number, default: 0 },
+      lastActiveDate: { type: Date, default: null },
+    },
+    partyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Party",
+      default: null,
+    },
+    isPartyOwner: {
+      type: Boolean,
+      default: false,
+    },
+    neighbors: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    neighborRequests: [
+      {
+        from: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    // persisted plaza position
+    plazaPosition: {
+      x: { type: Number, default: 0.5 },
+      y: { type: Number, default: 0.6 },
+    },
+  },
+  { timestamps: true },
+);
+
+export default mongoose.model("User", UserSchema);

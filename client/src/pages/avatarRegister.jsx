@@ -4,89 +4,71 @@ import axios from "axios";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import "../styles/avatarRegister.css";
+import "../pages/styles/avatarRegister.css";
 
-//stat bar colors
-const STAT_COLORS = {
-  speed: "#fb923c",
-  strength: "#f87171",
-  magic: "#a78bfa",
-  defense: "#34d399",
-};
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-//nomad sculpted characters !!
+// nomad sculpted characters !!
 const avatars = [
   {
     id: "tomato",
+    bg: "linear-gradient(180deg, #e74c3c 0%, #f39c12 100%)",
     model: "/assets/models/tomato.glb",
     thumb: "/assets/thumbs/tomato.png",
-    label: "The Tomato",
+    label: "Tammy the Tomato ",
     class: "Forest Keeper",
-    stats: { speed: 60, strength: 70, magic: 55, defense: 80 },
+    description:
+      "Grounded and dependable. Ketchup's to everything eventually 🍅",
   },
   {
     id: "frog",
+    bg: "linear-gradient(180deg, #4a9fd4 0%, #2ecc71 100%)",
     model: "/assets/models/frog.glb",
     thumb: "/assets/thumbs/frog.png",
-    label: "The Frog",
+    label: "Froppy the Frog ",
     class: "Wanderer",
-    stats: { speed: 72, strength: 55, magic: 80, defense: 45 },
+    description:
+      "Curious and adaptable. Thrives when jumping between big ideas 𖠊",
   },
   {
     id: "fish",
+    bg: "linear-gradient(180deg, #2980b9 0%, #6dd5fa 100%)",
     model: "/assets/models/fish.glb",
     thumb: "/assets/thumbs/fish.png",
-    label: "The Fish",
+    label: "Finn the Fish ",
     class: "Depths Diver",
-    stats: { speed: 90, strength: 40, magic: 65, defense: 38 },
-  },
-  {
-    id: "duck",
-    model: "/assets/models/duck.glb",
-    thumb: "/assets/thumbs/duck.png",
-    label: "The Duck",
-    class: "Trailblazer",
-    stats: { speed: 78, strength: 60, magic: 50, defense: 60 },
+    description:
+      "A deep thinker. Plenty of fish in the sea, but none quite like her 𓆝",
+    offsetX: 0.2,
   },
   {
     id: "mushroom",
+    bg: "linear-gradient(180deg, #a77dc7 0%, #ff0000 100%)",
     model: "/assets/models/mushroom.glb",
     thumb: "/assets/thumbs/mushroom.png",
-    label: "The Mushroom",
+    label: "Mossy the Mushroom",
     class: "Forest Sage",
-    stats: { speed: 35, strength: 45, magic: 95, defense: 70 },
-  },
-  {
-    id: "cat",
-    model: "/assets/models/cat.glb",
-    thumb: "/assets/thumbs/cat.png",
-    label: "The Cat",
-    class: "Shadow Walker",
-    stats: { speed: 88, strength: 68, magic: 55, defense: 42 },
+    description:
+      "Patient and wise. Grows best in quiet, focused environments 𓍊",
   },
   {
     id: "apple",
+    bg: "linear-gradient(180deg, #ff6b6b 0%, #c0392b 100%)",
     model: "/assets/models/apple.glb",
     thumb: "/assets/thumbs/apple.png",
-    label: "The Apple",
+    label: "Abbey the Apple ",
     class: "Harvest Guardian",
-    stats: { speed: 50, strength: 75, magic: 60, defense: 80 },
+    description:
+      "Reliable and warm. The kind of companion who keeps things running 🍎",
   },
   {
     id: "snail",
+    bg: "linear-gradient(180deg, #f9d423 0%, #a8c639 100%)",
     model: "/assets/models/snail.glb",
     thumb: "/assets/thumbs/snail.png",
-    label: "The Snail",
+    label: "Shelby the Snail",
     class: "Patient Seeker",
-    stats: { speed: 20, strength: 50, magic: 70, defense: 92 },
-  },
-  {
-    id: "turtle",
-    model: "/assets/models/turtle.glb",
-    thumb: "/assets/thumbs/turtle.png",
-    label: "The Turtle",
-    class: "Ancient Keeper",
-    stats: { speed: 30, strength: 65, magic: 75, defense: 95 },
+    description: "Slow and intentional. Never rushed, never behind ๑ï",
   },
 ];
 
@@ -94,6 +76,8 @@ function AvatarRegister() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
 
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -103,10 +87,12 @@ function AvatarRegister() {
   const currentModel = useRef(null);
   const animFrame = useRef(null);
   const loader = useRef(new GLTFLoader());
+  const isJumping = useRef(false);
+  const jumpStart = useRef(0);
 
   const selected = avatars[selectedIndex];
 
-  // three.js setup on mount
+  // Three.js boot
   useEffect(() => {
     const mount = mountRef.current;
     const w = mount.clientWidth;
@@ -116,7 +102,7 @@ function AvatarRegister() {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(0, 1, 4);
+    camera.position.set(0, 0.5, 5);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -124,27 +110,28 @@ function AvatarRegister() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1;
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
     controls.enableZoom = false;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.8;
+    controls.autoRotate = false;
+    controls.rotateSpeed = 0.4;
+    controls.minPolarAngle = Math.PI / 2;
+    controls.maxPolarAngle = Math.PI / 2;
     controls.target.set(0, 0.5, 0);
     controlsRef.current = controls;
-    // neutral lighting so model colors show true
-    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
+    // neutral lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
     const sun = new THREE.DirectionalLight(0xffffff, 1.0);
     sun.position.set(3, 5, 4);
     scene.add(sun);
-
     const fill = new THREE.DirectionalLight(0xffffff, 0.6);
     fill.position.set(-3, 2, -2);
     scene.add(fill);
-
     const rim = new THREE.DirectionalLight(0xffffff, 0.4);
     rim.position.set(0, -2, -3);
     scene.add(rim);
@@ -152,6 +139,21 @@ function AvatarRegister() {
     const animate = () => {
       animFrame.current = requestAnimationFrame(animate);
       controls.update();
+
+      if (currentModel.current) {
+        const baseY = currentModel.current.userData.baseY ?? 0.5;
+
+        if (isJumping.current) {
+          const elapsed = (Date.now() - jumpStart.current) / 1000;
+          const jumpHeight = Math.max(0, Math.sin(elapsed * Math.PI * 2) * 0.6);
+          currentModel.current.position.y = baseY + jumpHeight;
+          if (elapsed > 0.5) isJumping.current = false;
+        } else {
+          currentModel.current.position.y =
+            baseY + Math.sin(Date.now() * 0.002) * 0.1;
+        }
+      }
+
       renderer.render(scene, camera);
     };
     animate();
@@ -191,12 +193,15 @@ function AvatarRegister() {
         const model = gltf.scene;
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
-        const scale = 2 / Math.max(size.x, size.y, size.z);
+        const scale = (selected.scale || 2.8) / size.y;
         model.scale.setScalar(scale);
 
         const center = box.getCenter(new THREE.Vector3());
         model.position.sub(center.multiplyScalar(scale));
-        model.position.y += 0.2;
+        model.position.y += 0.5;
+        model.position.x += selected.offsetX || 0;
+        model.userData.baseY = model.position.y;
+        model.rotation.y = 0;
 
         scene.add(model);
         currentModel.current = model;
@@ -208,79 +213,211 @@ function AvatarRegister() {
 
   const handleSelect = (index) => {
     setIsConfirmed(false);
+    isJumping.current = false;
     setSelectedIndex(index);
   };
 
   const handleConfirm = () => {
     setIsConfirmed(true);
+    isJumping.current = true;
+    jumpStart.current = Date.now();
+
     setTimeout(async () => {
       try {
-        await axios.post("http://localhost:5000/api/update-avatar", {
-          avatarId: selected.id,
-        });
+        await axios.post(
+          `${API_URL}/api/auth/update-avatar`,
+          { avatarId: selected.id },
+          { headers: { "x-auth-token": token } },
+        );
         navigate("/dashboard");
       } catch (err) {
         console.error("Couldn't save avatar selection", err);
         setIsConfirmed(false);
+        isJumping.current = false;
       }
     }, 1500);
   };
 
   return (
     <div className="avatar-register-container">
-      {/* left character grid */}
-      <div className="left-panel">
-        <p className="panel-label">Who are you?</p>
-        <div className="char-grid">
-          {avatars.map((avatar, i) => (
+      {/* clouds */}
+      <svg
+        className="cloud cloud-lg"
+        style={{ left: "5%" }}
+        viewBox="0 0 110 55"
+        fill="none"
+      >
+        <ellipse
+          cx="55"
+          cy="38"
+          rx="46"
+          ry="17"
+          fill="rgba(255,255,255,0.88)"
+        />
+        <ellipse
+          cx="35"
+          cy="30"
+          rx="22"
+          ry="20"
+          fill="rgba(255,255,255,0.88)"
+        />
+        <ellipse
+          cx="62"
+          cy="26"
+          rx="26"
+          ry="22"
+          fill="rgba(255,255,255,0.88)"
+        />
+        <ellipse
+          cx="84"
+          cy="33"
+          rx="18"
+          ry="15"
+          fill="rgba(255,255,255,0.88)"
+        />
+      </svg>
+      <svg
+        className="cloud cloud-sm"
+        style={{ left: "45%" }}
+        viewBox="0 0 75 40"
+        fill="none"
+      >
+        <ellipse
+          cx="37"
+          cy="28"
+          rx="32"
+          ry="12"
+          fill="rgba(255,255,255,0.80)"
+        />
+        <ellipse
+          cx="22"
+          cy="22"
+          rx="16"
+          ry="14"
+          fill="rgba(255,255,255,0.80)"
+        />
+        <ellipse
+          cx="45"
+          cy="18"
+          rx="18"
+          ry="16"
+          fill="rgba(255,255,255,0.80)"
+        />
+        <ellipse
+          cx="60"
+          cy="24"
+          rx="13"
+          ry="11"
+          fill="rgba(255,255,255,0.80)"
+        />
+      </svg>
+      <svg
+        className="cloud cloud-xl"
+        style={{ left: "70%" }}
+        viewBox="0 0 140 65"
+        fill="none"
+      >
+        <ellipse
+          cx="70"
+          cy="48"
+          rx="60"
+          ry="18"
+          fill="rgba(255,255,255,0.85)"
+        />
+        <ellipse
+          cx="42"
+          cy="38"
+          rx="28"
+          ry="24"
+          fill="rgba(255,255,255,0.85)"
+        />
+        <ellipse
+          cx="78"
+          cy="32"
+          rx="33"
+          ry="28"
+          fill="rgba(255,255,255,0.85)"
+        />
+        <ellipse
+          cx="110"
+          cy="40"
+          rx="24"
+          ry="20"
+          fill="rgba(255,255,255,0.85)"
+        />
+      </svg>
+
+      {/* fireflies */}
+      <div className="fireflies fireflies-1" />
+      <div className="fireflies fireflies-2" />
+      <div className="fireflies fireflies-3" />
+      <div className="fireflies fireflies-4" />
+
+      {/* center stage */}
+      <div className="center-panel" style={{ background: selected.bg }}>
+        <div className="egg-row">
+          <button
+            className="arrow-btn"
+            onClick={() =>
+              handleSelect(
+                (selectedIndex - 1 + avatars.length) % avatars.length,
+              )
+            }
+          >
+            ‹
+          </button>
+
+          <div className="stage-wrap">
+            <span className="sparkle s1">✦</span>
+            <span className="sparkle s2">✦</span>
+            <span className="sparkle s3">✦</span>
+            <div className="sculpture-stage" ref={mountRef} />
+          </div>
+
+          <button
+            className="arrow-btn"
+            onClick={() => handleSelect((selectedIndex + 1) % avatars.length)}
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="egg-shadow" />
+        <p className="drag-hint">✦ drag to spin ✦</p>
+
+        {/* dot indicators */}
+        <div className="dot-row">
+          {avatars.map((_, i) => (
             <div
-              key={avatar.id}
-              className={`char-thumb ${i === selectedIndex ? "active" : ""}`}
+              key={i}
+              className={`dot ${i === selectedIndex ? "active" : ""}`}
               onClick={() => handleSelect(i)}
-            >
-              <img src={avatar.thumb} alt={avatar.label} />
-            </div>
+            />
           ))}
         </div>
       </div>
 
-      {/* center Three.js stage */}
-      <div className="center-panel">
-        <div className="sculpture-stage" ref={mountRef}>
-          <div className="stage-blob" />
-        </div>
-        <div className="shadow-oval" />
-        <p className="drag-hint">✦ drag to spin ✦</p>
-      </div>
-
-      {/* right info & stats */}
+      {/* right info panel */}
       <div className="right-panel">
+        {/* prompt header */}
+        <div className="choose-header">
+          <p className="choose-eyebrow">step 1 of 1</p>
+          <h1 className="choose-heading">Every adventure needs a companion!</h1>
+          <p className="choose-sub">
+            Arrow through to meet them all — then pick the one you feel
+            connected to ♡
+          </p>
+        </div>
+
+        <div className="panel-divider" />
+
         <div>
           <h2 className="char-name">{selected.label}</h2>
           <p className="char-class">{selected.class}</p>
         </div>
-
         <div className="panel-divider" />
-
-        <div className="stats">
-          {Object.entries(selected.stats).map(([stat, val]) => (
-            <div className="stat-row" key={stat}>
-              <span className="stat-label">{stat}</span>
-              <div className="stat-bar-bg">
-                <div
-                  className="stat-bar-fill"
-                  style={{
-                    width: `${val}%`,
-                    background: STAT_COLORS[stat],
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-
+        <p className="char-description">{selected.description}</p>
         <div className="panel-divider" />
-
         <button
           className={`select-btn ${isConfirmed ? "confirmed" : ""}`}
           onClick={handleConfirm}

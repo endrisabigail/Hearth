@@ -4,24 +4,25 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import authRoutes from '../routes/auth.js';
 import questRoutes from '../routes/quest.js';
+import partyRoutes from '../routes/party.js';
+import dashboardRoutes from '../routes/dashboard.js';
 
-dotenv.config(); // Load environment variables from .env file
+dotenv.config();
 
-const app = express(); // Create an Express application
+const app = express();
 
-// Connect to the database
 connectDB();
 
-// Middleware
-app.use(cors()); // Enable CORS for all routes
-app.use(express.json()); // Parse JSON request bodies
+app.use(cors());
+app.use(express.json());
 
-// Routes
-app.use('/api/auth', authRoutes); // Use authentication routes for /api/auth
-app.use('/api/quests', questRoutes); // Use quest routes for /api/quests
+app.use('/api/auth', authRoutes);
+app.use('/api/quests', questRoutes);
+app.use('/api/party', partyRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
-const PORT = process.env.PORT || 5000; // Define the port to listen on
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`Hearth is running on port ${PORT}`); // Log a message when the server starts
+    console.log(`Hearth is running on port ${PORT}`);
 });

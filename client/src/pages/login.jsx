@@ -1,10 +1,11 @@
 import React, { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import "../styles/login.css";
+import "../pages/styles/login.css";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Login() {
-  // user states
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,7 +13,6 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
 
-  // audio ref for music control
   const audioRef = useRef(null);
 
   const toggleMusic = () => {
@@ -25,20 +25,19 @@ function Login() {
       setPlaying(true);
     }
   };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password,
       });
       localStorage.setItem("token", response.data.token);
       navigate("/dashboard");
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Login failed. Please try again.",
-      );
+      setError(err.response?.data?.msg || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -53,6 +52,7 @@ function Login() {
         <source src="/calm_breeze.mp3" type="audio/mpeg" />
       </audio>
       <div className="overlay" />
+
       {/* Music toggle button */}
       <button
         className={`music-btn ${playing ? "music-btn--playing" : ""}`}
@@ -176,7 +176,7 @@ function Login() {
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="input-wrap">
-            <label className="input-label"> email</label>
+            <label className="input-label">email</label>
             <svg className="input-icon" viewBox="0 0 16 16" fill="none">
               <rect
                 x="1"

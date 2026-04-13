@@ -1,11 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import "../styles/signup.css";
-import "../styles/login.css"; // Reuse the animations and background styles
+import "../pages/styles/signup.css";
+import "../pages/styles/login.css";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Signup() {
-  // use states
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -14,7 +15,6 @@ function Signup() {
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
 
-  // audio ref for music control
   const audioRef = useRef(null);
 
   const toggleMusic = () => {
@@ -27,26 +27,23 @@ function Signup() {
       setPlaying(true);
     }
   };
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        {
-          username,
-          email,
-          password,
-        },
-      );
+      const response = await axios.post(`${API_URL}/api/auth/register`, {
+        username,
+        email,
+        password,
+      });
       localStorage.setItem("token", response.data.token);
       navigate("/avatarRegister");
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Signup failed. Please try another email.",
+        err.response?.data?.msg || "Signup failed. Please try another email.",
       );
       setLoading(false);
     }
@@ -54,8 +51,6 @@ function Signup() {
 
   return (
     <div className="login-page-wrapper">
-      {" "}
-      {/* background wrapper*/}
       <video autoPlay loop muted playsInline className="bg-video">
         <source src="/swaying_grass.mp4" type="video/mp4" />
       </video>
@@ -63,6 +58,7 @@ function Signup() {
         <source src="/calm_breeze.mp3" type="audio/mpeg" />
       </audio>
       <div className="overlay" />
+
       {/* music toggle button */}
       <button
         className={`music-btn ${playing ? "music-btn--playing" : ""}`}
@@ -70,6 +66,7 @@ function Signup() {
       >
         {playing ? "♪ on " : "♪ off"}
       </button>
+
       {/* clouds */}
       <svg className="cloud cloud-lg" viewBox="0 0 110 55" fill="none">
         <ellipse
@@ -161,20 +158,20 @@ function Signup() {
           fill="rgba(255,255,255,0.85)"
         />
       </svg>
+
       {/* fireflies */}
       <div className="fireflies fireflies-1" />
       <div className="fireflies fireflies-3" />
+
       <div className="login-container">
-        {" "}
-        {/* Reuse login-container for the card shape */}
         <span className="corner-deco corner-deco-tl">🌱</span>
         <span className="corner-deco corner-deco-tr">✨</span>
         <div className="nook-badge">
           <span className="nook-leaf-icon" />
-          HEARTH{" "}
+          HEARTH
         </div>
-        <div className="card-title"> Sign Up </div>
-        <div className="card-sub"> start your journey ♪</div>
+        <div className="card-title">Sign Up</div>
+        <div className="card-sub">start your journey ♪</div>
         <form onSubmit={handleSignup} className="login-form">
           {/* username */}
           <div className="input-wrap">
@@ -200,7 +197,7 @@ function Signup() {
 
           {/* email */}
           <div className="input-wrap">
-            <label className="input-label"> email</label>
+            <label className="input-label">email</label>
             <svg className="input-icon" viewBox="0 0 16 16" fill="none">
               <rect
                 x="1"
@@ -227,6 +224,7 @@ function Signup() {
               required
             />
           </div>
+
           {/* password */}
           <div className="input-wrap">
             <label className="input-label">password</label>

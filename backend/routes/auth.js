@@ -2,77 +2,115 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
+import Party from "../models/party.js";
+import protect from "../middleware/authMiddleware.js";
 
-const router = express.Router(); // Create a router for authentication-related routes
+const router = express.Router();
 
-// Register a new user
+// POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
-    // Extract username, email, and password from the request body
     const { username, email, password } = req.body;
-    //Check if the user already exists in the database
-    let user = await User.findOne({ email });
-    if (user) {
-      // If the user already exists, return a 400 Bad Request response with an error message
+
+    const emailExists = await User.findOne({ email });
+    if (emailExists)
       return res.status(400).json({ msg: "This email is already registered." });
-    }
-    // Hash the password using bcrypt with a salt round of 10
-    const salt = await bcrypt.genSalt(10); // add 10 rounds of salt
-    const hashedPassword = await bcrypt.hash(password, salt); //request password, response hashed
-    // Once done, create a new user
-    user = new User({
+
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists)
+      return res.status(400).json({ msg: "This username is already taken." });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = new User({
       username,
       email,
       password: hashedPassword,
-      rank: "Fledgling", // Default rank for new users
+      rank: "Fledgling",
     });
-    // push to mongoose atlas
+
+    await user.save();
+
+    // automatically create a party for the new user
+    const party = new Party({
+      name: `${username}'s Hearth`,
+      owner: user._id,
+      members: [],
+    });
+    await party.save();
+
+    // link party to user
+    user.partyId = party._id;
+    user.isPartyOwner = true;
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "24h",
     });
-    res.status(201).json({ token });
+
+    res.status(201).json({
+      token,
+      inviteCode: party.inviteCode,
+    });
   } catch (err) {
     console.error("FULL ERROR:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ msg: err.message });
   }
 });
-// session key credentials for login
+
+// POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body; // Extract email and password from the request body
-    // check if the user exists in the database
+    const { email, password } = req.body;
+
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ msg: "Invalid credentials." }); // If the user does not exist, return a 400 Bad Request response with an error message
-    }
-    // compare password w/ the hashed password stored in the database
+    if (!user) return res.status(400).json({ msg: "Invalid credentials." });
+
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid credentials." }); // If the password does not match, return a 400 Bad Request response with an error message
-    }
-    // create web token
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }, // Token expires in 24 hours
-    );
-    // send data to client
+    if (!isMatch) return res.status(400).json({ msg: "Invalid credentials." });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "24h",
+    });
+
     res.json({
       token,
       user: {
         id: user._id,
         username: user.username,
         rank: user.rank,
-        points: user.points,
-        badges: user.badges,
+        avatarId: user.avatarId,
+        partyId: user.partyId,
+        isPartyOwner: user.isPartyOwner,
       },
     });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server error"); // Return a 500 Internal Server Error response if login fails
+    res.status(500).json({ msg: "Server error" });
   }
 });
 
-export default router; // Export the router to be used in the main server file
+// POST /api/auth/update-avatar
+router.post("/update-avatar", protect, async (req, res) => {
+  try {
+    const { avatarId } = req.body;
+
+    const validAvatars = ["tomato", "frog", "fish", "mushroom", "apple", "snail"];
+    if (!validAvatars.includes(avatarId))
+      return res.status(400).json({ msg: "Invalid avatar selection." });
+
+    const user = await User.findByIdAndUpdate(
+      req.user,
+      { avatarId },
+      { new: true },
+    ).select("-password");
+
+    res.json({ msg: "Avatar updated!", avatarId: user.avatarId });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+export default router;

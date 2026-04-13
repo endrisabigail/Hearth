@@ -1,27 +1,62 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const QuestSchema = new mongoose.Schema({ // Define the schema for the Quest model
-    title: { // Define the title field
-        type: String,
-        required: true
+const QuestSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
     },
-    description: { // Define the description field
-        type: String,
-        required: true
+    description: {
+      type: String,
+      required: true,
     },
-    dueDate: { // Define the due date field
-        type: Date,
-        required: true
+    dueDate: {
+      type: Date,
+      required: true,
     },
-    points: { // Define the points field for gamification
-        type: Number,
-        default: 0
+    category: {
+      type: String,
+      default: "general",
     },
-    status: { // Define the status field to track quest completion
-        type: String,
-        enum: ['Not Started', 'In Progress', 'Completed'],
-        default: 'Not Started'
-    }
-}, { timestamps: true }); // Track automatically when a quest is created or updated
+    points: {
+      type: Number,
+      default: 5,
+    },
+    status: {
+      type: String,
+      enum: ["Not Started", "In Progress", "Completed"],
+      default: "Not Started",
+    },
+    // which party this quest belongs to
+    partyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Party",
+      required: true,
+    },
+    // who created it (the lead)
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    // who is assigned to it
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    // who completed it
+    completedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { timestamps: true },
+);
 
-export default mongoose.model('Quest', QuestSchema); // Export the Quest model based on the defined schema
+export default mongoose.model("Quest", QuestSchema);
