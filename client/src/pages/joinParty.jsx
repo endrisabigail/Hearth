@@ -29,7 +29,7 @@ function JoinParty() {
   const fetchPartyInfo = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:5000/api/party/invite/${inviteCode}`,
+        `${import.meta.env.VITE_API_URL}/api/party/invite/${inviteCode}`,
       );
       setPartyInfo(res.data);
     } catch (err) {
@@ -50,7 +50,7 @@ function JoinParty() {
     setJoining(true);
     try {
       await axios.post(
-        `http://localhost:5000/api/party/join/${inviteCode}`,
+        `${import.meta.env.VITE_API_URL}/api/party/join/${inviteCode}`,
         {},
         { headers: { "x-auth-token": token } },
       );
