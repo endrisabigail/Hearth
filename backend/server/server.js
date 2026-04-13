@@ -17,7 +17,7 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? "https://hearth.vercel.app"
+        ? "https://hearth-eaku.onrender.com"
         : "http://localhost:5173", // Vite's default port
     credentials: true,
   }),
@@ -35,5 +35,5 @@ app.listen(PORT, () => {
   console.log(`Hearth is running on port ${PORT}`);
 });
 app.get("/", (req, res) => {
-  res.send("Hearth API is alive!");
+  res.send("Hearth API is alive and cozy! 🌿");
 });
