@@ -17,8 +17,8 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? "https://hearth-eaku.onrender.com"
-        : "http://localhost:5173", // Vite's default port
+        ? "https://hearth-umber-six.vercel.app"
+        : "http://localhost:5173",
     credentials: true,
   }),
 );
