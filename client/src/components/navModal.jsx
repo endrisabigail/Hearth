@@ -227,7 +227,7 @@ function NavModal({ userData, party, api, onClose }) {
 }
 
 function ToggleRow({ label, defaultOn }) {
-  const [on, setOn] = React.useState(defaultOn);
+  const [on, setOn] = useState(defaultOn);
   return (
     <div className="nm-toggle-row">
       <span className="nm-toggle-label">{label}</span>

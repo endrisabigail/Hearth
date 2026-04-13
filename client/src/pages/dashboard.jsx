@@ -150,7 +150,8 @@ function Dashboard() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
-        const { x, y } = posRef.current;
+        const x = Number(posRef.current.x.toFixed(4));
+        const y = Number(posRef.current.y.toFixed(4));
         await api.patch("/dashboard/position", { x, y });
       } catch (err) {
         console.error("position save failed:", err);
