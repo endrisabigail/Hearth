@@ -35,7 +35,17 @@ const SAVE_DEBOUNCE = 1500;
 const PANELS = ["members", "mail", "focus"];
 const GROUND_SCALE = 120;
 const COLLISION_PADDING = 0.3;
+const [xpPopups, setXpPopups] = useState([]);
 
+const triggerXP = (points) => {
+  const id = Date.now();
+  setXpPopups((prev) => [...prev, { id, points }]);
+
+  // Remove from DOM after animation finishes (1.5s)
+  setTimeout(() => {
+    setXpPopups((prev) => prev.filter((p) => p.id !== id));
+  }, 1500);
+};
 // status badge background is data-driven so kept as a lookup used inline
 const STATUS_COLOR = {
   "Not Started": "#f5a623",
@@ -593,7 +603,7 @@ function PlazaCanvas({
       undefined,
       (err) => console.error("tree load error:", err),
     );
-  
+
     // grass patches
     const GRASS_PLACEMENTS = [
       { x: -5.5, z: -2.5, sc: 1.1 },
@@ -983,8 +993,6 @@ function Dashboard() {
     setModalQuest(quest);
     setModalOpen(true);
   };
-  const handleQuestUpdated = (updated) =>
-    setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
   const handleQuestCreated = (created) =>
     setQuests((prev) => [created, ...prev]);
   const handleQuestDeleted = (id) =>
@@ -994,6 +1002,13 @@ function Dashboard() {
     ...(party?.owner ? [party.owner] : []),
     ...(party?.members || []),
   ];
+  const handleQuestUpdated = (updated, responseData) => {
+    if (responseData?.msg === "Quest completed!") {
+      triggerXP(responseData.pointsAwarded || 5);
+    }
+
+    setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
+  };
 
   if (loading) {
     return (
@@ -1326,6 +1341,12 @@ function Dashboard() {
           onSent={() => setNotifications((prev) => prev)}
         />
       )}
+
+      {xpPopups.map(popup => (
+        <div key={popup.id} className="xp-popup">
+          +{popup.points} ✨
+        </div>
+      ))}
     </div>
   );
 }
