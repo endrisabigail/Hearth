@@ -178,6 +178,7 @@ function QuestModal({
       setSaving(false);
     }
   };
+  const [navModalOpen, setNavModalOpen] = useState(false);
 
   return (
     <div className="qm-overlay" onClick={onClose}>
@@ -577,7 +578,7 @@ function PlazaCanvas({
       undefined,
       (err) => console.error("tree load error:", err),
     );
-  
+
     // grass patches
     const GRASS_PLACEMENTS = [
       { x: -5.5, z: -2.5, sc: 1.1 },
@@ -1078,13 +1079,18 @@ function Dashboard() {
           { id: "board", icon: "📋", label: "Board", path: "/board" },
           { id: "passport", icon: "📖", label: "Passport", path: "/passport" },
           { id: "pocket", icon: "🎒", label: "Pocket", path: "/pocket" },
+          { id: "settings", icon: "⚙️", label: "Settings" },
         ].map((item) => (
           <div
             key={item.id}
             className={`nav-item ${activeNav === item.id ? "active" : ""}`}
             onClick={() => {
               setActiveNav(item.id);
-              if (item.path) navigate(item.path);
+              if (item.id === "settings") {
+                setNavModalOpen(true);
+              } else if (item.path) {
+                navigate(item.path);
+              }
             }}
           >
             <span className="nav-icon">{item.icon}</span>
