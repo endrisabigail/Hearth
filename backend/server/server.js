@@ -35,5 +35,5 @@ app.listen(PORT, () => {
   console.log(`Hearth is running on port ${PORT}`);
 });
 app.get("/", (req, res) => {
-  res.send("Hearth API is alive and cozy! 🌿");
+  res.send("Hearth API is alive!");
 });
