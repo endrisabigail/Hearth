@@ -7,11 +7,11 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import PlazaCanvas from "../components/PlazaCanvas.jsx";
+import PlazaCanvas from "../components/plazaCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
 import QuestNodes from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
-import NavModal from "../components/NavModal.jsx";
+import NavModal from "../components/navModal.jsx";
 import "../pages/styles/dashboard.css";
 import "../pages/styles/questModal.css";
 import "../pages/styles/messageModal.css";
