@@ -593,7 +593,7 @@ function PlazaCanvas({
       undefined,
       (err) => console.error("tree load error:", err),
     );
-
+  
     // grass patches
     const GRASS_PLACEMENTS = [
       { x: -5.5, z: -2.5, sc: 1.1 },
