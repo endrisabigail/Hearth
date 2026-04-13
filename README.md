@@ -1,3 +1,4 @@
+![Status](https://img.shields.io/badge/Status-In--Development-green?style=flat-square)
 # Hearth 
 **Gamified Project Management Web App**
 
@@ -27,7 +28,7 @@ Hearth is a full-stack MERN application that replaces traditional checkboxes wit
 </table>
 
 <details>
-  <summary align="center"><b>View More System Screenshots (XP Updates, Empty States, etc.)</b></summary>
+  <summary align="center"><b>View More System Screenshots </b></summary>
   <br>
   <table align="center">
     <tr>
@@ -54,14 +55,32 @@ Hearth is a full-stack MERN application that replaces traditional checkboxes wit
 
 ---
 
+## How It Works
+
+Hearth bridges a high-performance 3D engine with a traditional MERN stack, turning standard database operations into a tangible, interactive experience.
+
+### The 3D Engine & Input
+* **Keyboard State Tracking:** Utilizes custom event listeners for **WASD/Arrow keys** to bypass default browser latency, allowing for fluid, "zero-lag" character movement.
+* **Proximity Logic:** The application calculates the player's mathematical distance to 3D task nodes in real-time to determine which quest is currently being "visited" or interacted with.
+* **Asset Optimization:** Custom **Blender** models are exported as `.glb` files.
+
+---
+
+### The Gamified Backend
+* **Dynamic Reward Scaling:** Upon task completion, the Node/Express backend calculates XP rewards based on priority and difficulty metadata, triggering a "Gold XP" animation on the frontend.
+* **Cloud Persistence:** All user states, character choices, and party memberships are synced via **MongoDB Atlas**, ensuring progress is saved and synchronized across all sessions.
+* **Secure Collaboration:** Plazas and quest data are protected by **JWT authentication**, ensuring that party interactions and private data remain secure.
+
+---
+
 ## Key Features
 
-- **Isometric 3D Interface:** A custom-rendered world where tasks are represented as interactive nodes.
-- **Dynamic XP System:** Server-side logic calculates XP scaling based on task priority and complexity.
-- **Persistent Progression:** Real-time streak tracking and user data synced via MongoDB.
-- **Character Customization:** Integrated Blender-rendered.
-- **Security:** Full JWT-based protected routes and hashed password storage.
-
+- **Explorable 3D Plaza:** A fully interactive isometric world where tasks are represented as physical, interactive nodes.
+- **Social Party System:** Invite friends to your plaza to share quest lists and track group productivity in a shared space.
+- **Persistent Progression:** Real-time streak tracking and experience points (XP) that evolve your digital garden over time.
+- **Character Customization:** Choose from unique, Blender-rendered companions that represent your player profile.
+- **Security-First Design:** Full JWT-based protected routes and hashed password storage (Bcrypt) for all user data.
+  
 ---
 
 ## Technical Highlights
