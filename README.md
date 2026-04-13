@@ -16,7 +16,7 @@ Every 3D asset was modeled, lit, and rendered in Nomad and Blender from scratch.
 **Backend** : Node.js, Express.js  
 **Database** : MongoDB  
 **Auth** : JWT (JSON Web Tokens)  
-**3D Assets** : Blender & Nomad  
+**3D Assets** : Blender,Nomad, and Three.js
 **2D Assets** : Procreate
 
 ---
