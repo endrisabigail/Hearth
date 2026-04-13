@@ -30,22 +30,12 @@ const AVATAR_CONFIG = {
 };
 
 const DEFAULT_BOUNDS = { minX: 0.05, maxX: 0.95, minY: 0.05, maxY: 0.95 };
-const MOVE_SPEED = 0.05;
+const MOVE_SPEED = 0.008;
 const SAVE_DEBOUNCE = 1500;
 const PANELS = ["members", "mail", "focus"];
 const GROUND_SCALE = 120;
 const COLLISION_PADDING = 0.3;
-const [xpPopups, setXpPopups] = useState([]);
 
-const triggerXP = (points) => {
-  const id = Date.now();
-  setXpPopups((prev) => [...prev, { id, points }]);
-
-  // Remove from DOM after animation finishes (1.5s)
-  setTimeout(() => {
-    setXpPopups((prev) => prev.filter((p) => p.id !== id));
-  }, 1500);
-};
 // status badge background is data-driven so kept as a lookup used inline
 const STATUS_COLOR = {
   "Not Started": "#f5a623",
@@ -64,7 +54,6 @@ const CATEGORY_OPTIONS = [
   "other",
 ];
 
-// collision helpers
 function collidesWithAny(nx, ny, boxes) {
   return boxes.some(
     (b) =>
@@ -84,7 +73,6 @@ function worldBoxToNorm(box, padding) {
   };
 }
 
-// FieldGroup
 function FieldGroup({ label, children }) {
   return (
     <div className="qm-field">
@@ -93,8 +81,6 @@ function FieldGroup({ label, children }) {
     </div>
   );
 }
-
-// QuestModal
 
 function QuestModal({
   quest,
@@ -306,7 +292,6 @@ function QuestModal({
         {quest && (
           <>
             <div className="qm-quest-header">
-              {/* background colour is data-driven only inline value allowed */}
               <span
                 className="qm-status-badge"
                 style={{ background: STATUS_COLOR[quest.status] || "#aaa" }}
@@ -493,7 +478,6 @@ function PlazaCanvas({
     );
 
     const TREE_PLACEMENTS = [
-      // top edge forest
       { x: -24.0, z: -18.0, ry: 0.0 },
       { x: -20.0, z: -19.5, ry: 1.1 },
       { x: -16.0, z: -18.5, ry: 2.3 },
@@ -507,8 +491,6 @@ function PlazaCanvas({
       { x: 16.0, z: -18.5, ry: 3.3 },
       { x: 20.0, z: -19.0, ry: 1.7 },
       { x: 24.0, z: -18.0, ry: 4.1 },
-
-      // bottom edge forest
       { x: -24.0, z: 18.0, ry: 3.2 },
       { x: -20.0, z: 19.5, ry: 0.9 },
       { x: -16.0, z: 18.5, ry: 4.1 },
@@ -522,8 +504,6 @@ function PlazaCanvas({
       { x: 16.0, z: 18.5, ry: 1.0 },
       { x: 20.0, z: 19.0, ry: 3.5 },
       { x: 24.0, z: 18.0, ry: 5.3 },
-
-      // left edge forest
       { x: -24.0, z: -14.0, ry: 1.0 },
       { x: -23.0, z: -10.0, ry: 2.4 },
       { x: -24.0, z: -6.0, ry: 0.3 },
@@ -532,8 +512,6 @@ function PlazaCanvas({
       { x: -23.0, z: 6.0, ry: 4.2 },
       { x: -24.0, z: 10.0, ry: 0.7 },
       { x: -23.0, z: 14.0, ry: 2.9 },
-
-      // right edge forest
       { x: 24.0, z: -14.0, ry: 4.2 },
       { x: 23.0, z: -10.0, ry: 0.8 },
       { x: 24.0, z: -6.0, ry: 2.9 },
@@ -542,8 +520,6 @@ function PlazaCanvas({
       { x: 23.0, z: 6.0, ry: 0.3 },
       { x: 24.0, z: 10.0, ry: 3.4 },
       { x: 23.0, z: 14.0, ry: 1.9 },
-
-      // corner clusters
       { x: -23.0, z: -17.0, ry: 0.5 },
       { x: -21.0, z: -18.5, ry: 1.7 },
       { x: 23.0, z: -17.0, ry: 3.3 },
@@ -552,8 +528,6 @@ function PlazaCanvas({
       { x: -21.0, z: 18.5, ry: 4.4 },
       { x: 23.0, z: 17.0, ry: 1.2 },
       { x: 21.0, z: 18.5, ry: 3.8 },
-
-      // scattered interior trees for depth
       { x: -14.0, z: -8.0, ry: 0.6 },
       { x: 14.0, z: -8.0, ry: 2.7 },
       { x: -14.0, z: 8.0, ry: 4.9 },
@@ -563,6 +537,7 @@ function PlazaCanvas({
       { x: -6.0, z: 10.0, ry: 2.1 },
       { x: 6.0, z: -10.0, ry: 4.6 },
     ];
+
     glbLoader.load(
       "/assets/models/tree.glb",
       (gltf) => {
@@ -584,7 +559,6 @@ function PlazaCanvas({
           inst.position.y = -center0.y * treeScale;
           inst.rotation.y = p.ry;
 
-          // recolor AFTER inst is created
           let colorIndex = 0;
           inst.traverse((child) => {
             if (child.isMesh && child.visible) {
@@ -603,7 +577,7 @@ function PlazaCanvas({
       undefined,
       (err) => console.error("tree load error:", err),
     );
-
+  
     // grass patches
     const GRASS_PLACEMENTS = [
       { x: -5.5, z: -2.5, sc: 1.1 },
@@ -629,14 +603,14 @@ function PlazaCanvas({
       { x: -3.5, z: -5.0, sc: 0.9 },
       { x: 4.2, z: -4.0, sc: 1.05 },
       { x: -0.2, z: 0.3, sc: 0.6 },
-      { x: -14.0, z: -8.0, ry: 0.6 },
-      { x: 14.0, z: -8.0, ry: 2.7 },
-      { x: -14.0, z: 8.0, ry: 4.9 },
-      { x: 14.0, z: 8.0, ry: 1.4 },
-      { x: -8.0, z: -4.0, ry: 3.2 },
-      { x: 8.0, z: 4.0, ry: 0.8 },
-      { x: -6.0, z: 10.0, ry: 2.1 },
-      { x: 6.0, z: -10.0, ry: 4.6 },
+      { x: -14.0, z: -8.0, sc: 0.9 },
+      { x: 14.0, z: -8.0, sc: 0.9 },
+      { x: -14.0, z: 8.0, sc: 0.9 },
+      { x: 14.0, z: 8.0, sc: 0.9 },
+      { x: -8.0, z: -4.0, sc: 0.9 },
+      { x: 8.0, z: 4.0, sc: 0.9 },
+      { x: -6.0, z: 10.0, sc: 0.9 },
+      { x: 6.0, z: -10.0, sc: 0.9 },
     ];
 
     glbLoader.load(
@@ -685,8 +659,10 @@ function PlazaCanvas({
         const floatAmp = isMoving ? 0.12 : 0.06;
         const baseY = model.userData.baseY ?? 0;
         model.position.y = baseY + Math.sin(floatTRef.current) * floatAmp;
-        model.position.x = (posRef.current.x - 0.5) * 4.0;
-        model.position.z = (posRef.current.y - 0.5) * 3.0;
+        model.position.x =
+          ((posRef.current._smoothX ?? posRef.current.x) - 0.5) * 4.0;
+        model.position.z =
+          ((posRef.current._smoothY ?? posRef.current.y) - 0.5) * 3.0;
 
         const k = keysRef.current;
         if (k.ArrowLeft || k.ArrowRight || k.ArrowUp || k.ArrowDown) {
@@ -704,7 +680,6 @@ function PlazaCanvas({
           model.rotation.y += delta * 0.18;
         }
 
-        // pulse glow ring if character has active quest
         model.traverse((child) => {
           if (child.userData.isCharGlow) {
             const active = hasActiveQuestRef.current;
@@ -730,7 +705,6 @@ function PlazaCanvas({
     };
   }, []);
 
-  // swap character model when avatarId changes
   useEffect(() => {
     if (!sceneRef.current || !avatarId) return;
     if (modelRef.current) {
@@ -756,7 +730,6 @@ function PlazaCanvas({
         pivot.position.x = cfg.offsetX;
         pivot.userData.baseY = g.position.y;
 
-        // glow ring shown when character has an active quest
         const glowRing = new THREE.Mesh(
           new THREE.RingGeometry(0.45, 0.65, 32),
           new THREE.MeshBasicMaterial({
@@ -887,6 +860,18 @@ function Dashboard() {
     }
   };
 
+  const scheduleSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const { x, y } = posRef.current;
+        await api.patch("/dashboard/position", { x, y });
+      } catch (err) {
+        console.error("position save failed:", err);
+      }
+    }, SAVE_DEBOUNCE);
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e) => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
@@ -901,28 +886,37 @@ function Dashboard() {
     window.addEventListener("keyup", onKeyUp);
 
     let frameId;
+    let lastTime = performance.now();
+    const smoothPos = { x: posRef.current.x, y: posRef.current.y };
+
     const tick = () => {
       frameId = requestAnimationFrame(tick);
+
+      const now = performance.now();
+      const dt = Math.min(now - lastTime, 50);
+      lastTime = now;
+
       const k = keysRef.current;
       let moved = false;
       let { x, y } = posRef.current;
       let nx = x,
         ny = y;
+      const speed = MOVE_SPEED * dt;
 
       if (k.ArrowLeft) {
-        nx -= MOVE_SPEED;
+        nx -= speed;
         moved = true;
       }
       if (k.ArrowRight) {
-        nx += MOVE_SPEED;
+        nx += speed;
         moved = true;
       }
       if (k.ArrowUp) {
-        ny -= MOVE_SPEED;
+        ny -= speed;
         moved = true;
       }
       if (k.ArrowDown) {
-        ny += MOVE_SPEED;
+        ny += speed;
         moved = true;
       }
 
@@ -946,7 +940,15 @@ function Dashboard() {
         posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
       }
+
+      // framerate-independent lerp for smooth gliding
+      const lerpFactor = 1 - Math.pow(0.01, dt / 1000);
+      smoothPos.x += (posRef.current.x - smoothPos.x) * lerpFactor;
+      smoothPos.y += (posRef.current.y - smoothPos.y) * lerpFactor;
+      posRef.current._smoothX = smoothPos.x;
+      posRef.current._smoothY = smoothPos.y;
     };
+
     frameId = requestAnimationFrame(tick);
 
     return () => {
@@ -954,18 +956,6 @@ function Dashboard() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
-
-  const scheduleSave = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        const { x, y } = posRef.current;
-        await api.patch("/dashboard/position", { x, y });
-      } catch (err) {
-        console.error("position save failed:", err);
-      }
-    }, SAVE_DEBOUNCE);
   }, []);
 
   const togglePanel = (panel) =>
@@ -1002,13 +992,6 @@ function Dashboard() {
     ...(party?.owner ? [party.owner] : []),
     ...(party?.members || []),
   ];
-  const handleQuestUpdated = (updated, responseData) => {
-    if (responseData?.msg === "Quest completed!") {
-      triggerXP(responseData.pointsAwarded || 5);
-    }
-
-    setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
-  };
 
   if (loading) {
     return (
@@ -1265,7 +1248,6 @@ function Dashboard() {
             <div className="streak-section">
               <div className="streak-label">🔥 weekly streak</div>
               <div className="streak-bar-bg">
-                {/* width is a computed percentage only inline value permitted */}
                 <div
                   className="streak-bar-fill"
                   style={{
@@ -1318,7 +1300,6 @@ function Dashboard() {
         />
       )}
 
-      {/* floating + button — owner only */}
       {userData?.isPartyOwner && (
         <button
           className="floating-add-btn"
@@ -1341,12 +1322,6 @@ function Dashboard() {
           onSent={() => setNotifications((prev) => prev)}
         />
       )}
-
-      {xpPopups.map(popup => (
-        <div key={popup.id} className="xp-popup">
-          +{popup.points} ✨
-        </div>
-      ))}
     </div>
   );
 }
