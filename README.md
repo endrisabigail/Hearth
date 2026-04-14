@@ -13,6 +13,7 @@ Hearth is a full-stack MERN application that replaces traditional checkboxes wit
 ![avatarselection](https://github.com/user-attachments/assets/c0cfdc16-901c-4b3f-81a5-bcf3797096a5)
 
 **Character Movement**
+
 ![characterMovement](https://github.com/user-attachments/assets/badcfb88-ee94-4648-8df0-ff21601ef7fb)
 
 
