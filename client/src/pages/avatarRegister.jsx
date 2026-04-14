@@ -18,7 +18,7 @@ const avatars = [
     label: "Tammy the Tomato ",
     class: "Forest Keeper",
     description:
-      "Grounded and dependable. Ketchup's to everything eventually 🍅",
+      "Ketchup's to everything eventually 🍅",
   },
   {
     id: "frog",
@@ -28,7 +28,7 @@ const avatars = [
     label: "Froppy the Frog ",
     class: "Wanderer",
     description:
-      "Curious and adaptable. Thrives when jumping between big ideas 𖠊",
+      "Thrives when jumping between big ideas 𖠊",
   },
   {
     id: "fish",
@@ -36,9 +36,9 @@ const avatars = [
     model: "/assets/models/fish.glb",
     thumb: "/assets/thumbs/fish.png",
     label: "Finn the Fish ",
-    class: "Depths Diver",
+    class: "Stream Guide",
     description:
-      "A deep thinker. Plenty of fish in the sea, but none quite like her 𓆝",
+      "Plenty of fish in the sea, but none quite like her 𓆝",
     offsetX: 0.2,
   },
   {
@@ -49,7 +49,7 @@ const avatars = [
     label: "Mossy the Mushroom",
     class: "Forest Sage",
     description:
-      "Patient and wise. Grows best in quiet, focused environments 𓍊",
+      "Grows best in quiet, focused environments 𓍊",
   },
   {
     id: "apple",
@@ -59,7 +59,7 @@ const avatars = [
     label: "Abbey the Apple ",
     class: "Harvest Guardian",
     description:
-      "Reliable and warm. The kind of companion who keeps things running 🍎",
+      "An apple a day keeps the quests at bay 🍎",
   },
   {
     id: "snail",
@@ -68,7 +68,7 @@ const avatars = [
     thumb: "/assets/thumbs/snail.png",
     label: "Shelby the Snail",
     class: "Patient Seeker",
-    description: "Slow and intentional. Never rushed, never behind ๑ï",
+    description: "Never rushed, never behind ๑ï",
   },
 ];
 
