@@ -2,7 +2,7 @@
 # Hearth 
 **Gamified Project Management Web App**
 
-Hearth is a full-stack MERN application that replaces traditional checkboxes with a hand-crafted 3D environment. Built for those who find standard productivity tools clinical, Hearth turns "to-dos" into a digital garden where every completed task contributes to a persistent, evolving world.
+Hearth is a full-stack MERN application that replaces traditional checkboxes with a hand-crafted 3D environment. Built for those who find standard productivity tools clinical, Hearth turns "to-dos" into a digital garden where every completed task contributes to a evolving world.
 
 ---
 
