@@ -438,7 +438,7 @@ function AvatarRegister() {
           className={`select-btn ${isConfirmed ? "confirmed" : ""}`}
           onClick={handleConfirm}
         >
-          {isConfirmed ? "Entering the plaza..." : "Start Adventure!"}
+          {isConfirmed ? "Entering the plaza..." : "Start your Adventure!"}
         </button>
       </div>
     </div>
