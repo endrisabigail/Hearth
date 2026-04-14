@@ -32,7 +32,7 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    // Only auto-create a party if they're not joining via invite link
+    // Only auto-create a party if they're NOT joining via invite link
     if (!inviteCode) {
       const party = new Party({
         name: `${username}'s Hearth`,

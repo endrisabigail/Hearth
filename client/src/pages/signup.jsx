@@ -173,7 +173,7 @@ function Signup() {
           HEARTH
         </div>
         <div className="card-title">Sign Up</div>
-        <div className="card-sub">start your journey ♪</div>
+        <div className="card-sub">start your adventure</div>
         <form onSubmit={handleSignup} className="login-form">
           {/* username */}
           <div className="input-wrap">
