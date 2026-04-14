@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import PlazaCanvas from "../components/plazaCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
-import QuestNodes from "../components/questNodes.jsx";
+import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
 import NavModal from "../components/navModal.jsx";
 import "../pages/styles/dashboard.css";
@@ -31,6 +31,9 @@ const DEFAULT_BOUNDS = { minX: 0.05, maxX: 0.95, minY: 0.05, maxY: 0.95 };
 const MOVE_SPEED = 0.008;
 const SAVE_DEBOUNCE = 1500;
 const PANELS = ["members", "mail", "focus"];
+
+// how close the character needs to be to a chest to trigger on walk-in
+const PROXIMITY_THRESHOLD = 0.06;
 
 function collidesWithAny(nx, ny, boxes) {
   return boxes.some(
@@ -78,6 +81,13 @@ function Dashboard() {
   const saveTimer = useRef(null);
   const mapAreaRef = useRef(null);
   const collisionBoxesRef = useRef([]);
+
+  // travel target ref set to { x, y } to start auto-travel, null to stop
+  const travelTargetRef = useRef(null);
+  // quest to open when character arrives at chest
+  const pendingQuestRef = useRef(null);
+  // track which chests already proximity-triggered to avoid repeat opens
+  const proximityTriggeredRef = useRef(new Set());
 
   const token = localStorage.getItem("token");
   const apiRef = useRef(
@@ -159,7 +169,17 @@ function Dashboard() {
     }, SAVE_DEBOUNCE);
   }, []);
 
-  // game loop is completely isolated from React state
+  // called when character arrives at a chest via click-to-travel
+  const handleArrived = useCallback(() => {
+    if (pendingQuestRef.current) {
+      setModalQuest(pendingQuestRef.current);
+      setModalOpen(true);
+      pendingQuestRef.current = null;
+    }
+    scheduleSave();
+  }, [scheduleSave]);
+
+  // game loop to handle manual movement + proximity detection
   useEffect(() => {
     const onKeyDown = (e) => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
@@ -226,6 +246,34 @@ function Dashboard() {
 
         posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
+
+        // proximity check for all nodes to trigger modal open on walk-in
+        NODE_POSITIONS.forEach((node, i) => {
+          const dx = posRef.current.x - node.nx;
+          const dy = posRef.current.y - node.ny;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (
+            dist < PROXIMITY_THRESHOLD &&
+            !proximityTriggeredRef.current.has(node.id)
+          ) {
+            proximityTriggeredRef.current.add(node.id);
+            // use a small timeout to let React state (quests) be accessible
+            setTimeout(() => {
+              setQuests((currentQuests) => {
+                const quest = currentQuests[i];
+                if (quest) {
+                  setModalQuest(quest);
+                  setModalOpen(true);
+                }
+                return currentQuests;
+              });
+            }, 0);
+          }
+          // reset trigger when player walks away
+          if (dist > PROXIMITY_THRESHOLD * 1.5) {
+            proximityTriggeredRef.current.delete(node.id);
+          }
+        });
       }
 
       const lerpFactor = 1 - Math.pow(0.01, dt / 1000);
@@ -264,10 +312,12 @@ function Dashboard() {
     }
   };
 
-  const handleNodeClick = (quest) => {
-    setModalQuest(quest);
-    setModalOpen(true);
-  };
+  // clicking a chest results in starting travel toward it and opens modal on arrival
+  const handleNodeClick = useCallback((quest, node) => {
+    pendingQuestRef.current = quest;
+    travelTargetRef.current = { x: node.nx, y: node.ny };
+  }, []);
+
   const handleQuestUpdated = (updated) =>
     setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
   const handleQuestCreated = (created) =>
@@ -275,7 +325,6 @@ function Dashboard() {
   const handleQuestDeleted = (id) =>
     setQuests((prev) => prev.filter((q) => q._id !== id));
 
-  // memoize so PlazaCanvas doesn't re-render when quests change
   const hasActiveQuest = useMemo(
     () =>
       quests.some(
@@ -335,6 +384,8 @@ function Dashboard() {
               setThreeCtx({ scene, camera, renderer })
             }
             hasActiveQuest={hasActiveQuest}
+            travelTargetRef={travelTargetRef}
+            onArrived={handleArrived}
           />
         )}
         {threeCtx.scene && (

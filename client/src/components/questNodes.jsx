@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-const NODE_POSITIONS = [
+export const NODE_POSITIONS = [
   { id: "node-1", nx: 0.25, ny: 0.3 },
   { id: "node-2", nx: 0.75, ny: 0.28 },
   { id: "node-3", nx: 0.5, ny: 0.55 },
@@ -39,17 +39,14 @@ function makeChest(colors) {
   const bandMat = new THREE.MeshLambertMaterial({ color: colors.band });
   const latchMat = new THREE.MeshLambertMaterial({ color: colors.latch });
 
-  // body
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), bodyMat);
   body.position.y = 0.15;
   group.add(body);
 
-  // lid
   const lid = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.16, 0.37), lidMat);
   lid.position.y = 0.38;
   group.add(lid);
 
-  // arched top
   const arc = new THREE.Mesh(
     new THREE.CylinderGeometry(0.135, 0.135, 0.37, 12, 1, false, 0, Math.PI),
     lidMat,
@@ -58,7 +55,6 @@ function makeChest(colors) {
   arc.position.y = 0.46;
   group.add(arc);
 
-  // bands
   [-0.12, 0.12].forEach((bx) => {
     const b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.38), bandMat);
     b.position.set(bx, 0.16, 0);
@@ -68,12 +64,10 @@ function makeChest(colors) {
     group.add(bl);
   });
 
-  // latch
   const latch = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.04), latchMat);
   latch.position.set(0, 0.3, 0.185);
   group.add(latch);
 
-  // sparkles for available/completed
   if (colors === CHEST_COLORS.available || colors === CHEST_COLORS.completed) {
     const sm = new THREE.MeshBasicMaterial({ color: colors.latch });
     [
@@ -90,7 +84,6 @@ function makeChest(colors) {
   return group;
 }
 
-// Glowing ring under a chest for "in progress" quests
 function makeGlowRing(color) {
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(0.38, 0.55, 32),
@@ -123,7 +116,6 @@ export default function QuestNodes({
     nodesRef.current.forEach(({ group }) => scene.remove(group));
     nodesRef.current = [];
 
-    // Only render chests for quests that actually exist
     quests.forEach((quest, i) => {
       const node = NODE_POSITIONS[i % NODE_POSITIONS.length];
       const colors = getChestColors(quest);
@@ -136,7 +128,6 @@ export default function QuestNodes({
       chest.userData.nodeId = node.id;
       chest.userData.quest = quest;
 
-      // glow ring for in-progress quests
       if (quest.status === "In Progress") {
         const ring = makeGlowRing(0x64b5f6);
         ring.userData.isGlow = true;
@@ -156,7 +147,6 @@ export default function QuestNodes({
           group.userData.baseY + Math.sin(bobRef.current) * 0.07;
         group.rotation.y += 0.008;
 
-        // pulse glow ring opacity
         group.traverse((child) => {
           if (child.userData.isGlow) {
             child.material.opacity = 0.4 + Math.sin(bobRef.current * 2) * 0.3;

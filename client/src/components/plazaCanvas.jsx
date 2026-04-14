@@ -13,6 +13,8 @@ const AVATAR_CONFIG = {
 
 const GROUND_SCALE = 120;
 const COLLISION_PADDING = 0.3;
+const TRAVEL_SPEED = 0.006;
+const ARRIVAL_THRESHOLD = 0.018;
 
 function worldBoxToNorm(box, padding) {
   return {
@@ -125,6 +127,8 @@ function PlazaCanvas({
   collisionBoxesRef,
   onSceneReady,
   hasActiveQuest,
+  travelTargetRef,
+  onArrived,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -135,10 +139,15 @@ function PlazaCanvas({
   const frameRef = useRef(null);
   const floatTRef = useRef(0);
   const hasActiveQuestRef = useRef(false);
+  const onArrivedRef = useRef(onArrived);
 
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
   }, [hasActiveQuest]);
+
+  useEffect(() => {
+    onArrivedRef.current = onArrived;
+  }, [onArrived]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -270,12 +279,47 @@ function PlazaCanvas({
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate);
       const model = modelRef.current;
+
+      // cancel travel if player presses arrow keys
+      const manualInput =
+        keysRef.current.ArrowUp ||
+        keysRef.current.ArrowDown ||
+        keysRef.current.ArrowLeft ||
+        keysRef.current.ArrowRight;
+
+      if (manualInput && travelTargetRef) {
+        travelTargetRef.current = null;
+      }
+
+      const target = travelTargetRef?.current;
+
+      if (target && !manualInput) {
+        // auto-travel toward target
+        const dx = target.x - posRef.current.x;
+        const dy = target.y - posRef.current.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < ARRIVAL_THRESHOLD) {
+          posRef.current = { ...posRef.current, x: target.x, y: target.y };
+          travelTargetRef.current = null;
+          onArrivedRef.current?.();
+        } else {
+          const nx = posRef.current.x + (dx / dist) * TRAVEL_SPEED;
+          const ny = posRef.current.y + (dy / dist) * TRAVEL_SPEED;
+          posRef.current = { ...posRef.current, x: nx, y: ny };
+
+          if (model) {
+            const targetAngle = Math.atan2(dx, dy);
+            let delta = targetAngle - model.rotation.y;
+            while (delta > Math.PI) delta -= Math.PI * 2;
+            while (delta < -Math.PI) delta += Math.PI * 2;
+            model.rotation.y += delta * 0.18;
+          }
+        }
+      }
+
       if (model) {
-        const isMoving =
-          keysRef.current.ArrowUp ||
-          keysRef.current.ArrowDown ||
-          keysRef.current.ArrowLeft ||
-          keysRef.current.ArrowRight;
+        const isMoving = manualInput || !!target;
         floatTRef.current += isMoving ? 0.12 : 0.04;
         const floatAmp = isMoving ? 0.12 : 0.06;
         const baseY = model.userData.baseY ?? 0;
@@ -285,8 +329,8 @@ function PlazaCanvas({
         model.position.z =
           ((posRef.current._smoothY ?? posRef.current.y) - 0.5) * 3.0;
 
-        const k = keysRef.current;
-        if (k.ArrowLeft || k.ArrowRight || k.ArrowUp || k.ArrowDown) {
+        if (manualInput) {
+          const k = keysRef.current;
           let dx = 0,
             dz = 0;
           if (k.ArrowLeft) dx -= 1;
@@ -304,13 +348,15 @@ function PlazaCanvas({
         model.traverse((child) => {
           if (child.userData.isCharGlow) {
             const active = hasActiveQuestRef.current;
-            const target = active
+            const glowTarget = active
               ? 0.4 + Math.sin(floatTRef.current * 2) * 0.25
               : 0;
-            child.material.opacity += (target - child.material.opacity) * 0.08;
+            child.material.opacity +=
+              (glowTarget - child.material.opacity) * 0.08;
           }
         });
       }
+
       renderer.render(scene, camera);
     };
     animate();
