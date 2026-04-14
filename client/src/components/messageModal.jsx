@@ -172,7 +172,7 @@ export default function MessageModal({
             <p className="mm-loading">loading messages... ✦</p>
           ) : currentMessages.length === 0 ? (
             <p className="mm-no-history">
-              no messages yet — say something nice! 🌿
+              no messages yet...greet your new neighbor!
             </p>
           ) : (
             grouped.map((group) => (
@@ -221,7 +221,7 @@ export default function MessageModal({
           <div className="mm-input-bar">
             <textarea
               className="mm-textarea"
-              placeholder="tell your teammate a funny joke!"
+              placeholder="type your message..."
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
