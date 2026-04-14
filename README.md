@@ -18,7 +18,7 @@ Hearth is a full-stack MERN application that replaces traditional checkboxes wit
 
 <table align="center">
   <tr>
-    <td align="center"><img src="./client/public/assets/screenshots/dashboardopening.png" width="350px"><br><sub><b>3D Plaza Overview</b></sub></td>
+    <td align="center"><img src="./client/public/assets/screenshots/messagingUI.png" width="350px"><br><sub><b>Chat Center</b></sub></td>
     <td align="center"><img src="./client/public/assets/screenshots/createQuest.png" width="350px"><br><sub><b>Add a task</b></sub></td>
   </tr>
   <tr>
