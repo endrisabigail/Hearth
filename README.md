@@ -12,7 +12,8 @@ Hearth is a full-stack MERN application that replaces traditional checkboxes wit
 
 
 **Companion Selection Screen**
-![avatarselection](https://github.com/user-attachments/assets/5e2d948a-a81f-4471-8cf4-b679cdbbde85)
+![avatarselection](https://github.com/user-attachments/assets/c8b40b0d-da4f-4f0c-951d-2957d8b9b77e)
+
 
 <h3 align="center"> Feature Gallery</h3>
 
