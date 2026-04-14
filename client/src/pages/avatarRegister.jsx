@@ -229,6 +229,22 @@ function AvatarRegister() {
           { avatarId: selected.id },
           { headers: { "x-auth-token": token } },
         );
+
+        // Join the pending invite party if there is one
+        const pendingInvite = localStorage.getItem("pendingInvite");
+        if (pendingInvite) {
+          localStorage.removeItem("pendingInvite");
+          try {
+            await axios.post(
+              `${API_URL}/api/party/join/${pendingInvite}`,
+              {},
+              { headers: { "x-auth-token": token } },
+            );
+          } catch (err) {
+            console.error("Could not join party:", err);
+          }
+        }
+
         navigate("/dashboard");
       } catch (err) {
         console.error("Couldn't save avatar selection", err);

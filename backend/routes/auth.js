@@ -10,7 +10,7 @@ const router = express.Router();
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, inviteCode } = req.body;
 
     const emailExists = await User.findOne({ email });
     if (emailExists)
@@ -32,27 +32,25 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    // automatically create a party for the new user
-    const party = new Party({
-      name: `${username}'s Hearth`,
-      owner: user._id,
-      members: [],
-    });
-    await party.save();
+    // Only auto-create a party if they're not joining via invite link
+    if (!inviteCode) {
+      const party = new Party({
+        name: `${username}'s Hearth`,
+        owner: user._id,
+        members: [],
+      });
+      await party.save();
 
-    // link party to user
-    user.partyId = party._id;
-    user.isPartyOwner = true;
-    await user.save();
+      user.partyId = party._id;
+      user.isPartyOwner = true;
+      await user.save();
+    }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "24h",
     });
 
-    res.status(201).json({
-      token,
-      inviteCode: party.inviteCode,
-    });
+    res.status(201).json({ token });
   } catch (err) {
     console.error("FULL ERROR:", err);
     res.status(500).json({ msg: err.message });
@@ -96,7 +94,14 @@ router.post("/update-avatar", protect, async (req, res) => {
   try {
     const { avatarId } = req.body;
 
-    const validAvatars = ["tomato", "frog", "fish", "mushroom", "apple", "snail"];
+    const validAvatars = [
+      "tomato",
+      "frog",
+      "fish",
+      "mushroom",
+      "apple",
+      "snail",
+    ];
     if (!validAvatars.includes(avatarId))
       return res.status(400).json({ msg: "Invalid avatar selection." });
 

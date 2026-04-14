@@ -34,10 +34,12 @@ function Signup() {
     setError("");
 
     try {
+      const pendingInvite = localStorage.getItem("pendingInvite");
       const response = await axios.post(`${API_URL}/api/auth/register`, {
         username,
         email,
         password,
+        inviteCode: pendingInvite || undefined,
       });
       localStorage.setItem("token", response.data.token);
       navigate("/avatarRegister");
