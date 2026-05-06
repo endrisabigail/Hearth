@@ -1,11 +1,11 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 import User from "../models/user.js";
 import Party from "../models/party.js";
 import protect from "../middleware/authMiddleware.js";
-import { randomBytes } from "crypto";
-import nodemailer from "nodemailer"; 
 
 const router = express.Router();
 
@@ -34,7 +34,6 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    // Only auto-create a party if they're NOT joining via invite link
     if (!inviteCode) {
       const party = new Party({
         name: `${username}'s Hearth`,
@@ -119,26 +118,22 @@ router.post("/update-avatar", protect, async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
- // POST /api/auth/forgot-password
+
+// POST /api/auth/forgot-password
 router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+
   try {
-    const { email } = req.body;
     const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
-    if (!user)
-      return res
-        .status(200)
-        .json({ msg: "Reset link sent if account exists." });
-
-  const token = randomBytes(32).toString("hex");
+    const token = crypto.randomBytes(20).toString("hex");
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 1000 * 60 * 60; // 1 hour
+    user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
-    const resetURL = `${process.env.CLIENT_URL}/reset-password/${token}`;
-
     const transporter = nodemailer.createTransport({
-      service: "Gmail",
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -146,13 +141,13 @@ router.post("/forgot-password", async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: `"Hearth 🌱" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to: user.email,
       subject: "🌿 reset your hearth password ♪",
       html: `
         <div style="
           background-color: #f5f0e8;
-          font-family: 'Georgia', serif;
+          font-family: Georgia, serif;
           max-width: 480px;
           margin: 0 auto;
           border-radius: 16px;
@@ -180,7 +175,7 @@ router.post("/forgot-password", async (req, res) => {
             </p>
 
             <div style="text-align: center; margin: 28px 0;">
-              <a href="${resetURL}" style="
+              <a href="${process.env.CLIENT_URL}/reset-password/${token}" style="
                 background-color: #5aaa78;
                 color: white;
                 padding: 14px 32px;
@@ -212,38 +207,35 @@ router.post("/forgot-password", async (req, res) => {
       `,
     });
 
-    res.status(200).json({ msg: "Reset link sent if account exists." });
+    res.json({ msg: "Email sent!" });
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
 // POST /api/auth/reset-password/:token
 router.post("/reset-password/:token", async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { newPassword } = req.body;
+  const { token } = req.params;
+  const { password } = req.body;
 
+  try {
     const user = await User.findOne({
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
     });
 
-    if (!user)
-      return res.status(400).json({ msg: "Invalid or expired reset link." });
+    if (!user) return res.status(400).json({ msg: "Invalid or expired token" });
 
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = await bcrypt.hash(password, salt);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res
-      .status(200)
-      .json({ msg: "Password reset successful! You can now log in." });
+    res.json({ msg: "Password reset successful! You can now log in." });
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });
