@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import Party from "../models/party.js";
 import protect from "../middleware/authMiddleware.js";
+import crypto from "crypto"; 
+import nodemailer from "nodemailer"; 
 
 const router = express.Router();
 
