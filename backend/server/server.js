@@ -7,8 +7,9 @@ import questRoutes from "../routes/quest.js";
 import partyRoutes from "../routes/party.js";
 import dashboardRoutes from "../routes/dashboard.js";
 
-dotenv.config();
-
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 const app = express();
 
 connectDB();

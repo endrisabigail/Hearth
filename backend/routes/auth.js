@@ -117,8 +117,7 @@ router.post("/update-avatar", protect, async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
-// POST /api/auth/forgot-password
-// POST /api/auth/forgot-password
+ // POST /api/auth/forgot-password
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
