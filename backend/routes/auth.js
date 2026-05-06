@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import Party from "../models/party.js";
 import protect from "../middleware/authMiddleware.js";
-import crypto from "crypto"; 
+import { randomBytes } from "crypto";
 import nodemailer from "nodemailer"; 
 
 const router = express.Router();
@@ -130,7 +130,7 @@ router.post("/forgot-password", async (req, res) => {
         .status(200)
         .json({ msg: "Reset link sent if account exists." });
 
-    const token = crypto.randomBytes(32).toString("hex");
+  const token = randomBytes(32).toString("hex");
     user.resetPasswordToken = token;
     user.resetPasswordExpires = Date.now() + 1000 * 60 * 60; // 1 hour
     await user.save();
