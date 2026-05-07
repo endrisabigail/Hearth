@@ -13,7 +13,7 @@ router.get("/", protect, async (req, res) => {
     const user = await User.findById(req.user);
     if (!user?.partyId)
       return res.status(400).json({ msg: "You are not in a party." });
-
+ 
     const quests = await Quest.find({ partyId: user.partyId })
       .populate("assignedTo", "username avatarId")
       .populate("completedBy", "username avatarId")
