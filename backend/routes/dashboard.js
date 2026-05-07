@@ -7,7 +7,7 @@ import protect from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // GET /api/dashboard
-// returns everything the dashboard needs in one call
+// returns everything the dashboard needs in one call 
 router.get("/", protect, async (req, res) => {
   try {
     const user = await User.findById(req.user)
