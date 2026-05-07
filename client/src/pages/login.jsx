@@ -165,11 +165,11 @@ function Login() {
       <div className="login-container">
         <span className="corner-deco corner-deco-tl">🍃</span>
         <span className="corner-deco corner-deco-tr">🌸</span>
-
-        <div className="nook-badge">
-          <span className="nook-leaf-icon" />
-          HEARTH
-        </div>
+        <img
+          src="/hearthlogo.png"
+          alt="Hearth"
+          style={{ width: "140px", marginBottom: "8px" }}
+        />
 
         <div className="card-title">Sign in</div>
         <div className="card-sub">welcome back, traveler ♪</div>

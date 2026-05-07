@@ -373,6 +373,18 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
+      <img
+        src="/hearth-favicon.png"
+        alt="Hearth"
+        style={{
+          position: "absolute",
+          top: "18px",
+          left: "18px",
+          width: "38px",
+          zIndex: 10,
+          opacity: 0.9,
+        }}
+      />
       <div className="scene-bg" ref={mapAreaRef}>
         {userData?.avatarId && (
           <PlazaCanvas

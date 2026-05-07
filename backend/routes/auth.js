@@ -2,10 +2,12 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import User from "../models/user.js";
 import Party from "../models/party.js";
 import protect from "../middleware/authMiddleware.js";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const router = express.Router();
 
@@ -132,16 +134,8 @@ router.post("/forgot-password", async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await resend.emails.send({
+      from: "Hearth <onboarding@resend.dev>",
       to: user.email,
       subject: "🌿 reset your hearth password ♪",
       html: `
@@ -209,7 +203,7 @@ router.post("/forgot-password", async (req, res) => {
 
     res.json({ msg: "Email sent!" });
   } catch (err) {
-    console.error(err);
+    console.error("FORGOT PASSWORD ERROR:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });

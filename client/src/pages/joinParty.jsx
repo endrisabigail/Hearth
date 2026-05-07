@@ -148,10 +148,11 @@ function JoinParty() {
         <span className="corner-deco corner-deco-tl">🏡</span>
         <span className="corner-deco corner-deco-tr">🌿</span>
 
-        <div className="nook-badge">
-          <span className="nook-leaf-icon" />
-          HEARTH
-        </div>
+        <img
+          src="/hearthlogo.png"
+          alt="Hearth"
+          style={{ width: "140px", marginBottom: "8px" }}
+        />
 
         {error ? (
           <>

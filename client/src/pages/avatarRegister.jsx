@@ -17,8 +17,7 @@ const avatars = [
     thumb: "/assets/thumbs/tomato.png",
     label: "Tammy the Tomato ",
     class: "Forest Keeper",
-    description:
-      "Ketchup's to everything eventually 🍅",
+    description: "Ketchup's to everything eventually 🍅",
   },
   {
     id: "frog",
@@ -27,8 +26,7 @@ const avatars = [
     thumb: "/assets/thumbs/frog.png",
     label: "Froppy the Frog ",
     class: "Wanderer",
-    description:
-      "Thrives when jumping between big ideas 𖠊",
+    description: "Thrives when jumping between big ideas 𖠊",
   },
   {
     id: "fish",
@@ -37,8 +35,7 @@ const avatars = [
     thumb: "/assets/thumbs/fish.png",
     label: "Finn the Fish ",
     class: "Stream Guide",
-    description:
-      "Plenty of fish in the sea, but none quite like her 𓆝",
+    description: "Plenty of fish in the sea, but none quite like her 𓆝",
     offsetX: 0.2,
   },
   {
@@ -48,8 +45,7 @@ const avatars = [
     thumb: "/assets/thumbs/mushroom.png",
     label: "Mossy the Mushroom",
     class: "Forest Sage",
-    description:
-      "Grows best in quiet, focused environments 𓍊",
+    description: "Grows best in quiet, focused environments 𓍊",
   },
   {
     id: "apple",
@@ -58,8 +54,7 @@ const avatars = [
     thumb: "/assets/thumbs/apple.png",
     label: "Abbey the Apple ",
     class: "Harvest Guardian",
-    description:
-      "An apple a day keeps the quests at bay 🍎",
+    description: "An apple a day keeps the quests at bay 🍎",
   },
   {
     id: "snail",
@@ -415,6 +410,17 @@ function AvatarRegister() {
 
       {/* right info panel */}
       <div className="right-panel">
+        <img
+          src="/hearth-favicon.png"
+          alt="Hearth"
+          style={{
+            width: "40px",
+            position: "absolute",
+            top: "14px",
+            right: "14px",
+            opacity: 0.85,
+          }}
+        />{" "}
         {/* prompt header */}
         <div className="choose-header">
           <p className="choose-eyebrow">step 1 of 1</p>
@@ -424,9 +430,7 @@ function AvatarRegister() {
             connected to ♡
           </p>
         </div>
-
         <div className="panel-divider" />
-
         <div>
           <h2 className="char-name">{selected.label}</h2>
           <p className="char-class">{selected.class}</p>
