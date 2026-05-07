@@ -139,4 +139,4 @@ function resetPassword() {
   );
 }
 
-export default ResetPassword;
+export default resetPassword;
