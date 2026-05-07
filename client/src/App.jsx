@@ -5,6 +5,7 @@ import Dashboard from "./pages/dashboard.jsx";
 import AvatarRegister from "./pages/avatarRegister.jsx";
 import JoinParty from "./pages/joinParty.jsx";
 import ForgotPassword from "./pages/forgotPassword.jsx";
+import ResetPassword from "./pages/resetPassword";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/join/:inviteCode" element={<JoinParty />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </Router>
   );

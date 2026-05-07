@@ -9,18 +9,19 @@ function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
       await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
-      setError(
-        "If an account with that email exists, a reset link has been sent.",
-      );
-      navigate("/login");
+      setSuccess("✉️ check your email for a reset link ♡");
+      setTimeout(() => navigate("/login"), 4000);
     } catch (err) {
       setError("Failed to send reset link. Please try again later.");
     } finally {
@@ -75,6 +76,7 @@ function ForgotPassword() {
           </div>
 
           {error && <p className="error">{error}</p>}
+          {success && <p className="success">{success}</p>}
 
           <button className="ac-btn" type="submit" disabled={loading}>
             {loading ? "sending... ✦" : "Send Reset Link ✦"}

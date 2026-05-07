@@ -322,3 +322,9 @@
 .login-footer a:hover {
   text-decoration: underline;
 }
+.success {
+  color: #5aaa78;
+  font-size: 13px;
+  text-align: center;
+  margin: 4px 0;
+}
