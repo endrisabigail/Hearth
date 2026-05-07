@@ -8,7 +8,7 @@ const router = express.Router();
 
 // GET /api/dashboard
 // returns everything the dashboard needs in one call 
-router.get("/", protect, async (req, res) => {
+router.get("/", protect, async (req, res) => { 
   try {
     const user = await User.findById(req.user)
       .populate("neighbors", "username rank avatarId streak")
