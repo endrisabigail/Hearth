@@ -5,7 +5,7 @@ import Dashboard from "./pages/dashboard.jsx";
 import AvatarRegister from "./pages/avatarRegister.jsx";
 import JoinParty from "./pages/joinParty.jsx";
 import ForgotPassword from "./pages/forgotPassword.jsx";
-import ResetPassword from "./pages/resetPassword";
+import ResetPassword from "./pages/resetPassword.jsx";
 
 function App() {
   return (
