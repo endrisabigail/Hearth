@@ -58,6 +58,16 @@ function Dashboard() {
   const [modalQuest, setModalQuest] = useState(null);
   const [msgModalOpen, setMsgModalOpen] = useState(false);
   const [navModalOpen, setNavModalOpen] = useState(false);
+  const [showControls, setShowControls] = useState(true); // show movement controls hint on first load
+
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => setShowControls("fading"), 8500);
+    const hideTimer = setTimeout(() => setShowControls(false), 10000);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
+  }, []);
   const [customCategories, setCustomCategories] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("hearth_categories") || "[]");
@@ -409,21 +419,30 @@ function Dashboard() {
             onNodeClick={handleNodeClick}
           />
         )}
-        <div
-          className="controls-hint"
-          style={{ top: "auto", bottom: "70px", left: "14px" }}
-        >
-          {" "}
-          <div className="arrow-grid">
-            <span />
-            <span className="key-chip">↑</span>
-            <span />
-            <span className="key-chip">←</span>
-            <span className="key-chip">↓</span>
-            <span className="key-chip">→</span>
+        {showControls && (
+          <div
+            className="controls-hint"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "65%",
+              transform: "translateX(-50%)",
+              opacity: showControls === "fading" ? 0 : 1,
+              transition: "opacity 1.5s ease",
+              zIndex: 10,
+            }}
+          >
+            <div className="arrow-grid">
+              <span />
+              <span className="key-chip">↑</span>
+              <span />
+              <span className="key-chip">←</span>
+              <span className="key-chip">↓</span>
+              <span className="key-chip">→</span>
+            </div>
+            <p className="controls-label">move</p>
           </div>
-          <p className="controls-label">move</p>
-        </div>
+        )}
       </div>
 
       <div className="fireflies fireflies-1" />
