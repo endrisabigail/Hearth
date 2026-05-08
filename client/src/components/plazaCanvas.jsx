@@ -15,7 +15,7 @@ const COLLISION_PADDING = 0.3;
 const TRAVEL_SPEED = 0.006;
 const ARRIVAL_THRESHOLD = 0.018;
 
-// ─── Tilemap config ───────────────────────────────────────────────────────────
+// Tilemap config
 // World size: X ∈ [-4, 4], Z ∈ [-3, 3]
 const WORLD_W = 8; // world units wide  (X axis)
 const WORLD_H = 6; // world units tall  (Z axis)
