@@ -1,40 +1,17 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import React from "react";
+import { Link } from "react-router-dom";
 import "../pages/styles/login.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 function ForgotPassword() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
- 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
-      setSuccess("✉️ check your email for a reset link ♡");
-      setTimeout(() => navigate("/login"), 4000);
-    } catch (err) {
-      setError("Failed to send reset link. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="login-page-wrapper">
+      <video autoPlay loop muted playsInline className="bg-video">
+        <source src="/swaying_grass.mp4" type="video/mp4" />
+      </video>
       <div className="overlay" />
 
       <div className="login-container">
-               <span className="corner-deco corner-deco-tl">🌱</span>
+        <span className="corner-deco corner-deco-tl">🌱</span>
         <span className="corner-deco corner-deco-tr">☘️</span>
         <svg
           viewBox="0 0 200 60"
@@ -61,46 +38,26 @@ function ForgotPassword() {
           style={{ width: "220px", marginBottom: "-67px", marginTop: "-85px" }}
         />
 
-        <div className="card-title">Forgot Password</div>
-        <div className="card-sub">we'll send you a reset link🍃</div>
+        <div className="card-title">oops! 🍄</div>
+        <div className="card-sub">password reset coming soon ♪</div>
 
-        <form onSubmit={handleForgotPassword} className="login-form">
-          <div className="input-wrap">
-            <label className="input-label">email</label>
-            <svg className="input-icon" viewBox="0 0 16 16" fill="none">
-              <rect
-                x="1"
-                y="3"
-                width="14"
-                height="10"
-                rx="2"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M1 5l7 5 7-5"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            <input
-              className="ac-input"
-              type="email"
-              placeholder="e.g. your-email@email.com ♡"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <p
+          style={{
+            fontSize: "13px",
+            color: "#7aab7e",
+            textAlign: "center",
+            lineHeight: "1.6",
+            margin: "16px 0",
+            fontFamily: "'DotGothic16', monospace",
+          }}
+        >
+          we're still setting this up! for now, please reach out if you need
+          help ✉️
+        </p>
 
-          {error && <p className="error">{error}</p>}
-          {success && <p className="success">{success}</p>}
-
-          <button className="ac-btn" type="submit" disabled={loading}>
-            {loading ? "sending... ✦" : "Send Reset Link ✦"}
-          </button>
-        </form>
+        <Link to="/login">
+          <button className="ac-btn">back to login ✦</button>
+        </Link>
 
         <div className="divider-row">
           <div className="divider-line" />
