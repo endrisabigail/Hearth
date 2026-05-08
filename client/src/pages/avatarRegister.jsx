@@ -357,13 +357,11 @@ function AvatarRegister() {
           fill="rgba(255,255,255,0.85)"
         />
       </svg>
-
       {/* fireflies */}
       <div className="fireflies fireflies-1" />
       <div className="fireflies fireflies-2" />
       <div className="fireflies fireflies-3" />
       <div className="fireflies fireflies-4" />
-
       {/* center stage */}
       <div className="center-panel" style={{ background: selected.bg }}>
         <div className="egg-row">
@@ -407,20 +405,19 @@ function AvatarRegister() {
           ))}
         </div>
       </div>
-
+      <img
+        src="/hearth-favicon.png"
+        alt="Hearth"
+        style={{
+          width: "40px",
+          position: "absolute",
+          top: "14px",
+          left: "14px",
+          opacity: 0.85,
+        }}
+      />{" "}
       {/* right info panel */}
       <div className="right-panel">
-        <img
-          src="/hearth-favicon.png"
-          alt="Hearth"
-          style={{
-            width: "40px",
-            position: "absolute",
-            top: "14px",
-            left: "14px",
-            opacity: 0.85,
-          }}
-        />{" "}
         {/* prompt header */}
         <div className="choose-header">
           <p className="choose-eyebrow">step 1 of 1</p>
