@@ -256,10 +256,11 @@ function AvatarRegister() {
         alt="Hearth"
         style={{
           width: "40px",
-          position: "absolute",
+          position: "fixed",
           top: "14px",
           left: "14px",
           opacity: 0.85,
+          zIndex: 999,
         }}
       />{" "}
       {/* fireflies */}
