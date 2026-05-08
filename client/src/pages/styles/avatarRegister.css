@@ -2,7 +2,7 @@
 
 /* page */
 
-.avatar-register-container {
+.avatar-register-wrapper {
   display: flex;
   align-items: stretch;
   min-height: 100vh;
