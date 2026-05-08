@@ -250,113 +250,18 @@ function AvatarRegister() {
   };
 
   return (
-    <div className="avatar-register-container">
-      {/* clouds */}
-      <svg
-        className="cloud cloud-lg"
-        style={{ left: "5%" }}
-        viewBox="0 0 110 55"
-        fill="none"
-      >
-        <ellipse
-          cx="55"
-          cy="38"
-          rx="46"
-          ry="17"
-          fill="rgba(255,255,255,0.88)"
-        />
-        <ellipse
-          cx="35"
-          cy="30"
-          rx="22"
-          ry="20"
-          fill="rgba(255,255,255,0.88)"
-        />
-        <ellipse
-          cx="62"
-          cy="26"
-          rx="26"
-          ry="22"
-          fill="rgba(255,255,255,0.88)"
-        />
-        <ellipse
-          cx="84"
-          cy="33"
-          rx="18"
-          ry="15"
-          fill="rgba(255,255,255,0.88)"
-        />
-      </svg>
-      <svg
-        className="cloud cloud-sm"
-        style={{ left: "45%" }}
-        viewBox="0 0 75 40"
-        fill="none"
-      >
-        <ellipse
-          cx="37"
-          cy="28"
-          rx="32"
-          ry="12"
-          fill="rgba(255,255,255,0.80)"
-        />
-        <ellipse
-          cx="22"
-          cy="22"
-          rx="16"
-          ry="14"
-          fill="rgba(255,255,255,0.80)"
-        />
-        <ellipse
-          cx="45"
-          cy="18"
-          rx="18"
-          ry="16"
-          fill="rgba(255,255,255,0.80)"
-        />
-        <ellipse
-          cx="60"
-          cy="24"
-          rx="13"
-          ry="11"
-          fill="rgba(255,255,255,0.80)"
-        />
-      </svg>
-      <svg
-        className="cloud cloud-xl"
-        style={{ left: "70%" }}
-        viewBox="0 0 140 65"
-        fill="none"
-      >
-        <ellipse
-          cx="70"
-          cy="48"
-          rx="60"
-          ry="18"
-          fill="rgba(255,255,255,0.85)"
-        />
-        <ellipse
-          cx="42"
-          cy="38"
-          rx="28"
-          ry="24"
-          fill="rgba(255,255,255,0.85)"
-        />
-        <ellipse
-          cx="78"
-          cy="32"
-          rx="33"
-          ry="28"
-          fill="rgba(255,255,255,0.85)"
-        />
-        <ellipse
-          cx="110"
-          cy="40"
-          rx="24"
-          ry="20"
-          fill="rgba(255,255,255,0.85)"
-        />
-      </svg>
+    <div className="avatar-register-wrapper">
+      <img
+        src="/hearth-favicon.png"
+        alt="Hearth"
+        style={{
+          width: "40px",
+          position: "absolute",
+          top: "14px",
+          left: "14px",
+          opacity: 0.85,
+        }}
+      />{" "}
       {/* fireflies */}
       <div className="fireflies fireflies-1" />
       <div className="fireflies fireflies-2" />
@@ -405,17 +310,6 @@ function AvatarRegister() {
           ))}
         </div>
       </div>
-      <img
-        src="/hearth-favicon.png"
-        alt="Hearth"
-        style={{
-          width: "40px",
-          position: "absolute",
-          top: "14px",
-          left: "14px",
-          opacity: 0.85,
-        }}
-      />{" "}
       {/* right info panel */}
       <div className="right-panel">
         {/* prompt header */}
