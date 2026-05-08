@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+// Config
 const AVATAR_CONFIG = {
   tomato: { scale: 1.2, offsetX: 0 },
   frog: { scale: 1.2, offsetX: 0 },
@@ -11,265 +12,126 @@ const AVATAR_CONFIG = {
   snail: { scale: 1.2, offsetX: 0 },
 };
 
-const COLLISION_PADDING = 0.3;
 const TRAVEL_SPEED = 0.006;
 const ARRIVAL_THRESHOLD = 0.018;
 
-// Tilemap config
-// World size: X ∈ [-4, 4], Z ∈ [-3, 3]
-const WORLD_W = 8; // world units wide  (X axis)
-const WORLD_H = 6; // world units tall  (Z axis)
-const TILE_SIZE = 1; // one tile = 1 world unit
+const WORLD_UNITS = 40; // total world size (square)
+const TILE_SIZE = 2; // each tile is 2 world units
+const TILES = WORLD_UNITS / TILE_SIZE;
+const TREE_COUNT = 80;
+const PX = 64; // pixels per tile on texture canvas
 
-// Tile type IDs
-const T = {
-  GRASS: 0,
-  STONE: 1,
-  DIRT: 2,
-  WATER: 3,
-  FLOWER: 4,
-  DARK_GRASS: 5,
-};
-
-const TILE_MAP = [
-  [
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-  ],
-  [
-    T.DARK_GRASS,
-    T.FLOWER,
-    T.GRASS,
-    T.STONE,
-    T.STONE,
-    T.GRASS,
-    T.FLOWER,
-    T.DARK_GRASS,
-  ],
-  [
-    T.DARK_GRASS,
-    T.GRASS,
-    T.DIRT,
-    T.DIRT,
-    T.DIRT,
-    T.DIRT,
-    T.GRASS,
-    T.DARK_GRASS,
-  ],
-  [
-    T.DARK_GRASS,
-    T.GRASS,
-    T.DIRT,
-    T.WATER,
-    T.WATER,
-    T.DIRT,
-    T.GRASS,
-    T.DARK_GRASS,
-  ],
-  [
-    T.DARK_GRASS,
-    T.FLOWER,
-    T.GRASS,
-    T.STONE,
-    T.STONE,
-    T.GRASS,
-    T.FLOWER,
-    T.DARK_GRASS,
-  ],
-  [
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-    T.DARK_GRASS,
-  ],
-];
-
-// Tile visual definitions (drawn procedurally onto a canvas texture)
-const TILE_DEFS = {
-  [T.GRASS]: { base: "#6abf5e", detail: "#7dd96e", pattern: "dots" },
-  [T.STONE]: { base: "#9e9e9e", detail: "#bdbdbd", pattern: "cracks" },
-  [T.DIRT]: { base: "#a0724a", detail: "#b8885e", pattern: "dots" },
-  [T.WATER]: { base: "#4fc3f7", detail: "#81d4fa", pattern: "waves" },
-  [T.FLOWER]: { base: "#6abf5e", detail: "#f48fb1", pattern: "flower" },
-  [T.DARK_GRASS]: { base: "#4a9e40", detail: "#5ab34e", pattern: "none" },
-};
-
-const PX = 64; // pixels per tile on the texture canvas
-
-/** Draw a single tile onto a canvas 2D context at (tx, ty) in tile coords */
-function drawTile(ctx, col, row, type) {
-  const def = TILE_DEFS[type];
-  const x = col * PX;
-  const y = row * PX;
-
-  // base fill
-  ctx.fillStyle = def.base;
-  ctx.fillRect(x, y, PX, PX);
-
-  // inner border for grid feel
-  ctx.strokeStyle = "rgba(0,0,0,0.08)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
-
-  ctx.fillStyle = def.detail;
-
-  switch (def.pattern) {
-    case "dots":
-      for (let r = 0; r < 3; r++)
-        for (let c = 0; c < 3; c++) {
-          ctx.beginPath();
-          ctx.arc(x + 12 + c * 20, y + 12 + r * 20, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      break;
-
-    case "cracks":
-      ctx.strokeStyle = def.detail;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x + 10, y + 10);
-      ctx.lineTo(x + 28, y + 30);
-      ctx.moveTo(x + 38, y + 15);
-      ctx.lineTo(x + 55, y + 40);
-      ctx.moveTo(x + 20, y + 42);
-      ctx.lineTo(x + 40, y + 58);
-      ctx.stroke();
-      break;
-
-    case "waves":
-      ctx.strokeStyle = def.detail;
-      ctx.lineWidth = 2;
-      for (let wy = 0; wy < 4; wy++) {
-        ctx.beginPath();
-        for (let wx = 0; wx <= PX; wx += 8) {
-          const waveY = y + 14 + wy * 14 + Math.sin(wx / 8) * 4;
-          wx === 0 ? ctx.moveTo(x + wx, waveY) : ctx.lineTo(x + wx, waveY);
-        }
-        ctx.stroke();
-      }
-      break;
-
-    case "flower": {
-      // base grass dots
-      for (let r = 0; r < 3; r++)
-        for (let c = 0; c < 3; c++) {
-          ctx.fillStyle = def.detail;
-          ctx.beginPath();
-          ctx.arc(x + 12 + c * 20, y + 12 + r * 20, 2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      // small flowers
-      const centers = [
-        [x + 16, y + 16],
-        [x + 48, y + 48],
-        [x + 48, y + 16],
-      ];
-      centers.forEach(([fx, fy]) => {
-        const petals = [
-          [0, -5],
-          [5, 0],
-          [0, 5],
-          [-5, 0],
-          [4, -4],
-          [4, 4],
-          [-4, 4],
-          [-4, -4],
-        ];
-        ctx.fillStyle = "#f48fb1";
-        petals.forEach(([px2, py2]) => {
-          ctx.beginPath();
-          ctx.arc(fx + px2, fy + py2, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        ctx.fillStyle = "#fff176";
-        ctx.beginPath();
-        ctx.arc(fx, fy, 3, 0, Math.PI * 2);
-        ctx.fill();
-      });
-      break;
-    }
-
-    default:
-      break;
-  }
-}
-
-/** Build a THREE.Texture from the procedural tile map */
-function buildTilemapTexture(cols, rows) {
+// Build grass texture
+function buildGrassTexture() {
   const canvas = document.createElement("canvas");
-  canvas.width = cols * PX;
-  canvas.height = rows * PX;
+  canvas.width = PX * 4;
+  canvas.height = PX * 4;
   const ctx = canvas.getContext("2d");
 
-  for (let row = 0; row < rows; row++)
-    for (let col = 0; col < cols; col++)
-      drawTile(ctx, col, row, TILE_MAP[row][col]);
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const x = col * PX;
+      const y = row * PX;
+
+      const hue = 118 + ((row * 4 + col) % 5) * 4;
+      ctx.fillStyle = `hsl(${hue}, 52%, 42%)`;
+      ctx.fillRect(x, y, PX, PX);
+
+      ctx.strokeStyle = "rgba(0,0,0,0.06)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
+
+      ctx.fillStyle = `hsl(${hue + 10}, 55%, 52%)`;
+      const rng = (row * 4 + col + 1) * 13;
+      for (let i = 0; i < 6; i++) {
+        const bx = x + ((rng * (i + 1) * 7) % (PX - 8)) + 4;
+        const by = y + ((rng * (i + 1) * 11) % (PX - 10)) + 5;
+        ctx.fillRect(bx, by, 2, 5);
+        ctx.fillRect(bx + 3, by + 2, 2, 4);
+      }
+
+      if ((row + col) % 3 === 0) {
+        ctx.fillStyle = "#f9c6d0";
+        ctx.beginPath();
+        ctx.arc(
+          x + 20 + ((col * 7) % 24),
+          y + 20 + ((row * 9) % 24),
+          3,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+        ctx.fillStyle = "#fff59d";
+        ctx.beginPath();
+        ctx.arc(
+          x + 20 + ((col * 7) % 24),
+          y + 20 + ((row * 9) % 24),
+          1.5,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      }
+    }
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
-  tex.magFilter = THREE.NearestFilter; // crisp pixel look
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(TILES / 4, TILES / 4);
+  tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
   return tex;
 }
 
-// Tree / grass placements  
-const TREE_PLACEMENTS = [
-  { x: -3.2, z: -2.5, ry: 0.0 },
-  { x: -2.5, z: -2.7, ry: 1.1 },
-  { x: -1.6, z: -2.6, ry: 2.3 },
-  { x: -0.8, z: -2.7, ry: 0.7 },
-  { x: 0.0, z: -2.5, ry: 1.9 },
-  { x: 0.8, z: -2.6, ry: 3.1 },
-  { x: 1.6, z: -2.7, ry: 0.4 },
-  { x: 2.5, z: -2.6, ry: 2.8 },
-  { x: 3.2, z: -2.5, ry: 1.5 },
-  { x: -3.2, z: 2.5, ry: 3.2 },
-  { x: -2.5, z: 2.7, ry: 0.9 },
-  { x: -1.6, z: 2.6, ry: 4.1 },
-  { x: -0.8, z: 2.7, ry: 2.5 },
-  { x: 0.0, z: 2.5, ry: 5.0 },
-  { x: 0.8, z: 2.6, ry: 1.3 },
-  { x: 1.6, z: 2.7, ry: 3.7 },
-  { x: 2.5, z: 2.6, ry: 0.6 },
-  { x: 3.2, z: 2.5, ry: 2.2 },
-  { x: -3.3, z: -1.8, ry: 1.0 },
-  { x: -3.2, z: -0.8, ry: 2.4 },
-  { x: -3.3, z: 0.2, ry: 0.3 },
-  { x: -3.2, z: 1.2, ry: 3.5 },
-  { x: 3.3, z: -1.8, ry: 4.2 },
-  { x: 3.2, z: -0.8, ry: 0.8 },
-  { x: 3.3, z: 0.2, ry: 2.9 },
-  { x: 3.2, z: 1.2, ry: 1.6 },
-];
+// Build tree sprite texture
+function buildTreeTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 160;
+  const ctx = canvas.getContext("2d");
 
-const GRASS_PLACEMENTS = [
-  { x: -0.6, z: -1.0, sc: 1.1 },
-  { x: 0.8, z: 1.2, sc: 0.85 },
-  { x: 1.2, z: -1.5, sc: 1.0 },
-  { x: -1.5, z: 0.8, sc: 0.75 },
-  { x: 0.2, z: 0.3, sc: 0.7 },
-  { x: -1.0, z: -0.5, sc: 1.0 },
-  { x: 1.8, z: 0.6, sc: 0.85 },
-  { x: -0.2, z: 1.5, sc: 1.2 },
-  { x: 0.6, z: -0.8, sc: 0.9 },
-  { x: -1.8, z: -1.2, sc: 1.05 },
-];
+  // trunk
+  ctx.fillStyle = "#795548";
+  ctx.fillRect(52, 110, 24, 50);
 
-function worldBoxToNorm(box, padding) {
-  return {
-    cx: (box.min.x + box.max.x) / 2 / 4.0 + 0.5,
-    cy: (box.min.z + box.max.z) / 2 / 3.0 + 0.5,
-    hw: (box.max.x - box.min.x) / 2 / 4.0 + padding / 4.0,
-    hh: (box.max.z - box.min.z) / 2 / 3.0 + padding / 3.0,
+  // shadow under canopy
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
+  ctx.beginPath();
+  ctx.ellipse(64, 118, 38, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // canopy layers
+  const layers = [
+    { y: 90, r: 42, color: "#2e7d32" },
+    { y: 68, r: 36, color: "#388e3c" },
+    { y: 48, r: 30, color: "#43a047" },
+    { y: 30, r: 22, color: "#66bb6a" },
+    { y: 16, r: 14, color: "#81c784" },
+  ];
+  layers.forEach(({ y, r, color }) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(64, y, r, r * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // highlight
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.beginPath();
+  ctx.ellipse(52, 38, 12, 9, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+}
+
+// Seeded random
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
   };
 }
 
@@ -302,7 +164,6 @@ function PlazaCanvas({
     onArrivedRef.current = onArrived;
   }, [onArrived]);
 
-  // Main scene setup
   useEffect(() => {
     const mount = mountRef.current;
     const w = mount.clientWidth;
@@ -311,16 +172,17 @@ function PlazaCanvas({
     // Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 18, 34);
     sceneRef.current = scene;
 
-    // Camera   
+    // Camera
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(0, 12, 10);
+    camera.position.set(0, 14, 12);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputEncoding = THREE.sRGBEncoding;
@@ -329,108 +191,70 @@ function PlazaCanvas({
     rendererRef.current = renderer;
 
     // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+    scene.add(new THREE.AmbientLight(0xffffff, 2.2));
     const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-    sun.position.set(3, 5, 4);
+    sun.position.set(5, 10, 6);
     scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.6);
-    fill.position.set(-3, 2, -2);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+    fill.position.set(-4, 3, -3);
     scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xffffff, 0.4);
-    rim.position.set(0, -2, -3);
-    scene.add(rim);
 
-    // 2D Tilemap ground
-    const cols = WORLD_W / TILE_SIZE; // 8
-    const rows = WORLD_H / TILE_SIZE; // 6
-    const tilemapTex = buildTilemapTexture(cols, rows);
+    // Grass ground
+    const grassTex = buildGrassTexture();
+    const groundGeo = new THREE.PlaneGeometry(WORLD_UNITS, WORLD_UNITS);
+    const groundMat = new THREE.MeshLambertMaterial({ map: grassTex });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    scene.add(ground);
 
-    const groundGeo = new THREE.PlaneGeometry(WORLD_W, WORLD_H);
-    const groundMat = new THREE.MeshLambertMaterial({ map: tilemapTex });
-    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-    groundMesh.rotation.x = -Math.PI / 2; // lay flat
-    groundMesh.position.y = -0.01; // just below y=0
-    scene.add(groundMesh);
+    // 2D tree sprites
+    const treeTex = buildTreeTexture();
+    const rand = seededRandom(42);
+    const half = WORLD_UNITS / 2;
+    const margin = 2;
 
-    // Set movement bounds from ground size
+    collisionBoxesRef.current = [];
+
+    for (let i = 0; i < TREE_COUNT; i++) {
+      const tx = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
+      const tz = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
+
+      // Keep spawn area clear
+      if (Math.abs(tx) < 3.5 && Math.abs(tz) < 3.5) continue;
+
+      const scale = 1.8 + rand() * 1.2;
+      const treeW = scale * (128 / 160);
+      const treeH = scale;
+
+      const spriteMat = new THREE.SpriteMaterial({
+        map: treeTex,
+        transparent: true,
+        alphaTest: 0.1,
+      });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(treeW, treeH, 1);
+      sprite.position.set(tx, treeH / 2 - 0.2, tz);
+      scene.add(sprite);
+
+      // Collision box in normalised 0–1 space
+      const pad = 0.35;
+      collisionBoxesRef.current.push({
+        cx: tx / WORLD_UNITS + 0.5,
+        cy: tz / WORLD_UNITS + 0.5,
+        hw: (treeW * 0.3 + pad) / WORLD_UNITS,
+        hh: (treeW * 0.3 + pad) / WORLD_UNITS,
+      });
+    }
+
+    // Movement bounds
+    const edgePad = 1.5 / WORLD_UNITS;
     posRef.current.bounds = {
-      minX: 0.08,
-      maxX: 0.92,
-      minY: 0.08,
-      maxY: 0.92,
+      minX: edgePad,
+      maxX: 1 - edgePad,
+      minY: edgePad,
+      maxY: 1 - edgePad,
     };
-
-    // Trees (3D GLB)
-    const glbLoader = new GLTFLoader();
-    const fantasyColors = [0xe8a0bf, 0xb39ddb, 0x80cbc4, 0xf48fb1, 0xa5d6a7];
-
-    glbLoader.load(
-      "/assets/models/tree.glb",
-      (gltf) => {
-        const template = gltf.scene;
-        const box0 = new THREE.Box3().setFromObject(template);
-        const size0 = box0.getSize(new THREE.Vector3());
-        const center0 = box0.getCenter(new THREE.Vector3());
-        const treeScale = 2.5 / size0.y;
-
-        TREE_PLACEMENTS.forEach((p) => {
-          const inst = template.clone(true);
-          inst.scale.setScalar(treeScale);
-          inst.position.x = p.x - center0.x * treeScale;
-          inst.position.z = p.z - center0.z * treeScale;
-          inst.position.y = -center0.y * treeScale;
-          inst.rotation.y = p.ry;
-          let colorIndex = 0;
-          inst.traverse((child) => {
-            if (child.isMesh && child.visible) {
-              child.material = new THREE.MeshToonMaterial({
-                color: fantasyColors[colorIndex % fantasyColors.length],
-              });
-              colorIndex++;
-            }
-          });
-          scene.add(inst);
-          const wb = new THREE.Box3().setFromObject(inst);
-          collisionBoxesRef.current.push(worldBoxToNorm(wb, COLLISION_PADDING));
-        });
-      },
-      undefined,
-      (err) => console.error("tree load error:", err),
-    );
-
-    // Grass (3D GLB)
-    glbLoader.load(
-      "/assets/models/grass.glb",
-      (gltf) => {
-        const template = gltf.scene;
-        const box0 = new THREE.Box3().setFromObject(template);
-        const size0 = box0.getSize(new THREE.Vector3());
-        const center0 = box0.getCenter(new THREE.Vector3());
-
-        GRASS_PLACEMENTS.forEach((p, i) => {
-          const patch = template.clone(true);
-          const sc = (0.5 * p.sc) / size0.y;
-          patch.scale.setScalar(sc);
-          patch.position.x = p.x - center0.x * sc;
-          patch.position.z = p.z - center0.z * sc;
-          patch.position.y = -center0.y * sc;
-          patch.rotation.y = (i * 1.61803) % (Math.PI * 2);
-          scene.add(patch);
-        });
-      },
-      undefined,
-      (err) => console.warn("grass load skipped:", err),
-    );
-
-    // Resize handler
-    const onResize = () => {
-      const nw = mount.clientWidth;
-      const nh = mount.clientHeight;
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh);
-    };
-    window.addEventListener("resize", onResize);
 
     // Animate
     const animate = () => {
@@ -473,16 +297,25 @@ function PlazaCanvas({
       }
 
       if (model) {
+        const wx =
+          (posRef.current._smoothX ?? posRef.current.x - 0.5) * WORLD_UNITS;
+        const wz =
+          (posRef.current._smoothY ?? posRef.current.y - 0.5) * WORLD_UNITS;
+
         const isMoving = manualInput || !!target;
         floatTRef.current += isMoving ? 0.12 : 0.04;
-        const floatAmp = isMoving ? 0.12 : 0.06;
         const baseY = model.userData.baseY ?? 0;
 
-        model.position.y = baseY + Math.sin(floatTRef.current) * floatAmp;
-        model.position.x =
-          ((posRef.current._smoothX ?? posRef.current.x) - 0.5) * WORLD_W;
-        model.position.z =
-          ((posRef.current._smoothY ?? posRef.current.y) - 0.5) * WORLD_H;
+        model.position.x = wx;
+        model.position.y =
+          baseY + Math.sin(floatTRef.current) * (isMoving ? 0.1 : 0.05);
+        model.position.z = wz;
+
+        // Smooth camera follow
+        camera.position.x += (wx - camera.position.x) * 0.1;
+        camera.position.z += (wz + 12 - camera.position.z) * 0.1;
+        camera.position.y = 14;
+        camera.lookAt(wx, 0, wz);
 
         if (manualInput) {
           const k = keysRef.current;
@@ -518,10 +351,20 @@ function PlazaCanvas({
     animate();
     onSceneReady(scene, camera, renderer);
 
+    const onResize = () => {
+      const nw = mount.clientWidth;
+      const nh = mount.clientHeight;
+      camera.aspect = nw / nh;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nw, nh);
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", onResize);
-      tilemapTex.dispose();
+      grassTex.dispose();
+      treeTex.dispose();
       groundGeo.dispose();
       groundMat.dispose();
       renderer.dispose();
