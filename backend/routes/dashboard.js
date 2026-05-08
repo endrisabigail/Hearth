@@ -3,7 +3,7 @@ import User from "../models/user.js";
 import Quest from "../models/quest.js";
 import Notification from "../models/notification.js";
 import protect from "../middleware/authMiddleware.js";
-
+ 
 const router = express.Router();
 
 // GET /api/dashboard
