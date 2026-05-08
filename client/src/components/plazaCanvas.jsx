@@ -221,7 +221,7 @@ function buildTilemapTexture(cols, rows) {
   return tex;
 }
 
-// Tree / grass placements (unchanged from original)
+// Tree / grass placements  
 const TREE_PLACEMENTS = [
   { x: -3.2, z: -2.5, ry: 0.0 },
   { x: -2.5, z: -2.7, ry: 1.1 },
@@ -313,7 +313,7 @@ function PlazaCanvas({
     scene.background = new THREE.Color(0x87ceeb);
     sceneRef.current = scene;
 
-    // Camera  (same angle as original)
+    // Camera   
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     camera.position.set(0, 12, 10);
     camera.lookAt(0, 0, 0);
