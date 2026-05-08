@@ -380,7 +380,7 @@ function Dashboard() {
           position: "absolute",
           top: "18px",
           left: "18px",
-          width: "38px",
+          width: "34px",
           zIndex: 10,
           opacity: 0.9,
         }}
@@ -409,7 +409,11 @@ function Dashboard() {
             onNodeClick={handleNodeClick}
           />
         )}
-        <div className="controls-hint">
+        <div
+          className="controls-hint"
+          style={{ top: "auto", bottom: "70px", left: "14px" }}
+        >
+          {" "}
           <div className="arrow-grid">
             <span />
             <span className="key-chip">↑</span>
