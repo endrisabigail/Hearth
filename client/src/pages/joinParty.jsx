@@ -147,13 +147,11 @@ function JoinParty() {
       <div className="login-container">
         <span className="corner-deco corner-deco-tl">🏡</span>
         <span className="corner-deco corner-deco-tr">🌿</span>
-
         <img
           src="/hearthlogo.png"
           alt="Hearth"
-          style={{ width: "140px", marginBottom: "8px" }}
+          style={{ width: "120px", marginBottom: "-35px", marginTop: "-4px" }}
         />
-
         {error ? (
           <>
             <div className="card-title">Oops!</div>

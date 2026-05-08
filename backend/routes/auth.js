@@ -7,8 +7,6 @@ import User from "../models/user.js";
 import Party from "../models/party.js";
 import protect from "../middleware/authMiddleware.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const router = express.Router();
 
 // POST /api/auth/register
@@ -126,6 +124,7 @@ router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "User not found" });
 

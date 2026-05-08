@@ -167,14 +167,34 @@ function Signup() {
 
       <div className="login-container">
         <span className="corner-deco corner-deco-tl">🌱</span>
-        <span className="corner-deco corner-deco-tr">✨</span>
+        <span className="corner-deco corner-deco-tr">☘️</span>
+        <svg
+          viewBox="0 0 200 60"
+          style={{ width: "200px", marginBottom: "-10px" }}
+        >
+          <defs>
+            <path id="curve" d="M 15,55 Q 100,-10 190,65" />
+          </defs>
+          <text
+            fontFamily="DotGothic16, monospace"
+            fontSize="22"
+            fontWeight="900"
+            fill="#5aaa78"
+            letterSpacing="6"
+          >
+            <textPath href="#curve" startOffset="50%" textAnchor="middle">
+              Hearth
+            </textPath>
+          </text>
+        </svg>
         <img
           src="/hearthlogo.png"
           alt="Hearth"
-          style={{ width: "140px", marginBottom: "8px" }}
+          style={{ width: "220px", marginBottom: "-67px", marginTop: "-85px" }}
         />
+
         <div className="card-title">Sign Up</div>
-        <div className="card-sub">start your adventure</div>
+        <div className="card-sub">start your adventure🍃</div>
         <form onSubmit={handleSignup} className="login-form">
           {/* username */}
           <div className="input-wrap">

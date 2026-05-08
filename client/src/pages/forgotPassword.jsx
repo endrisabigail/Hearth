@@ -34,16 +34,35 @@ function ForgotPassword() {
       <div className="overlay" />
 
       <div className="login-container">
-        <span className="corner-deco corner-deco-tl">🌱</span>
-        <span className="corner-deco corner-deco-tr">✨</span>
-
-        <div className="nook-badge">
-          <span className="nook-leaf-icon" />
-          HEARTH
-        </div>
+               <span className="corner-deco corner-deco-tl">🌱</span>
+        <span className="corner-deco corner-deco-tr">☘️</span>
+        <svg
+          viewBox="0 0 200 60"
+          style={{ width: "200px", marginBottom: "-10px" }}
+        >
+          <defs>
+            <path id="curve" d="M 15,55 Q 100,-10 190,65" />
+          </defs>
+          <text
+            fontFamily="DotGothic16, monospace"
+            fontSize="22"
+            fontWeight="900"
+            fill="#5aaa78"
+            letterSpacing="6"
+          >
+            <textPath href="#curve" startOffset="50%" textAnchor="middle">
+              Hearth
+            </textPath>
+          </text>
+        </svg>
+        <img
+          src="/hearthlogo.png"
+          alt="Hearth"
+          style={{ width: "220px", marginBottom: "-67px", marginTop: "-85px" }}
+        />
 
         <div className="card-title">Forgot Password</div>
-        <div className="card-sub">we'll send you a reset link ♪</div>
+        <div className="card-sub">we'll send you a reset link🍃</div>
 
         <form onSubmit={handleForgotPassword} className="login-form">
           <div className="input-wrap">
