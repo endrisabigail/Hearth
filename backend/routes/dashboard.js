@@ -5,7 +5,7 @@ import Notification from "../models/notification.js";
 import protect from "../middleware/authMiddleware.js";
  
 const router = express.Router();
-
+ 
 // GET /api/dashboard
 // returns everything the dashboard needs in one call 
 router.get("/", protect, async (req, res) => { 
