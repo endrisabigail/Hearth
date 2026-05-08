@@ -11,7 +11,7 @@ function ForgotPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-
+ 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
