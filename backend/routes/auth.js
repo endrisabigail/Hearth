@@ -133,7 +133,7 @@ router.post("/forgot-password", async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: "Hearth <onboarding@resend.dev>",
       to: user.email,
       subject: "🌿 reset your hearth password ♪",
@@ -156,6 +156,14 @@ router.post("/forgot-password", async (req, res) => {
         </div>
       `,
     });
+
+    console.log("Resend data:", JSON.stringify(data));
+    console.log("Resend error:", JSON.stringify(error));
+
+    if (error) {
+      console.error("Resend failed:", error);
+      return res.status(500).json({ msg: "Failed to send email" });
+    }
 
     res.json({ msg: "Email sent!" });
   } catch (err) {
