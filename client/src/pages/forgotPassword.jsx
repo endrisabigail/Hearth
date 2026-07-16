@@ -1,13 +1,35 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../firebase";
 import "../pages/styles/login.css";
 
 function ForgotPassword() {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess("check your email for a reset link ♡");
+    } catch (err) {
+      console.error(err);
+      // Deliberately vague, so this can't be used to check which emails are registered
+      setError("if an account exists for that email, a reset link has been sent.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-page-wrapper">
-      <video autoPlay loop muted playsInline className="bg-video">
-        <source src="/swaying_grass.mp4" type="video/mp4" />
-      </video>
       <div className="overlay" />
 
       <div className="login-container">
@@ -38,26 +60,29 @@ function ForgotPassword() {
           style={{ width: "220px", marginBottom: "-67px", marginTop: "-85px" }}
         />
 
-        <div className="card-title">oops! 🍄</div>
-        <div className="card-sub">password reset coming soon ♪ </div>
+        <div className="card-title">Forgot Password</div>
+        <div className="card-sub">we'll email you a reset link</div>
 
-        <p
-          style={{
-            fontSize: "13px",
-            color: "#7aab7e",
-            textAlign: "center",
-            lineHeight: "1.6",
-            margin: "16px 0",
-            fontFamily: "'DotGothic16', monospace",
-          }}
-        >
-          we're still setting this up! for now, please reach out if you need
-          help ✉️
-        </p>
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="input-wrap">
+            <label className="input-label">email</label>
+            <input
+              className="ac-input"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-        <Link to="/login">
-          <button className="ac-btn">back to login ✦</button>
-        </Link>
+          {error && <p className="error">{error}</p>}
+          {success && <p className="success">{success}</p>}
+
+          <button className="ac-btn" type="submit" disabled={loading}>
+            {loading ? "sending... ✦" : "Send Reset Link ✦"}
+          </button>
+        </form>
 
         <div className="divider-row">
           <div className="divider-line" />
@@ -68,7 +93,7 @@ function ForgotPassword() {
         </div>
 
         <p className="login-footer">
-          Remembered it? <Link to="/login">Login</Link>
+          Back to <Link to="/login">Login</Link>
         </p>
       </div>
     </div>
