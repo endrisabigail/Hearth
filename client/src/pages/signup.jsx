@@ -1,5 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 import axios from "axios";
 import "../pages/styles/signup.css";
 import "../pages/styles/login.css";
@@ -35,17 +37,29 @@ function Signup() {
 
     try {
       const pendingInvite = localStorage.getItem("pendingInvite");
-      const response = await axios.post(`${API_URL}/api/auth/register`, {
-        username,
-        email,
-        password,
-        inviteCode: pendingInvite || undefined,
-      });
-      localStorage.setItem("token", response.data.token);
+
+      // create the account in Firebase (this is the only place the password goes)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+
+      // create the matching Mongo profile via your backend
+      const response = await axios.post(
+        `${API_URL}/api/auth/register`,
+        { username, inviteCode: pendingInvite || undefined },
+        { headers: { Authorization: `Bearer ${idToken}` } },
+      );
+
+      localStorage.setItem("token", idToken);
       navigate("/avatarRegister");
     } catch (err) {
+      console.error(err);
       setError(
-        err.response?.data?.msg || "Signup failed. Please try another email.",
+        err.response?.data?.msg ||
+        (err.code === "auth/email-already-in-use"
+          ? "This email is already in use."
+          : err.code === "auth/weak-password"
+            ? "Password should be at least 6 characters."
+            : "Signup failed. Please try another email."),
       );
       setLoading(false);
     }
@@ -61,7 +75,6 @@ function Signup() {
       </audio>
       <div className="overlay" />
 
-      {/* music toggle button */}
       <button
         className={`music-btn ${playing ? "music-btn--playing" : ""}`}
         onClick={toggleMusic}
@@ -69,109 +82,32 @@ function Signup() {
         {playing ? "♪ on " : "♪ off"}
       </button>
 
-      {/* clouds */}
       <svg className="cloud cloud-lg" viewBox="0 0 110 55" fill="none">
-        <ellipse
-          cx="55"
-          cy="38"
-          rx="46"
-          ry="17"
-          fill="rgba(255,255,255,0.88)"
-        />
-        <ellipse
-          cx="35"
-          cy="30"
-          rx="22"
-          ry="20"
-          fill="rgba(255,255,255,0.88)"
-        />
-        <ellipse
-          cx="62"
-          cy="26"
-          rx="26"
-          ry="22"
-          fill="rgba(255,255,255,0.88)"
-        />
-        <ellipse
-          cx="84"
-          cy="33"
-          rx="18"
-          ry="15"
-          fill="rgba(255,255,255,0.88)"
-        />
+        <ellipse cx="55" cy="38" rx="46" ry="17" fill="rgba(255,255,255,0.88)" />
+        <ellipse cx="35" cy="30" rx="22" ry="20" fill="rgba(255,255,255,0.88)" />
+        <ellipse cx="62" cy="26" rx="26" ry="22" fill="rgba(255,255,255,0.88)" />
+        <ellipse cx="84" cy="33" rx="18" ry="15" fill="rgba(255,255,255,0.88)" />
       </svg>
       <svg className="cloud cloud-sm" viewBox="0 0 75 40" fill="none">
-        <ellipse
-          cx="37"
-          cy="28"
-          rx="32"
-          ry="12"
-          fill="rgba(255,255,255,0.80)"
-        />
-        <ellipse
-          cx="22"
-          cy="22"
-          rx="16"
-          ry="14"
-          fill="rgba(255,255,255,0.80)"
-        />
-        <ellipse
-          cx="45"
-          cy="18"
-          rx="18"
-          ry="16"
-          fill="rgba(255,255,255,0.80)"
-        />
-        <ellipse
-          cx="60"
-          cy="24"
-          rx="13"
-          ry="11"
-          fill="rgba(255,255,255,0.80)"
-        />
+        <ellipse cx="37" cy="28" rx="32" ry="12" fill="rgba(255,255,255,0.80)" />
+        <ellipse cx="22" cy="22" rx="16" ry="14" fill="rgba(255,255,255,0.80)" />
+        <ellipse cx="45" cy="18" rx="18" ry="16" fill="rgba(255,255,255,0.80)" />
+        <ellipse cx="60" cy="24" rx="13" ry="11" fill="rgba(255,255,255,0.80)" />
       </svg>
       <svg className="cloud cloud-xl" viewBox="0 0 140 65" fill="none">
-        <ellipse
-          cx="70"
-          cy="48"
-          rx="60"
-          ry="18"
-          fill="rgba(255,255,255,0.85)"
-        />
-        <ellipse
-          cx="42"
-          cy="38"
-          rx="28"
-          ry="24"
-          fill="rgba(255,255,255,0.85)"
-        />
-        <ellipse
-          cx="78"
-          cy="32"
-          rx="33"
-          ry="28"
-          fill="rgba(255,255,255,0.85)"
-        />
-        <ellipse
-          cx="110"
-          cy="40"
-          rx="24"
-          ry="20"
-          fill="rgba(255,255,255,0.85)"
-        />
+        <ellipse cx="70" cy="48" rx="60" ry="18" fill="rgba(255,255,255,0.85)" />
+        <ellipse cx="42" cy="38" rx="28" ry="24" fill="rgba(255,255,255,0.85)" />
+        <ellipse cx="78" cy="32" rx="33" ry="28" fill="rgba(255,255,255,0.85)" />
+        <ellipse cx="110" cy="40" rx="24" ry="20" fill="rgba(255,255,255,0.85)" />
       </svg>
 
-      {/* fireflies */}
       <div className="fireflies fireflies-1" />
       <div className="fireflies fireflies-3" />
 
       <div className="login-container">
         <span className="corner-deco corner-deco-tl">🌱</span>
         <span className="corner-deco corner-deco-tr">☘️</span>
-        <svg
-          viewBox="0 0 200 60"
-          style={{ width: "200px", marginBottom: "-10px" }}
-        >
+        <svg viewBox="0 0 200 60" style={{ width: "200px", marginBottom: "-10px" }}>
           <defs>
             <path id="curve" d="M 15,55 Q 100,-10 190,65" />
           </defs>
@@ -196,17 +132,11 @@ function Signup() {
         <div className="card-title">Sign Up</div>
         <div className="card-sub">start your adventure🍃</div>
         <form onSubmit={handleSignup} className="login-form">
-          {/* username */}
           <div className="input-wrap">
             <label className="input-label">username</label>
             <svg className="input-icon" viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="5" r="3" stroke="#5aaa78" strokeWidth="1.5" />
-              <path
-                d="M2 14c0-3 2.5-5 6-5s6 2 6 5"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
+              <path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="#5aaa78" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <input
               className="ac-input"
@@ -218,25 +148,11 @@ function Signup() {
             />
           </div>
 
-          {/* email */}
           <div className="input-wrap">
             <label className="input-label">email</label>
             <svg className="input-icon" viewBox="0 0 16 16" fill="none">
-              <rect
-                x="1"
-                y="3"
-                width="14"
-                height="10"
-                rx="2"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M1 5l7 5 7-5"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
+              <rect x="1" y="3" width="14" height="10" rx="2" stroke="#5aaa78" strokeWidth="1.5" />
+              <path d="M1 5l7 5 7-5" stroke="#5aaa78" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <input
               className="ac-input"
@@ -248,25 +164,11 @@ function Signup() {
             />
           </div>
 
-          {/* password */}
           <div className="input-wrap">
             <label className="input-label">password</label>
             <svg className="input-icon" viewBox="0 0 16 16" fill="none">
-              <rect
-                x="3"
-                y="7"
-                width="10"
-                height="7"
-                rx="2"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M5 7V5a3 3 0 016 0v2"
-                stroke="#5aaa78"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
+              <rect x="3" y="7" width="10" height="7" rx="2" stroke="#5aaa78" strokeWidth="1.5" />
+              <path d="M5 7V5a3 3 0 016 0v2" stroke="#5aaa78" strokeWidth="1.5" strokeLinecap="round" />
               <circle cx="8" cy="10.5" r="1" fill="#5aaa78" />
             </svg>
             <input
