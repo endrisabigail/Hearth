@@ -85,7 +85,7 @@ function ForgotPassword() {
         </form>
 
         <div className="divider-row">
-          <div className="divider-line" />
+          <div className="divider-line"  />
           <div className="divider-dot" />
           <div className="divider-dot" />
           <div className="divider-dot" />
