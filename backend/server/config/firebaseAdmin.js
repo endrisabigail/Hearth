@@ -1,4 +1,4 @@
-import admin from "firebase-pkg";
+import pkg from "firebase-admin";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
