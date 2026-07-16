@@ -222,10 +222,9 @@ function AvatarRegister() {
         await axios.post(
           `${API_URL}/api/auth/update-avatar`,
           { avatarId: selected.id },
-          { headers: { "x-auth-token": token } },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
-        // Join the pending invite party if there is one
         const pendingInvite = localStorage.getItem("pendingInvite");
         if (pendingInvite) {
           localStorage.removeItem("pendingInvite");
@@ -233,7 +232,7 @@ function AvatarRegister() {
             await axios.post(
               `${API_URL}/api/party/join/${pendingInvite}`,
               {},
-              { headers: { "x-auth-token": token } },
+              { headers: { Authorization: `Bearer ${token}` } },
             );
           } catch (err) {
             console.error("Could not join party:", err);
@@ -248,7 +247,6 @@ function AvatarRegister() {
       }
     }, 1500);
   };
-
   return (
     <div className="avatar-register-wrapper">
       <img
