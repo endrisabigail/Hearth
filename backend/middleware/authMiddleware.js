@@ -1,23 +1,33 @@
-import jwt from 'jsonwebtoken';
-//gate of protection
-const protect = (req, res, next) => {
-    // Get the token from the request header
-    const token = req.header('x-auth-token');
-    //if no token, deny access
-    if (!token) {
-        return res.status(401).json({msg: "No token, authorization denied."});
+import admin from "../server/config/firebaseAdmin.js";
+import User from "../models/user.js";
+
+const protect = async (req, res, next) => {
+    const authHeader = req.header("Authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ msg: "No token, authorization denied." });
     }
-    //otherwise, verify the token
-    try { 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify the token using the secret key
-        // add user id to request so who is logged in can be identified
-        req.user = decoded.id;
-        next(); // express, move to next code
-        
-    } catch (err){
-        res.status(401).json({msg: 'Token is not valid.'}); // If the token is invalid, return a 401 Unauthorized response with an error message
+
+    const idToken = authHeader.split(" ")[1];
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(idToken);
+
+        // always available =  raw Firebase identity
+        req.firebaseUid = decoded.uid;
+        req.firebaseEmail = decoded.email;
+
+        // try to resolve the Mongo user (won't exist yet on first /register call)
+        const user = await User.findOne({ firebaseUid: decoded.uid });
+        if (user) {
+            req.user = user._id;
+        }
+
+        next();
+    } catch (err) {
+        console.error("Firebase token verification failed:", err.message);
+        res.status(401).json({ msg: "Token is not valid." });
     }
 };
 
-export default protect; 
-    
+export default protect;

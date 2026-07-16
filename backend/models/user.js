@@ -7,9 +7,10 @@ const UserSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    password: {
+    firebaseUid: {
       type: String,
       required: true,
+      unique: true,
     },
     email: {
       type: String,
@@ -74,13 +75,10 @@ const UserSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    // persisted plaza position
     plazaPosition: {
       x: { type: Number, default: 0.5 },
       y: { type: Number, default: 0.6 },
     },
-    resetPasswordToken: { type: String },
-    resetPasswordExpires: { type: Date }, // ← inside here
   },
   { timestamps: true },
 );

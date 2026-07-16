@@ -1,8 +1,4 @@
 import express from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
-import { Resend } from "resend";
 import User from "../models/user.js";
 import Party from "../models/party.js";
 import protect from "../middleware/authMiddleware.js";
@@ -10,25 +6,24 @@ import protect from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // POST /api/auth/register
-router.post("/register", async (req, res) => {
+// called from the frontend right after a successful Firebase signup
+// creates the matching Mongo profile (firebase already handled the credentials)
+router.post("/register", protect, async (req, res) => {
   try {
-    const { username, email, password, inviteCode } = req.body;
+    const { username, inviteCode } = req.body;
 
-    const emailExists = await User.findOne({ email });
-    if (emailExists)
-      return res.status(400).json({ msg: "This email is already registered." });
+    const existing = await User.findOne({ firebaseUid: req.firebaseUid });
+    if (existing)
+      return res.status(400).json({ msg: "Profile already exists for this account." });
 
     const usernameExists = await User.findOne({ username });
     if (usernameExists)
       return res.status(400).json({ msg: "This username is already taken." });
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     const user = new User({
       username,
-      email,
-      password: hashedPassword,
+      email: req.firebaseEmail,
+      firebaseUid: req.firebaseUid,
       rank: "Fledgling",
     });
 
@@ -47,34 +42,7 @@ router.post("/register", async (req, res) => {
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "24h",
-    });
-
-    res.status(201).json({ token });
-  } catch (err) {
-    console.error("FULL ERROR:", err);
-    res.status(500).json({ msg: err.message });
-  }
-});
-
-// POST /api/auth/login
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials." });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Invalid credentials." });
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "24h",
-    });
-
-    res.json({
-      token,
+    res.status(201).json({
       user: {
         id: user._id,
         username: user.username,
@@ -85,8 +53,8 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: "Server error" });
+    console.error("FULL ERROR:", err);
+    res.status(500).json({ msg: err.message });
   }
 });
 
@@ -110,90 +78,11 @@ router.post("/update-avatar", protect, async (req, res) => {
       req.user,
       { avatarId },
       { new: true },
-    ).select("-password");
+    );
 
     res.json({ msg: "Avatar updated!", avatarId: user.avatarId });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-// POST /api/auth/forgot-password
-router.post("/forgot-password", async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ msg: "User not found" });
-
-    const token = crypto.randomBytes(20).toString("hex");
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000;
-    await user.save();
-
-    const { data, error } = await resend.emails.send({
-      from: "Hearth <onboarding@resend.dev>",
-      to: user.email,
-      subject: "🌿 reset your hearth password ♪",
-      html: `
-        <div style="background-color:#f5f0e8;font-family:Georgia,serif;max-width:480px;margin:0 auto;border-radius:16px;overflow:hidden;border:2px solid #c8dfc8;">
-          <div style="background-color:#5aaa78;padding:28px;text-align:center;">
-            <div style="font-size:36px;">🌱</div>
-            <div style="color:white;font-size:22px;letter-spacing:3px;margin-top:6px;">HEARTH</div>
-          </div>
-          <div style="padding:32px 36px;color:#4a5e4a;">
-            <p style="font-size:18px;margin:0 0 8px;">hi ${user.username} ♡</p>
-            <p style="color:#7a9a7a;margin:0 0 24px;font-size:14px;">we got a request to reset your password. no worries — it happens to the best of us! 🍄</p>
-            <div style="text-align:center;margin:28px 0;">
-              <a href="${process.env.CLIENT_URL}/reset-password/${token}" style="background-color:#5aaa78;color:white;padding:14px 32px;border-radius:999px;text-decoration:none;font-size:15px;letter-spacing:1px;">reset my password ✦</a>
-            </div>
-            <p style="font-size:12px;color:#a0b8a0;text-align:center;margin:0 0 8px;">this link expires in 1 hour 🕐</p>
-            <p style="font-size:12px;color:#a0b8a0;text-align:center;margin:0;">if you didn't ask for this, you can safely ignore this email ✨</p>
-          </div>
-          <div style="border-top:1px solid #c8dfc8;padding:16px;text-align:center;color:#a0b8a0;font-size:11px;">🌿 hearth · sent with care ♪</div>
-        </div>
-      `,
-    });
-
-    console.log("Resend data:", JSON.stringify(data));
-    console.log("Resend error:", JSON.stringify(error));
-
-    if (error) {
-      console.error("Resend failed:", error);
-      return res.status(500).json({ msg: "Failed to send email" });
-    }
-
-    res.json({ msg: "Email sent!" });
-  } catch (err) {
-    console.error("FORGOT PASSWORD ERROR:", err);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-// POST /api/auth/reset-password/:token
-router.post("/reset-password/:token", async (req, res) => {
-  const { token } = req.params;
-  const { password } = req.body;
-
-  try {
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) return res.status(400).json({ msg: "Invalid or expired token" });
-
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-
-    res.json({ msg: "Password reset successful! You can now log in." });
-  } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });

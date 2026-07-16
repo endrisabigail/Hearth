@@ -469,7 +469,7 @@ function Dashboard() {
                 navigate(item.path);
               }
             }}
-          >
+          > 
             <span className="nav-icon">{item.icon}</span>
             <span className="nav-label">{item.label}</span>
           </div>
