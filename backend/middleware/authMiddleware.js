@@ -1,4 +1,5 @@
-import admin from "../server/config/firebaseAdmin.js";
+import { getAuth } from "firebase-admin/auth";
+import firebaseApp from "../server/config/firebaseAdmin.js";
 import User from "../models/user.js";
 
 const protect = async (req, res, next) => {
@@ -11,7 +12,7 @@ const protect = async (req, res, next) => {
     const idToken = authHeader.split(" ")[1];
 
     try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
+        const decoded = await getAuth(firebaseApp).verifyIdToken(idToken);
 
         // always available =  raw Firebase identity
         req.firebaseUid = decoded.uid;
