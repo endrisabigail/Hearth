@@ -39,7 +39,7 @@ function ForgotPassword() {
         />
 
         <div className="card-title">oops! 🍄</div>
-        <div className="card-sub">password reset coming soon ♪</div>
+        <div className="card-sub">password reset coming soon ♪ </div>
 
         <p
           style={{
