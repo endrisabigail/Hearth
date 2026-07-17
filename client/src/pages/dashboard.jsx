@@ -45,6 +45,29 @@ function collidesWithAny(nx, ny, boxes) {
   );
 }
 
+// If a position is already overlapping a collision box (e.g. from a stale
+// saved position), push it back out along whichever edge is closest, so
+// the player can't stay wedged inside a tree with movement blocked on
+// every side.
+function resolveStuck(x, y, boxes) {
+  const EPS = 0.0005;
+  for (const b of boxes) {
+    const inside =
+      x > b.cx - b.hw && x < b.cx + b.hw && y > b.cy - b.hh && y < b.cy + b.hh;
+    if (!inside) continue;
+    const penLeft = x - (b.cx - b.hw);
+    const penRight = b.cx + b.hw - x;
+    const penTop = y - (b.cy - b.hh);
+    const penBottom = b.cy + b.hh - y;
+    const minPen = Math.min(penLeft, penRight, penTop, penBottom);
+    if (minPen === penLeft) x = b.cx - b.hw - EPS;
+    else if (minPen === penRight) x = b.cx + b.hw + EPS;
+    else if (minPen === penTop) y = b.cy - b.hh - EPS;
+    else y = b.cy + b.hh + EPS;
+  }
+  return { x, y };
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
@@ -222,6 +245,18 @@ function Dashboard() {
       const k = keysRef.current;
       let moved = false;
       let { x, y } = posRef.current;
+
+      // unstick: if we're already overlapping a tree's collision box
+      // (e.g. from a stale saved position), nudge back out first so
+      // movement isn't blocked on every side.
+      const boxesNow = collisionBoxesRef.current;
+      if (boxesNow.length && collidesWithAny(x, y, boxesNow)) {
+        const healed = resolveStuck(x, y, boxesNow);
+        x = healed.x;
+        y = healed.y;
+        posRef.current = { ...posRef.current, x, y };
+      }
+
       let nx = x,
         ny = y;
       const speed = MOVE_SPEED * dt;
@@ -246,19 +281,18 @@ function Dashboard() {
       if (moved) {
         const b = posRef.current.bounds || DEFAULT_BOUNDS;
         const boxes = collisionBoxesRef.current;
-        nx = Math.max(b.minX, Math.min(b.maxX, nx));
-        ny = Math.max(b.minY, Math.min(b.maxY, ny));
 
-        if (collidesWithAny(nx, ny, boxes)) {
-          const blockedX = collidesWithAny(nx, y, boxes);
-          const blockedY = collidesWithAny(x, ny, boxes);
-          if (!blockedX) ny = y;
-          else if (!blockedY) nx = x;
-          else {
-            nx = x;
-            ny = y;
-          }
-        }
+        // Resolve each axis independently (rather than testing the
+        // combined move first) so neither axis is favored over the
+        // other when sliding along an obstacle's edge.
+        let resolvedX = Math.max(b.minX, Math.min(b.maxX, nx));
+        if (collidesWithAny(resolvedX, y, boxes)) resolvedX = x;
+
+        let resolvedY = Math.max(b.minY, Math.min(b.maxY, ny));
+        if (collidesWithAny(resolvedX, resolvedY, boxes)) resolvedY = y;
+
+        nx = resolvedX;
+        ny = resolvedY;
 
         posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
