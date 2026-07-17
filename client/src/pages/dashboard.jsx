@@ -28,7 +28,7 @@ const AVATAR_MAP = {
 };
 
 const DEFAULT_BOUNDS = { minX: 0.05, maxX: 0.95, minY: 0.05, maxY: 0.95 };
-const MOVE_SPEED = 0.008;
+const MOVE_SPEED = 0.0004; // units per ms; multiplied by dt in the game loop
 const SAVE_DEBOUNCE = 1500;
 const PANELS = ["members", "mail", "focus"];
 
@@ -200,8 +200,14 @@ function Dashboard() {
     const onKeyUp = (e) => {
       keysRef.current[e.key] = false;
     };
+    const onBlur = () => {
+      // clear all held keys so one doesn't get stuck "on" if focus
+      // is lost mid-press (alt-tab, opening a modal, clicking away, etc.)
+      keysRef.current = {};
+    };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
 
     let frameId;
     let lastTime = performance.now();
@@ -298,6 +304,7 @@ function Dashboard() {
       cancelAnimationFrame(frameId);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
     };
   }, []);
 
