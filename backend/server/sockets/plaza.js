@@ -1,6 +1,6 @@
 import { getAuth } from "firebase-admin/auth";
-import firebaseApp from "../server/config/firebaseAdmin.js";
-import User from "../models/user.js";
+import firebaseApp from "../config/firebaseAdmin.js";
+import User from "../../models/user.js";
 
 // live broadcast while people are online
 const partyRooms = new Map();
