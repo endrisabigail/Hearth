@@ -358,7 +358,7 @@ function Dashboard() {
     if (n.type === "streak_milestone") return "🔥";
     if (n.type === "neighbor_request") return "🤝";
     if (n.type === "neighbor_accepted") return "🌿";
-    if (n.message?.startsWith("💬")) return "💬";
+    if (n.message?.startsWith("✉️")) return "💬";
     return "✉️";
   };
 

@@ -41,13 +41,43 @@ function buildGrassTexture() {
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
 
-      ctx.fillStyle = `hsl(${hue + 10}, 55%, 52%)`;
       const rng = (row * 4 + col + 1) * 13;
-      for (let i = 0; i < 6; i++) {
+      const bladeCount = 11;
+      for (let i = 0; i < bladeCount; i++) {
         const bx = x + ((rng * (i + 1) * 7) % (PX - 8)) + 4;
-        const by = y + ((rng * (i + 1) * 11) % (PX - 10)) + 5;
-        ctx.fillRect(bx, by, 2, 5);
-        ctx.fillRect(bx + 3, by + 2, 2, 4);
+        // base sits low in the tile so blades have room to grow upward
+        const by = y + PX - 6 - ((rng * (i + 1) * 11) % 14);
+        const bladeHeight = 14 + ((rng * (i + 3) * 5) % 12); // 14–26px, tall & grassy
+        const lean = (((rng * (i + 5)) % 9) - 4) * 0.9;
+        const shade = 44 + (i % 4) * 5;
+
+        ctx.strokeStyle = `hsl(${hue + 8 + (i % 3) * 5}, 50%, ${shade}%)`;
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(
+          bx + lean,
+          by - bladeHeight * 0.6,
+          bx + lean * 1.6,
+          by - bladeHeight,
+        );
+        ctx.stroke();
+
+        // thin bright highlight blade just beside it for depth
+        if (i % 2 === 0) {
+          ctx.strokeStyle = `hsl(${hue + 16}, 55%, ${shade + 14}%)`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(bx + 2, by - 1);
+          ctx.quadraticCurveTo(
+            bx + 2 + lean,
+            by - bladeHeight * 0.7,
+            bx + 2 + lean * 1.4,
+            by - bladeHeight * 1.05,
+          );
+          ctx.stroke();
+        }
       }
 
       if ((row + col) % 3 === 0) {
@@ -84,47 +114,9 @@ function buildGrassTexture() {
   return tex;
 }
 
-// Build tree sprite texture
-function buildTreeTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 128;
-  canvas.height = 160;
-  const ctx = canvas.getContext("2d");
-
-  // trunk
-  ctx.fillStyle = "#795548";
-  ctx.fillRect(52, 110, 24, 50);
-
-  // shadow under canopy
-  ctx.fillStyle = "rgba(0,0,0,0.12)";
-  ctx.beginPath();
-  ctx.ellipse(64, 118, 38, 12, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // canopy layers
-  const layers = [
-    { y: 90, r: 42, color: "#2e7d32" },
-    { y: 68, r: 36, color: "#388e3c" },
-    { y: 48, r: 30, color: "#43a047" },
-    { y: 30, r: 22, color: "#66bb6a" },
-    { y: 16, r: 14, color: "#81c784" },
-  ];
-  layers.forEach(({ y, r, color }) => {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.ellipse(64, y, r, r * 0.85, 0, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  // highlight
-  ctx.fillStyle = "rgba(255,255,255,0.15)";
-  ctx.beginPath();
-  ctx.ellipse(52, 38, 12, 9, -0.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  const tex = new THREE.CanvasTexture(canvas);
-  return tex;
-}
+// Height (world units) that spawned trees are randomised between
+const TREE_MIN_HEIGHT = 1.8;
+const TREE_MAX_HEIGHT = 3.0;
 
 // Seeded random
 function seededRandom(seed) {
@@ -208,44 +200,59 @@ function PlazaCanvas({
     ground.position.y = -0.01;
     scene.add(ground);
 
-    // 2D tree sprites
-    const treeTex = buildTreeTexture();
+    // 3D tree sculptures (tree.glb), cloned + scattered around the plaza
     const rand = seededRandom(42);
     const half = WORLD_UNITS / 2;
     const margin = 2;
 
     collisionBoxesRef.current = [];
 
-    for (let i = 0; i < TREE_COUNT; i++) {
-      const tx = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
-      const tz = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
+    const treeLoader = new GLTFLoader();
+    let treesCancelled = false;
+    treeLoader.load(
+      "/assets/models/tree.glb",
+      (gltf) => {
+        if (treesCancelled) return;
+        const template = gltf.scene;
 
-      // Keep spawn area clear
-      if (Math.abs(tx) < 3.5 && Math.abs(tz) < 3.5) continue;
+        // Normalise so "scale" below maps to an actual world-unit height
+        const baseBox = new THREE.Box3().setFromObject(template);
+        const baseSize = baseBox.getSize(new THREE.Vector3());
+        const baseHeight = baseSize.y || 1;
+        const baseRadius =
+          Math.max(baseSize.x, baseSize.z) / 2 / baseHeight || 0.3;
 
-      const scale = 1.8 + rand() * 1.2;
-      const treeW = scale * (128 / 160);
-      const treeH = scale;
+        for (let i = 0; i < TREE_COUNT; i++) {
+          const tx = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
+          const tz = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
 
-      const spriteMat = new THREE.SpriteMaterial({
-        map: treeTex,
-        transparent: true,
-        alphaTest: 0.1,
-      });
-      const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(treeW, treeH, 1);
-      sprite.position.set(tx, treeH / 2 - 0.2, tz);
-      scene.add(sprite);
+          // Keep spawn area clear
+          if (Math.abs(tx) < 3.5 && Math.abs(tz) < 3.5) continue;
 
-      // Collision box in normalised 0–1 space
-      const pad = 0.35;
-      collisionBoxesRef.current.push({
-        cx: tx / WORLD_UNITS + 0.5,
-        cy: tz / WORLD_UNITS + 0.5,
-        hw: (treeW * 0.3 + pad) / WORLD_UNITS,
-        hh: (treeW * 0.3 + pad) / WORLD_UNITS,
-      });
-    }
+          const targetHeight =
+            TREE_MIN_HEIGHT + rand() * (TREE_MAX_HEIGHT - TREE_MIN_HEIGHT);
+          const scale = targetHeight / baseHeight;
+
+          const tree = template.clone(true);
+          tree.scale.setScalar(scale);
+          tree.position.set(tx, 0, tz);
+          tree.rotation.y = rand() * Math.PI * 2;
+          scene.add(tree);
+
+          // Collision box in normalised 0–1 space
+          const pad = 0.35;
+          const treeRadius = baseRadius * targetHeight; // world units
+          collisionBoxesRef.current.push({
+            cx: tx / WORLD_UNITS + 0.5,
+            cy: tz / WORLD_UNITS + 0.5,
+            hw: (treeRadius + pad) / WORLD_UNITS,
+            hh: (treeRadius + pad) / WORLD_UNITS,
+          });
+        }
+      },
+      undefined,
+      (err) => console.error("tree load error:", err),
+    );
 
     // Movement bounds
     const edgePad = 1.5 / WORLD_UNITS;
@@ -361,10 +368,10 @@ function PlazaCanvas({
     window.addEventListener("resize", onResize);
 
     return () => {
+      treesCancelled = true;
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", onResize);
       grassTex.dispose();
-      treeTex.dispose();
       groundGeo.dispose();
       groundMat.dispose();
       renderer.dispose();
