@@ -213,25 +213,43 @@ function Dashboard() {
   }, [scheduleSave]);
 
   // game loop to handle manual movement + proximity detection
+  // solely handles listening to keys and keeping them updated
   useEffect(() => {
-    const onKeyDown = (e) => {
+    const handleKeyDown = (e) => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        // Ignore movement if typing in an input field or textarea
+        const target = e.target.tagName;
+        if (target === "INPUT" || target === "TEXTAREA" || e.target.isContentEditable) {
+          return;
+        }
         e.preventDefault();
         keysRef.current[e.key] = true;
       }
     };
-    const onKeyUp = (e) => {
-      keysRef.current[e.key] = false;
+
+    const handleKeyUp = (e) => {
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        keysRef.current[e.key] = false;
+      }
     };
-    const onBlur = () => {
-      // clear all held keys so one doesn't get stuck "on" if focus
-      // is lost mid-press (alt-tab, opening a modal, clicking away, etc.)
+
+    const handleBlur = () => {
       keysRef.current = {};
     };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", onBlur);
 
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []); // Safe to leave empty because it only modifies refs, which don't trigger re-renders
+
+  // seperate effects, the 60fps frame tick loop independently
+  useEffect(() => {
     let frameId;
     let lastTime = performance.now();
     const smoothPos = { x: posRef.current.x, y: posRef.current.y };
@@ -246,9 +264,6 @@ function Dashboard() {
       let moved = false;
       let { x, y } = posRef.current;
 
-      // unstick: if we're already overlapping a tree's collision box
-      // (e.g. from a stale saved position), nudge back out first so
-      // movement isn't blocked on every side.
       const boxesNow = collisionBoxesRef.current;
       if (boxesNow.length && collidesWithAny(x, y, boxesNow)) {
         const healed = resolveStuck(x, y, boxesNow);
@@ -257,34 +272,18 @@ function Dashboard() {
         posRef.current = { ...posRef.current, x, y };
       }
 
-      let nx = x,
-        ny = y;
+      let nx = x, ny = y;
       const speed = MOVE_SPEED * dt;
 
-      if (k.ArrowLeft) {
-        nx -= speed;
-        moved = true;
-      }
-      if (k.ArrowRight) {
-        nx += speed;
-        moved = true;
-      }
-      if (k.ArrowUp) {
-        ny -= speed;
-        moved = true;
-      }
-      if (k.ArrowDown) {
-        ny += speed;
-        moved = true;
-      }
+      if (k.ArrowLeft) { nx -= speed; moved = true; }
+      if (k.ArrowRight) { nx += speed; moved = true; }
+      if (k.ArrowUp) { ny -= speed; moved = true; }
+      if (k.ArrowDown) { ny += speed; moved = true; }
 
       if (moved) {
         const b = posRef.current.bounds || DEFAULT_BOUNDS;
         const boxes = collisionBoxesRef.current;
 
-        // Resolve each axis independently (rather than testing the
-        // combined move first) so neither axis is favored over the
-        // other when sliding along an obstacle's edge.
         let resolvedX = Math.max(b.minX, Math.min(b.maxX, nx));
         if (collidesWithAny(resolvedX, y, boxes)) resolvedX = x;
 
@@ -297,17 +296,12 @@ function Dashboard() {
         posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
 
-        // proximity check for all nodes to trigger modal open on walk-in
         NODE_POSITIONS.forEach((node, i) => {
           const dx = posRef.current.x - node.nx;
           const dy = posRef.current.y - node.ny;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (
-            dist < PROXIMITY_THRESHOLD &&
-            !proximityTriggeredRef.current.has(node.id)
-          ) {
+          if (dist < PROXIMITY_THRESHOLD && !proximityTriggeredRef.current.has(node.id)) {
             proximityTriggeredRef.current.add(node.id);
-            // use a small timeout to let React state (quests) be accessible
             setTimeout(() => {
               setQuests((currentQuests) => {
                 const quest = currentQuests[i];
@@ -319,7 +313,6 @@ function Dashboard() {
               });
             }, 0);
           }
-          // reset trigger when player walks away
           if (dist > PROXIMITY_THRESHOLD * 1.5) {
             proximityTriggeredRef.current.delete(node.id);
           }
@@ -334,13 +327,8 @@ function Dashboard() {
     };
 
     frameId = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(frameId);
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("blur", onBlur);
-    };
-  }, []);
+    return () => cancelAnimationFrame(frameId);
+  }, [scheduleSave]); // Adding scheduleSave ensures frame loop won't go stale when dashboard updates
 
   const togglePanel = (panel) =>
     setOpenPanels((prev) => ({ ...prev, [panel]: !prev[panel] }));
