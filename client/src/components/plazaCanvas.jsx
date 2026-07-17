@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-// config
+// Config
 const AVATAR_CONFIG = {
   tomato: { scale: 1.2, offsetX: 0 },
   frog: { scale: 1.2, offsetX: 0 },
@@ -15,13 +15,12 @@ const AVATAR_CONFIG = {
 const TRAVEL_SPEED = 0.006;
 const ARRIVAL_THRESHOLD = 0.018;
 
-const WORLD_UNITS = 64; // total world size (square) — bumped up for more open plane space
-const TILE_SIZE = 2; // each tile is 2 world units
+const WORLD_UNITS = 64;
+const TILE_SIZE = 2;
 const TILES = WORLD_UNITS / TILE_SIZE;
-const TREE_COUNT = 180; // scaled up to keep tree density similar on the bigger plane
-const PX = 64; // pixels per tile on texture canvas
+const TREE_COUNT = 180;
+const PX = 64;
 
-//character edge pad
 const EDGE_PAD = 1.5 / WORLD_UNITS;
 export const MOVEMENT_BOUNDS = {
   minX: EDGE_PAD,
@@ -96,24 +95,6 @@ function buildGrassTexture() {
 // Height (world units) that spawned trees are randomised between
 const TREE_MIN_HEIGHT = 1.8;
 const TREE_MAX_HEIGHT = 3.0;
-
-// plaza tree border
-const BORDER_INSET = 2.2; // world units in from the true edge of the plane
-const BORDER_SPACING = 2.4; // world units between border trees along each side
-const BORDER_JITTER = 0.35; // random wobble so the ring doesn't look like a fence
-
-function buildBorderTreePositions(half, rand) {
-  const r = half - BORDER_INSET;
-  const jitter = () => (rand() - 0.5) * BORDER_JITTER;
-  const positions = [];
-  for (let v = -r; v <= r; v += BORDER_SPACING) {
-    positions.push({ x: v + jitter(), z: -r + jitter() }); // north edge
-    positions.push({ x: v + jitter(), z: r + jitter() }); // south edge
-    positions.push({ x: -r + jitter(), z: v + jitter() }); // west edge
-    positions.push({ x: r + jitter(), z: v + jitter() }); // east edge
-  }
-  return positions;
-}
 
 // Seeded random
 function seededRandom(seed) {
@@ -197,7 +178,7 @@ function PlazaCanvas({
     ground.position.y = -0.01;
     scene.add(ground);
 
-    // 3D tree sculptures cloned + scattered around the plaza
+    // 3D tree sculptures (tree.glb), cloned + scattered around the plaza
     const rand = seededRandom(42);
     const half = WORLD_UNITS / 2;
     const margin = 2;
@@ -220,9 +201,13 @@ function PlazaCanvas({
           Math.max(baseSize.x, baseSize.z) / 2 / baseHeight || 0.3;
         const baseMinY = baseBox.min.y; // how far the model's origin sits below its own base
 
-        // Shared placement logic so interior scatter trees and the border
-        // ring both get a matching visual tree + collision box.
-        const placeTree = (tx, tz) => {
+        for (let i = 0; i < TREE_COUNT; i++) {
+          const tx = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
+          const tz = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
+
+          // Keep spawn area clear
+          if (Math.abs(tx) < 3.5 && Math.abs(tz) < 3.5) continue;
+
           const targetHeight =
             TREE_MIN_HEIGHT + rand() * (TREE_MAX_HEIGHT - TREE_MIN_HEIGHT);
           const scale = targetHeight / baseHeight;
@@ -244,31 +229,15 @@ function PlazaCanvas({
             hw: (treeRadius + pad) / WORLD_UNITS,
             hh: (treeRadius + pad) / WORLD_UNITS,
           });
-        };
-
-        for (let i = 0; i < TREE_COUNT; i++) {
-          const tx = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
-          const tz = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
-
-          // Keep spawn area clear
-          if (Math.abs(tx) < 3.5 && Math.abs(tz) < 3.5) continue;
-
-          placeTree(tx, tz);
         }
-
-        // border rings hugs the edge of the plane so the character is naturally boxed in by trees 
-        buildBorderTreePositions(half, rand).forEach(({ x, z }) =>
-          placeTree(x, z),
-        );
       },
       undefined,
       (err) => console.error("tree load error:", err),
     );
 
-    // movement bounds
     posRef.current.bounds = MOVEMENT_BOUNDS;
 
-    // animate
+    // Animate
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate);
       const model = modelRef.current;
@@ -385,7 +354,7 @@ function PlazaCanvas({
     };
   }, []);
 
-  // avatar loader
+  // Avatar loader
   useEffect(() => {
     if (!sceneRef.current || !avatarId) return;
     if (modelRef.current) {

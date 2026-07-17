@@ -44,7 +44,6 @@ function collidesWithAny(nx, ny, boxes) {
   );
 }
 
-// preventative for character being stuck due to being wedged between trees
 function resolveStuck(x, y, boxes) {
   const EPS = 0.0005;
   for (const b of boxes) {
@@ -214,7 +213,7 @@ function Dashboard() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        // ignore movement if typing in an input field or textarea
+        // Ignore movement if typing in an input field or textarea
         const target = e.target.tagName;
         if (target === "INPUT" || target === "TEXTAREA" || e.target.isContentEditable) {
           return;
@@ -257,16 +256,6 @@ function Dashboard() {
       const dt = Math.min(now - lastTime, 50);
       lastTime = now;
 
-      // character wedged between trees assistance
-      const boxes = collisionBoxesRef.current;
-      if (
-        boxes.length &&
-        collidesWithAny(posRef.current.x, posRef.current.y, boxes)
-      ) {
-        const resolved = resolveStuck(posRef.current.x, posRef.current.y, boxes);
-        posRef.current = { ...posRef.current, x: resolved.x, y: resolved.y };
-      }
-
       const k = keysRef.current;
       let moved = false;
       let { x, y } = posRef.current;
@@ -294,17 +283,11 @@ function Dashboard() {
       if (moved) {
         const b = posRef.current.bounds || MOVEMENT_BOUNDS;
 
-        // enforce bounds constraints (prevent falling outside of the grass plane)
+        // only enforce bounds constraints (prevent falling outside of the grass plane)
         nx = Math.max(b.minX, Math.min(b.maxX, nx));
         ny = Math.max(b.minY, Math.min(b.maxY, ny));
 
-        // resolve tree collission one axes at a time
-        let finalX = x;
-        let finalY = y;
-        if (!collidesWithAny(nx, y, boxes)) finalX = nx;
-        if (!collidesWithAny(finalX, ny, boxes)) finalY = ny;
-
-        posRef.current = { ...posRef.current, x: finalX, y: finalY };
+        posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
 
         NODE_POSITIONS.forEach((node, i) => {
