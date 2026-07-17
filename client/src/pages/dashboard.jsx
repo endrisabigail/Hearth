@@ -103,7 +103,7 @@ function Dashboard() {
   const apiRef = useRef(
     axios.create({
       baseURL: `${API_URL}/api`,
-      headers: { "x-auth-token": token },
+      headers: { Authorization: `Bearer ${token}` },
     }),
   );
   const api = apiRef.current;
@@ -469,7 +469,7 @@ function Dashboard() {
                 navigate(item.path);
               }
             }}
-          > 
+          >
             <span className="nav-icon">{item.icon}</span>
             <span className="nav-label">{item.label}</span>
           </div>

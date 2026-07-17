@@ -52,7 +52,7 @@ function JoinParty() {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/party/join/${inviteCode}`,
         {},
-        { headers: { "x-auth-token": token } },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       navigate("/dashboard");
     } catch (err) {
