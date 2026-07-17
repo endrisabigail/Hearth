@@ -15,10 +15,10 @@ const AVATAR_CONFIG = {
 const TRAVEL_SPEED = 0.006;
 const ARRIVAL_THRESHOLD = 0.018;
 
-const WORLD_UNITS = 40; // total world size (square)
+const WORLD_UNITS = 64; // total world size (square) — bumped up for more open plane space
 const TILE_SIZE = 2; // each tile is 2 world units
 const TILES = WORLD_UNITS / TILE_SIZE;
-const TREE_COUNT = 80;
+const TREE_COUNT = 180; // scaled up to keep tree density similar on the bigger plane
 const PX = 64; // pixels per tile on texture canvas
 
 // Build grass texture
@@ -41,43 +41,13 @@ function buildGrassTexture() {
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
 
+      ctx.fillStyle = `hsl(${hue + 10}, 55%, 52%)`;
       const rng = (row * 4 + col + 1) * 13;
-      const bladeCount = 11;
-      for (let i = 0; i < bladeCount; i++) {
+      for (let i = 0; i < 6; i++) {
         const bx = x + ((rng * (i + 1) * 7) % (PX - 8)) + 4;
-        // base sits low in the tile so blades have room to grow upward
-        const by = y + PX - 6 - ((rng * (i + 1) * 11) % 14);
-        const bladeHeight = 14 + ((rng * (i + 3) * 5) % 12); // 14–26px, tall & grassy
-        const lean = (((rng * (i + 5)) % 9) - 4) * 0.9;
-        const shade = 44 + (i % 4) * 5;
-
-        ctx.strokeStyle = `hsl(${hue + 8 + (i % 3) * 5}, 50%, ${shade}%)`;
-        ctx.lineWidth = 1.6;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.quadraticCurveTo(
-          bx + lean,
-          by - bladeHeight * 0.6,
-          bx + lean * 1.6,
-          by - bladeHeight,
-        );
-        ctx.stroke();
-
-        // thin bright highlight blade just beside it for depth
-        if (i % 2 === 0) {
-          ctx.strokeStyle = `hsl(${hue + 16}, 55%, ${shade + 14}%)`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(bx + 2, by - 1);
-          ctx.quadraticCurveTo(
-            bx + 2 + lean,
-            by - bladeHeight * 0.7,
-            bx + 2 + lean * 1.4,
-            by - bladeHeight * 1.05,
-          );
-          ctx.stroke();
-        }
+        const by = y + ((rng * (i + 1) * 11) % (PX - 10)) + 5;
+        ctx.fillRect(bx, by, 2, 5);
+        ctx.fillRect(bx + 3, by + 2, 2, 4);
       }
 
       if ((row + col) % 3 === 0) {
@@ -164,7 +134,7 @@ function PlazaCanvas({
     // Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 18, 34);
+    scene.fog = new THREE.Fog(0x87ceeb, WORLD_UNITS * 0.45, WORLD_UNITS * 0.85);
     sceneRef.current = scene;
 
     // Camera
@@ -221,6 +191,7 @@ function PlazaCanvas({
         const baseHeight = baseSize.y || 1;
         const baseRadius =
           Math.max(baseSize.x, baseSize.z) / 2 / baseHeight || 0.3;
+        const baseMinY = baseBox.min.y; // how far the model's origin sits below its own base
 
         for (let i = 0; i < TREE_COUNT; i++) {
           const tx = rand() * (WORLD_UNITS - margin * 2) - (half - margin);
@@ -235,7 +206,9 @@ function PlazaCanvas({
 
           const tree = template.clone(true);
           tree.scale.setScalar(scale);
-          tree.position.set(tx, 0, tz);
+          // Shift up so the model's true base (not its origin) sits on the grass
+          const groundLift = -baseMinY * scale + 0.02;
+          tree.position.set(tx, groundLift, tz);
           tree.rotation.y = rand() * Math.PI * 2;
           scene.add(tree);
 
