@@ -248,7 +248,7 @@ function Dashboard() {
     };
   }, []); // Safe to leave empty because it only modifies refs, which don't trigger re-renders
 
-  // seperate effects, the 60fps frame tick loop independently
+  // separate effects, the 60fps frame tick loop independently
   useEffect(() => {
     let frameId;
     let lastTime = performance.now();
@@ -264,14 +264,6 @@ function Dashboard() {
       let moved = false;
       let { x, y } = posRef.current;
 
-      const boxesNow = collisionBoxesRef.current;
-      if (boxesNow.length && collidesWithAny(x, y, boxesNow)) {
-        const healed = resolveStuck(x, y, boxesNow);
-        x = healed.x;
-        y = healed.y;
-        posRef.current = { ...posRef.current, x, y };
-      }
-
       let nx = x, ny = y;
       const speed = MOVE_SPEED * dt;
 
@@ -282,16 +274,10 @@ function Dashboard() {
 
       if (moved) {
         const b = posRef.current.bounds || DEFAULT_BOUNDS;
-        const boxes = collisionBoxesRef.current;
 
-        let resolvedX = Math.max(b.minX, Math.min(b.maxX, nx));
-        if (collidesWithAny(resolvedX, y, boxes)) resolvedX = x;
-
-        let resolvedY = Math.max(b.minY, Math.min(b.maxY, ny));
-        if (collidesWithAny(resolvedX, resolvedY, boxes)) resolvedY = y;
-
-        nx = resolvedX;
-        ny = resolvedY;
+        // only enforce bounds constraints (prevent falling outside of the grass plane)
+        nx = Math.max(b.minX, Math.min(b.maxX, nx));
+        ny = Math.max(b.minY, Math.min(b.maxY, ny));
 
         posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
@@ -328,7 +314,7 @@ function Dashboard() {
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [scheduleSave]); // Adding scheduleSave ensures frame loop won't go stale when dashboard updates
+  }, [scheduleSave]);
 
   const togglePanel = (panel) =>
     setOpenPanels((prev) => ({ ...prev, [panel]: !prev[panel] }));
