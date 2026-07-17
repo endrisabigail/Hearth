@@ -267,10 +267,22 @@ function Dashboard() {
       let nx = x, ny = y;
       const speed = MOVE_SPEED * dt;
 
-      if (k.ArrowLeft) { nx -= speed; moved = true; }
-      if (k.ArrowRight) { nx += speed; moved = true; }
-      if (k.ArrowUp) { ny -= speed; moved = true; }
-      if (k.ArrowDown) { ny += speed; moved = true; }
+      // check if the user is typing anywhere on the dashboard
+
+      const activeEl = document.activeElement;
+      const isTyping = activeEl && (
+        activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.isContentEditable
+      );
+      //only allow input calculations if not typing
+      if (!isTyping) {
+        if (k.ArrowLeft) { nx -= speed; moved = true; }
+        if (k.ArrowRight) { nx += speed; moved = true; }
+        if (k.ArrowUp) { ny -= speed; moved = true; }
+        if (k.ArrowDown) { ny += speed; moved = true; }
+
+      }
 
       if (moved) {
         const b = posRef.current.bounds || DEFAULT_BOUNDS;
