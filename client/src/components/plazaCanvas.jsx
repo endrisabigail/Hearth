@@ -12,12 +12,12 @@ const AVATAR_CONFIG = {
   snail: { scale: 1.2, offsetX: 0 },
 };
 
-const TRAVEL_SPEED = 0.006;
+const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
 
 // world layout
 const WORLD_MIN = -32; // left/up extent  
-const WORLD_MAX = 48; // right/down extent (grown from 32 -> 48)
+const WORLD_MAX = 48; // right/down extent  
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN; // 80
 const WORLD_CENTER = (WORLD_MIN + WORLD_MAX) / 2; // 8
 
@@ -27,7 +27,7 @@ const TREE_COUNT = 210;
 const BUSH_COUNT = 130;
 const PX = 64;
 
-// Ghibli-ish ambient extras
+// ambient extras
 const FLOWER_PATCH_COUNT = 34;
 const BUTTERFLY_COUNT = 7;
 const FIREFLY_COUNT = 20;
@@ -71,15 +71,15 @@ function buildGrassTexture() {
       const x = col * PX;
       const y = row * PX;
 
-      const hue = 118 + ((row * 4 + col) % 5) * 4;
-      ctx.fillStyle = `hsl(${hue}, 52%, 42%)`;
+      const hue = 100 + ((row * 4 + col) % 5) * 4;
+      ctx.fillStyle = `hsl(${hue}, 34%, 52%)`;
       ctx.fillRect(x, y, PX, PX);
 
-      ctx.strokeStyle = "rgba(0,0,0,0.06)";
+      ctx.strokeStyle = "rgba(0,0,0,0.04)";
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
 
-      ctx.fillStyle = `hsl(${hue + 10}, 55%, 52%)`;
+      ctx.fillStyle = `hsl(${hue + 8}, 36%, 60%)`;
       const rng = (row * 4 + col + 1) * 13;
       for (let i = 0; i < 6; i++) {
         const bx = x + ((rng * (i + 1) * 7) % (PX - 8)) + 4;
@@ -158,24 +158,44 @@ function buildWaterTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "#4fb3d9";
+  const grad = ctx.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, "#4cc3ea");
+  grad.addColorStop(1, "#2e9ddb");
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
 
-  const grad = ctx.createLinearGradient(0, 0, 128, 128);
-  grad.addColorStop(0, "rgba(255,255,255,0.0)");
-  grad.addColorStop(0.5, "rgba(255,255,255,0.18)");
-  grad.addColorStop(1, "rgba(255,255,255,0.0)");
-  ctx.fillStyle = grad;
-  for (let i = -1; i < 6; i++) {
-    ctx.save();
-    ctx.translate(i * 40, 0);
-    ctx.fillRect(0, 0, 14, 128);
-    ctx.restore();
+  // soft white caustic swirl lines, like light rippling on the surface
+  ctx.strokeStyle = "rgba(255,255,255,0.4)";
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 6; i++) {
+    const y0 = (i * 23) % 128;
+    ctx.beginPath();
+    ctx.moveTo(-10, y0);
+    for (let x = 0; x <= 140; x += 12) {
+      const yy = y0 + Math.sin((x + i * 31) * 0.08) * 11;
+      ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
   }
 
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  // finer secondary swirls for depth
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 5; i++) {
+    const y0 = (i * 27 + 14) % 128;
+    ctx.beginPath();
+    ctx.moveTo(-10, y0);
+    for (let x = 0; x <= 140; x += 10) {
+      const yy = y0 + Math.sin((x + i * 47) * 0.11) * 7;
+      ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
   for (let i = 0; i < 10; i++) {
-    ctx.fillRect((i * 37) % 128, (i * 53) % 128, 6, 2);
+    ctx.fillRect((i * 37) % 128, (i * 53) % 128, 3, 3);
   }
 
   const tex = new THREE.CanvasTexture(canvas);
@@ -185,7 +205,7 @@ function buildWaterTexture() {
   return tex;
 }
 
-// soft pastel sky gradient (used as scene.background)
+// sky gradient (used as scene.background)
 function buildSkyTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 8;
@@ -302,25 +322,77 @@ function buildGlowTexture(rgb) {
   return new THREE.CanvasTexture(canvas);
 }
 
-// a friendly hand-drawn "Z" for the idle sleep indicator
+// "Z" for the idle sleep indicator
 function buildZzzTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
-  ctx.font = "bold 46px 'Comic Sans MS', sans-serif";
+  ctx.font = "bold 20px 'Comic Sans MS', sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.lineJoin = "round";
   ctx.lineWidth = 5;
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.strokeStyle = "rgba(87, 62, 254, 0.95)";
   ctx.strokeText("Z", 32, 34);
-  ctx.fillStyle = "#5b6b8c";
+  ctx.fillStyle = "#4539c7";
   ctx.fillText("Z", 32, 34);
   return new THREE.CanvasTexture(canvas);
 }
 
-// pac-man-shaped lily pad (a circle with a small wedge notch)
+// mottled grey-brown rock, used for the island's sides/underside and boulders
+function buildRockTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#8d7f70";
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 70; i++) {
+    const x = (i * 53) % 256;
+    const y = (i * 97) % 256;
+    const r = 6 + ((i * 31) % 22);
+    const shade = 40 + ((i * 17) % 40);
+    ctx.fillStyle = `hsl(28, 12%, ${shade}%)`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = "rgba(35,26,18,0.25)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 18; i++) {
+    const x0 = (i * 61) % 256;
+    const y0 = (i * 89) % 256;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 + (((i * 41) % 160) - 80), y0 + (((i * 53) % 160) - 80));
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(5, 5);
+  return tex;
+}
+
+// boulder for the underside of the floating island
+function buildBoulder(rand) {
+  const r = 1.3 + rand() * 1.9;
+  const geo = new THREE.IcosahedronGeometry(r, 0);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const n = 0.88 + rand() * 0.28;
+    pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n, pos.getZ(i) * n);
+  }
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshLambertMaterial({
+    color: new THREE.Color(`hsl(30, 10%, ${42 + rand() * 16}%)`),
+    flatShading: true,
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+// pac-man-shaped lily pad  
 function buildLilyPad(radius, rand) {
   const shape = new THREE.Shape();
   const notch = 0.3 + rand() * 0.2;
@@ -334,7 +406,7 @@ function buildLilyPad(radius, rand) {
   shape.lineTo(0, 0);
   const geo = new THREE.ShapeGeometry(shape);
   const mat = new THREE.MeshLambertMaterial({
-    color: new THREE.Color(`hsl(${100 + rand() * 22}, 45%, ${30 + rand() * 10}%)`),
+    color: new THREE.Color(`hsl(${95 + rand() * 25}, 30%, ${48 + rand() * 10}%)`),
     side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geo, mat);
@@ -342,7 +414,7 @@ function buildLilyPad(radius, rand) {
   return mesh;
 }
 
-// flattened, dark, semi-transparent koi-ish shape that reads as a shadow under the water
+// shadow under the water
 function buildFish(rand) {
   const len = 0.9 + rand() * 0.9;
   const geo = new THREE.SphereGeometry(len * 0.5, 10, 8);
@@ -489,15 +561,64 @@ function PlazaCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // Grass ground
+    // Grass ground — built with real thickness so it reads as a floating
+    // island: grass on top, rock on the sides and underside.
     const grassTex = buildGrassTexture();
-    const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE);
-    const groundMat = new THREE.MeshLambertMaterial({ map: grassTex });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.set(WORLD_CENTER, -0.01, WORLD_CENTER);
+    const rockTex = buildRockTexture();
+    const ISLAND_DEPTH = 3.4;
+    const groundGeo = new THREE.BoxGeometry(WORLD_SIZE, ISLAND_DEPTH, WORLD_SIZE);
+    const grassTopMat = new THREE.MeshLambertMaterial({ map: grassTex });
+    const rockSideMat = new THREE.MeshLambertMaterial({ map: rockTex });
+    const groundMaterials = [
+      rockSideMat, // +x
+      rockSideMat, // -x
+      grassTopMat, // +y (top)
+      rockSideMat, // -y (bottom)
+      rockSideMat, // +z
+      rockSideMat, // -z
+    ];
+    const ground = new THREE.Mesh(groundGeo, groundMaterials);
+    const GROUND_TOP_Y = -0.01;
+    ground.position.set(WORLD_CENTER, GROUND_TOP_Y - ISLAND_DEPTH / 2, WORLD_CENTER);
     ground.receiveShadow = true;
+    ground.castShadow = true;
     scene.add(ground);
+
+    // chunky boulders hanging off the underside edges, like rock jutting out
+    // from beneath a floating island
+    const boulderRand = seededRandom(131);
+    const boulders = [];
+    const BOULDER_COUNT = 20;
+    for (let i = 0; i < BOULDER_COUNT; i++) {
+      const edge = Math.floor(boulderRand() * 4);
+      const t = boulderRand();
+      let bx, bz;
+      if (edge === 0) {
+        bx = WORLD_MIN + t * WORLD_SIZE;
+        bz = WORLD_MIN - boulderRand() * 1.6;
+      } else if (edge === 1) {
+        bx = WORLD_MIN + t * WORLD_SIZE;
+        bz = WORLD_MAX + boulderRand() * 1.6;
+      } else if (edge === 2) {
+        bz = WORLD_MIN + t * WORLD_SIZE;
+        bx = WORLD_MIN - boulderRand() * 1.6;
+      } else {
+        bz = WORLD_MIN + t * WORLD_SIZE;
+        bx = WORLD_MAX + boulderRand() * 1.6;
+      }
+      const boulder = buildBoulder(boulderRand);
+      const by = GROUND_TOP_Y - ISLAND_DEPTH * (0.25 + boulderRand() * 0.65);
+      boulder.position.set(bx, by, bz);
+      boulder.rotation.set(
+        boulderRand() * Math.PI,
+        boulderRand() * Math.PI,
+        boulderRand() * Math.PI,
+      );
+      boulder.castShadow = true;
+      boulder.receiveShadow = true;
+      scene.add(boulder);
+      boulders.push(boulder);
+    }
 
     collisionBoxesRef.current = [];
 
@@ -786,7 +907,7 @@ function PlazaCanvas({
         depthWrite: false,
       });
       const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(0.4, 0.4, 1);
+      sprite.scale.set(0.3, 0.3, 1);
       scene.add(sprite);
       zzzSprites.push(sprite);
     }
@@ -1061,7 +1182,7 @@ function PlazaCanvas({
         } else {
           idleTimeRef.current += 1 / 60;
         }
-        const showZzz = idleTimeRef.current > 0.6;
+        const showZzz = idleTimeRef.current > 60;
         zzzSprites.forEach((s, i) => {
           const cycle = 2.2;
           const localT = ((t + i * 0.7) % cycle) / cycle;
@@ -1074,7 +1195,7 @@ function PlazaCanvas({
           const fadeOut = Math.min((1 - localT) / 0.25, 1);
           const targetOpacity = showZzz ? Math.min(fadeIn, fadeOut) * 0.9 : 0;
           s.material.opacity += (targetOpacity - s.material.opacity) * 0.15;
-          const scale = 0.3 + localT * 0.25 + i * 0.03;
+          const scale = 0.22 + localT * 0.18 + i * 0.02;
           s.scale.set(scale, scale, 1);
         });
 
@@ -1133,7 +1254,14 @@ function PlazaCanvas({
       window.removeEventListener("resize", onResize);
       grassTex.dispose();
       groundGeo.dispose();
-      groundMat.dispose();
+      grassTopMat.dispose();
+      rockSideMat.dispose();
+      rockTex.dispose();
+      boulders.forEach((b) => {
+        scene.remove(b);
+        b.geometry.dispose();
+        b.material.dispose();
+      });
       cloudTex.dispose();
       waterTex.dispose();
       shoreMesh.geometry.dispose();
