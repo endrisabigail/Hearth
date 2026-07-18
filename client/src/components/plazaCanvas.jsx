@@ -71,15 +71,15 @@ function buildGrassTexture() {
       const x = col * PX;
       const y = row * PX;
 
-      const hue = 100 + ((row * 4 + col) % 5) * 4;
-      ctx.fillStyle = `hsl(${hue}, 34%, 52%)`;
+      const hue = 118 + ((row * 4 + col) % 5) * 4;
+      ctx.fillStyle = `hsl(${hue}, 52%, 42%)`;
       ctx.fillRect(x, y, PX, PX);
 
-      ctx.strokeStyle = "rgba(0,0,0,0.04)";
+      ctx.strokeStyle = "rgba(0,0,0,0.06)";
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
 
-      ctx.fillStyle = `hsl(${hue + 8}, 36%, 60%)`;
+      ctx.fillStyle = `hsl(${hue + 10}, 55%, 52%)`;
       const rng = (row * 4 + col + 1) * 13;
       for (let i = 0; i < 6; i++) {
         const bx = x + ((rng * (i + 1) * 7) % (PX - 8)) + 4;
