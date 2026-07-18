@@ -170,10 +170,24 @@ function Dashboard() {
       setQuests(dashRes.data.quests);
       setNotifications(dashRes.data.notifications);
       if (user.plazaPosition) {
+        const rawX = user.plazaPosition.x;
+        const rawY = user.plazaPosition.y;
+        // check if the user has a stored plaza position and clamp it to bounds
+        const hasStoredPosition =
+          typeof rawX === "number" &&
+          typeof rawY === "number" &&
+          !(rawX === 0 && rawY === 0);
+
+        const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
         posRef.current = {
           ...posRef.current,
-          x: user.plazaPosition.x ?? 0.5,
-          y: user.plazaPosition.y ?? 0.5,
+          x: hasStoredPosition
+            ? clamp(rawX, MOVEMENT_BOUNDS.minX, MOVEMENT_BOUNDS.maxX)
+            : 0.5,
+          y: hasStoredPosition
+            ? clamp(rawY, MOVEMENT_BOUNDS.minY, MOVEMENT_BOUNDS.maxY)
+            : 0.5,
         };
       }
       if (partyRes) setParty(partyRes.data);
