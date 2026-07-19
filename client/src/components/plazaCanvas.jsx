@@ -528,8 +528,59 @@ function disposePivot(pivot) {
       } else {
         child.material?.dispose();
       }
+    } else if (child.isSprite) {
+      child.material?.map?.dispose();
+      child.material?.dispose();
     }
   });
+}
+
+// small chat-bubble icon shown above a party member's head when they've just
+// messaged you -- drawn by hand (like the rest of this file's textures)
+// rather than relying on emoji font support in canvas across platforms
+function buildMessageBubbleTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 96;
+  canvas.height = 96;
+  const ctx = canvas.getContext("2d");
+
+  const bx = 10,
+    by = 10,
+    bw = 76,
+    bh = 52,
+    r = 16;
+
+  ctx.fillStyle = "#fffdf6";
+  ctx.strokeStyle = "rgba(45,90,39,0.4)";
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(bx + r, by);
+  ctx.arcTo(bx + bw, by, bx + bw, by + bh, r);
+  ctx.arcTo(bx + bw, by + bh, bx, by + bh, r);
+  ctx.arcTo(bx, by + bh, bx, by, r);
+  ctx.arcTo(bx, by, bx + bw, by, r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // little speech tail
+  ctx.beginPath();
+  ctx.moveTo(bx + 16, by + bh - 1);
+  ctx.lineTo(bx + 8, by + bh + 16);
+  ctx.lineTo(bx + 32, by + bh - 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // three dots, like a "typing" bubble
+  ctx.fillStyle = "#5aaa4a";
+  [0, 1, 2].forEach((i) => {
+    ctx.beginPath();
+    ctx.arc(bx + 20 + i * 19, by + bh / 2, 4.6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  return new THREE.CanvasTexture(canvas);
 }
 
 // Component
@@ -544,6 +595,7 @@ function PlazaCanvas({
   onArrived,
   otherPlayersRef,
   playersVersion,
+  messageAlertsRef,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -1316,6 +1368,26 @@ function PlazaCanvas({
           entry.pivot.position.x = wx;
           entry.pivot.position.y = baseY + Math.sin(entry.floatT) * 0.08;
           entry.pivot.position.z = wz;
+
+          // "they just messaged you" speech bubble, shown for a few seconds
+          if (entry.msgSprite) {
+            const ALERT_TTL = 6000; // ms
+            const alertAt = messageAlertsRef?.current?.get(id);
+            const age = alertAt ? now - alertAt : Infinity;
+            const active = age < ALERT_TTL;
+
+            const targetOpacity = active ? 0.95 : 0;
+            entry.msgSprite.material.opacity +=
+              (targetOpacity - entry.msgSprite.material.opacity) * 0.15;
+
+            if (active) {
+              entry.msgBubbleT += 0.12;
+              const bob = Math.sin(entry.msgBubbleT) * 0.08;
+              const pulse = 1 + Math.sin(entry.msgBubbleT * 1.6) * 0.08;
+              entry.msgSprite.position.y = baseY + 1.35 + bob;
+              entry.msgSprite.scale.set(0.55 * pulse, 0.55 * pulse, 1);
+            }
+          }
         });
       }
 
@@ -1468,11 +1540,27 @@ function PlazaCanvas({
           const wz = normToWorld(player.y);
           pivot.position.set(wx, pivot.userData.baseY ?? 0, wz);
           scene.add(pivot);
+
+          // hidden until a message actually comes in from this person
+          const msgSprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+              map: buildMessageBubbleTexture(),
+              transparent: true,
+              opacity: 0,
+              depthWrite: false,
+            }),
+          );
+          msgSprite.scale.set(0.55, 0.55, 1);
+          msgSprite.position.set(0, (pivot.userData.baseY ?? 0) + 1.35, 0);
+          pivot.add(msgSprite);
+
           models.set(id, {
             pivot,
             floatT: Math.random() * Math.PI * 2,
             smoothX: player.x,
             smoothY: player.y,
+            msgSprite,
+            msgBubbleT: 0,
           });
         },
         undefined,

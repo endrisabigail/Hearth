@@ -351,3 +351,141 @@
   margin: auto;
   padding: 1rem;
 }
+.mm-header-title {
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: #2d5a27;
+}
+
+/* ---- conversation list ---- */
+
+.mm-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.mm-convo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(90, 170, 74, 0.12);
+  cursor: pointer;
+  text-align: left;
+  font-family: "Nunito", sans-serif;
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.mm-convo-row:hover {
+  background: rgba(90, 170, 74, 0.08);
+}
+
+.mm-convo-row.unread {
+  background: rgba(90, 170, 74, 0.06);
+}
+
+.mm-convo-avatar {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(90, 170, 74, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.mm-convo-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mm-convo-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mm-convo-name {
+  font-weight: 800;
+  font-size: 14px;
+  color: #2d5a27;
+}
+
+.mm-convo-row.unread .mm-convo-name {
+  color: #204d1c;
+}
+
+.mm-convo-time {
+  font-size: 11px;
+  color: rgba(61, 43, 31, 0.45);
+  flex-shrink: 0;
+}
+
+.mm-convo-preview {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: rgba(61, 43, 31, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mm-convo-row.unread .mm-convo-preview {
+  color: #3d2b1f;
+  font-weight: 700;
+}
+
+.mm-convo-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #5aaa4a;
+  margin-left: 4px;
+}
+
+/* ---- thread header ---- */
+
+.mm-back-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #2d5a27;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.mm-back-btn:hover {
+  opacity: 0.7;
+}
+
+.mm-thread-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
+
+.mm-thread-avatar {
+  font-size: 18px;
+}
+
+.mm-thread-name {
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #2d5a27;
+}

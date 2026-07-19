@@ -116,6 +116,9 @@ function Dashboard() {
   const otherPlayersRef = useRef(new Map()); // userId -> { x, y, avatarId, username }
   const lastEmitRef = useRef(0);
   const lastEmitPosRef = useRef({ x: null, y: null });
+  // userId -> timestamp of the most recent message they sent us, so we can
+  // pop a speech bubble above their avatar for a few seconds
+  const messageAlertsRef = useRef(new Map());
   // bumped whenever someone joins/leaves so PlazaCanvas knows to load/remove a model.
   // NOT bumped on every move -- movement is read straight from otherPlayersRef each frame.
   const [playersVersion, setPlayersVersion] = useState(0);
@@ -258,6 +261,13 @@ function Dashboard() {
       setPlayersVersion((v) => v + 1);
     });
 
+    // someone in the plaza just messaged us -- stamp the time so PlazaCanvas
+    // can show a speech bubble over their avatar for a bit
+    socket.on("plaza:messageReceived", ({ fromUserId }) => {
+      if (!fromUserId) return;
+      messageAlertsRef.current.set(fromUserId, Date.now());
+    });
+
     socket.on("connect_error", (err) => {
       console.error("plaza socket connection failed:", err.message);
     });
@@ -266,6 +276,7 @@ function Dashboard() {
       socket.disconnect();
       socketRef.current = null;
       otherPlayersRef.current.clear();
+      messageAlertsRef.current.clear();
     };
   }, [token]);
 
@@ -530,6 +541,7 @@ function Dashboard() {
             onArrived={handleArrived}
             otherPlayersRef={otherPlayersRef}
             playersVersion={playersVersion}
+            messageAlertsRef={messageAlertsRef}
           />
         )}
         {threeCtx.scene && (
@@ -824,7 +836,16 @@ function Dashboard() {
           currentUserId={userData?.id}
           api={api}
           onClose={() => setMsgModalOpen(false)}
-          onSent={() => setNotifications((prev) => prev)}
+          onSent={(recipientId) => {
+            // let the recipient's client know live, so a speech bubble can
+            // pop above our avatar on their screen right away
+            socketRef.current?.emit("plaza:message", { toUserId: recipientId });
+          }}
+          onThreadOpened={(recipientId) => {
+            // we're actively reading this person's messages now, so clear
+            // any pending "they messaged you" bubble for them
+            messageAlertsRef.current.delete(recipientId);
+          }}
         />
       )}
 

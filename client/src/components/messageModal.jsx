@@ -25,46 +25,80 @@ function formatDateLabel(dateStr) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function seenKey(currentUserId, otherId) {
+  return `hearth_chat_seen_${currentUserId}_${otherId}`;
+}
+function getSeenAt(currentUserId, otherId) {
+  return Number(localStorage.getItem(seenKey(currentUserId, otherId)) || 0);
+}
+function markSeen(currentUserId, otherId) {
+  localStorage.setItem(seenKey(currentUserId, otherId), Date.now().toString());
+}
+
 export default function MessageModal({
   partyMembers,
   currentUserId,
   api,
   onClose,
   onSent,
+  onThreadOpened,
 }) {
   const teammates = partyMembers.filter(
     (m) => m._id?.toString() !== currentUserId?.toString(),
   );
+  const teammateIds = teammates.map((m) => m._id).join(",");
 
-  const [recipientId, setRecipientId] = useState(teammates[0]?._id || "");
+  // "list" = pick who to message (like the iMessage inbox), "thread" = the
+  // actual conversation with one person
+  const [view, setView] = useState("list");
+  const [recipientId, setRecipientId] = useState(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState({});
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingList, setLoadingList] = useState(true);
   const bottomRef = useRef(null);
 
-  // Fetch message history when recipient changes
+  // Load every teammate's history up front so the list view can show a
+  // preview + unread state for each conversation, iMessage-inbox style.
   useEffect(() => {
-    if (!recipientId) return;
-    if (history[recipientId]) return; // already loaded
+    if (!teammates.length) {
+      setLoadingList(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingList(true);
 
-    setLoadingHistory(true);
-    api
-      .get(`/dashboard/notifications/messages/${recipientId}`)
-      .then((res) => {
-        setHistory((prev) => ({ ...prev, [recipientId]: res.data || [] }));
-      })
-      .catch(() => {
-        setHistory((prev) => ({ ...prev, [recipientId]: [] }));
-      })
-      .finally(() => setLoadingHistory(false));
-  }, [recipientId]);
+    Promise.all(
+      teammates.map((m) =>
+        api
+          .get(`/dashboard/notifications/messages/${m._id}`)
+          .then((res) => [m._id, res.data || []])
+          .catch(() => [m._id, []]),
+      ),
+    ).then((entries) => {
+      if (cancelled) return;
+      setHistory((prev) => {
+        const next = { ...prev };
+        entries.forEach(([id, msgs]) => {
+          next[id] = msgs;
+        });
+        return next;
+      });
+      setLoadingList(false);
+    });
 
-  // Scroll to bottom when messages load or new one arrives
+    return () => {
+      cancelled = true;
+    };
+  }, [teammateIds]);
+
+  // Scroll to bottom when a thread's messages load or a new one arrives
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, recipientId]);
+    if (view === "thread") {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [history, recipientId, view]);
 
   const currentMessages = history[recipientId] || [];
 
@@ -78,6 +112,39 @@ export default function MessageModal({
     }
     return acc;
   }, []);
+
+  // Conversation previews for the list view, most recently active first.
+  // Teammates with no messages yet still show up so you can say hi.
+  const conversations = teammates
+    .map((m) => {
+      const msgs = history[m._id] || [];
+      const lastMessage = msgs.length ? msgs[msgs.length - 1] : null;
+      const isUnread =
+        !!lastMessage &&
+        lastMessage.senderId?.toString() !== currentUserId?.toString() &&
+        new Date(lastMessage.createdAt).getTime() >
+        getSeenAt(currentUserId, m._id);
+      return { member: m, lastMessage, isUnread };
+    })
+    .sort((a, b) => {
+      const at = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const bt = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return bt - at;
+    });
+
+  const openThread = (id) => {
+    setRecipientId(id);
+    setView("thread");
+    setError("");
+    markSeen(currentUserId, id);
+    onThreadOpened?.(id);
+  };
+
+  const backToList = () => {
+    setView("list");
+    setRecipientId(null);
+    setError("");
+  };
 
   const handleSend = async () => {
     if (!text.trim() || !recipientId) return;
@@ -116,7 +183,7 @@ export default function MessageModal({
         ),
       }));
 
-      onSent?.();
+      onSent?.(recipientId);
     } catch (e) {
       setError(e.response?.data?.msg || "couldn't send message.");
       // Remove failed optimistic message
@@ -138,108 +205,155 @@ export default function MessageModal({
     }
   };
 
+  const recipient = teammates.find((m) => m._id === recipientId);
+
   return (
     <div className="mm-overlay" onClick={onClose}>
       <div
         className="mm-card mm-card--chat"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="mm-header">
-          <div className="mm-recipient-row">
-            {teammates.length === 0 ? (
-              <span className="mm-empty-inline">no teammates yet!</span>
-            ) : (
-              teammates.map((m) => (
-                <button
-                  key={m._id}
-                  className={`mm-recipient-btn${recipientId === m._id ? " selected" : ""}`}
-                  onClick={() => setRecipientId(m._id)}
-                >
-                  {AVATAR_MAP[m.avatarId] || "🐾"} {m.username}
-                </button>
-              ))
-            )}
-          </div>
-          <button className="mm-close" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-
-        {/* Chat history */}
-        <div className="mm-history">
-          {loadingHistory ? (
-            <p className="mm-loading">loading messages... ✦</p>
-          ) : currentMessages.length === 0 ? (
-            <p className="mm-no-history">
-              no messages yet...greet your new neighbor!
-            </p>
-          ) : (
-            grouped.map((group) => (
-              <div key={group.label}>
-                <div className="mm-date-label">{group.label}</div>
-                {group.messages.map((msg) => {
-                  const isMine =
-                    msg.senderId?.toString() === currentUserId?.toString();
-                  const sender = partyMembers.find(
-                    (m) => m._id?.toString() === msg.senderId?.toString(),
-                  );
-                  return (
-                    <div
-                      key={msg._id}
-                      className={`mm-message-row${isMine ? " mm-message-row--mine" : ""}`}
-                    >
-                      {!isMine && (
-                        <div className="mm-avatar">
-                          {AVATAR_MAP[sender?.avatarId] || "🐾"}
-                        </div>
-                      )}
-                      <div className="mm-bubble-wrap">
-                        <div
-                          className={`mm-bubble${isMine ? " mm-bubble--mine" : ""}${msg.pending ? " mm-bubble--pending" : ""}`}
-                        >
-                          {msg.message}
-                        </div>
-                        <div
-                          className={`mm-time${isMine ? " mm-time--mine" : ""}`}
-                        >
-                          {formatTime(msg.createdAt)}
-                          {msg.pending && " ·sending"}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input bar */}
-        {teammates.length > 0 && (
-          <div className="mm-input-bar">
-            <textarea
-              className="mm-textarea"
-              placeholder="type your message..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              maxLength={280}
-              rows={1}
-            />
-            <div className="mm-input-meta">
-              <span className="mm-char-count">{text.length}/280</span>
-              <button
-                className="mm-send-btn"
-                onClick={handleSend}
-                disabled={sending || !text.trim() || !recipientId}
-              >
-                {sending ? "✦" : "✉️"}
+        {view === "list" ? (
+          <>
+            {/* List header */}
+            <div className="mm-header">
+              <span className="mm-header-title">✉️ messages</span>
+              <button className="mm-close" onClick={onClose}>
+                ✕
               </button>
             </div>
-            {error && <p className="mm-error">{error}</p>}
-          </div>
+
+            {/* Conversation list */}
+            <div className="mm-list">
+              {loadingList ? (
+                <p className="mm-loading">loading messages... ✦</p>
+              ) : conversations.length === 0 ? (
+                <p className="mm-empty-inline">no teammates yet!</p>
+              ) : (
+                conversations.map(({ member, lastMessage, isUnread }) => (
+                  <button
+                    key={member._id}
+                    className={`mm-convo-row${isUnread ? " unread" : ""}`}
+                    onClick={() => openThread(member._id)}
+                  >
+                    <div className="mm-convo-avatar">
+                      {AVATAR_MAP[member.avatarId] || "🐾"}
+                    </div>
+                    <div className="mm-convo-body">
+                      <div className="mm-convo-top">
+                        <span className="mm-convo-name">{member.username}</span>
+                        {lastMessage && (
+                          <span className="mm-convo-time">
+                            {formatTime(lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mm-convo-preview">
+                        {lastMessage
+                          ? `${lastMessage.senderId?.toString() ===
+                            currentUserId?.toString()
+                            ? "you: "
+                            : ""
+                          }${lastMessage.message}`
+                          : "say hi to your neighbor! ✦"}
+                      </p>
+                    </div>
+                    {isUnread && <div className="mm-convo-dot" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Thread header */}
+            <div className="mm-header">
+              <button className="mm-back-btn" onClick={backToList}>
+                ←
+              </button>
+              <div className="mm-thread-title">
+                <span className="mm-thread-avatar">
+                  {AVATAR_MAP[recipient?.avatarId] || "🐾"}
+                </span>
+                <span className="mm-thread-name">{recipient?.username}</span>
+              </div>
+              <button className="mm-close" onClick={onClose}>
+                ✕
+              </button>
+            </div>
+
+            {/* Chat history */}
+            <div className="mm-history">
+              {currentMessages.length === 0 ? (
+                <p className="mm-no-history">
+                  no messages yet...greet your new neighbor!
+                </p>
+              ) : (
+                grouped.map((group) => (
+                  <div key={group.label}>
+                    <div className="mm-date-label">{group.label}</div>
+                    {group.messages.map((msg) => {
+                      const isMine =
+                        msg.senderId?.toString() === currentUserId?.toString();
+                      const sender = partyMembers.find(
+                        (m) => m._id?.toString() === msg.senderId?.toString(),
+                      );
+                      return (
+                        <div
+                          key={msg._id}
+                          className={`mm-message-row${isMine ? " mm-message-row--mine" : ""}`}
+                        >
+                          {!isMine && (
+                            <div className="mm-avatar">
+                              {AVATAR_MAP[sender?.avatarId] || "🐾"}
+                            </div>
+                          )}
+                          <div className="mm-bubble-wrap">
+                            <div
+                              className={`mm-bubble${isMine ? " mm-bubble--mine" : ""}${msg.pending ? " mm-bubble--pending" : ""}`}
+                            >
+                              {msg.message}
+                            </div>
+                            <div
+                              className={`mm-time${isMine ? " mm-time--mine" : ""}`}
+                            >
+                              {formatTime(msg.createdAt)}
+                              {msg.pending && " ·sending"}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input bar */}
+            <div className="mm-input-bar">
+              <textarea
+                className="mm-textarea"
+                placeholder="type your message..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                maxLength={280}
+                rows={1}
+              />
+              <div className="mm-input-meta">
+                <span className="mm-char-count">{text.length}/280</span>
+                <button
+                  className="mm-send-btn"
+                  onClick={handleSend}
+                  disabled={sending || !text.trim() || !recipientId}
+                >
+                  {sending ? "✦" : "✉️"}
+                </button>
+              </div>
+              {error && <p className="mm-error">{error}</p>}
+            </div>
+          </>
         )}
       </div>
     </div>

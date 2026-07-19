@@ -88,6 +88,18 @@ export default function initPlazaSocket(io) {
         y,
       });
     });
+    socket.on("plaza:message", ({ toUserId }) => {
+      if (!toUserId || typeof toUserId !== "string") return;
+
+      const recipient = Array.from(members.values()).find(
+        (m) => m.userId === toUserId,
+      );
+      if (!recipient) return; // recipient isn't online in the plaza right now
+
+      plaza.to(recipient.socketId).emit("plaza:messageReceived", {
+        fromUserId: socket.userId,
+      });
+    });
 
     socket.on("disconnect", () => {
       members.delete(socket.id);
