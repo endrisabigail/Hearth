@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { io } from "socket.io-client";
 import PlazaCanvas, { MOVEMENT_BOUNDS } from "../components/plazaCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
 import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
@@ -110,6 +111,15 @@ function Dashboard() {
   const mapAreaRef = useRef(null);
   const collisionBoxesRef = useRef([]);
 
+  // live plaza multiplayer state
+  const socketRef = useRef(null);
+  const otherPlayersRef = useRef(new Map()); // userId -> { x, y, avatarId, username }
+  const lastEmitRef = useRef(0);
+  const lastEmitPosRef = useRef({ x: null, y: null });
+  // bumped whenever someone joins/leaves so PlazaCanvas knows to load/remove a model.
+  // NOT bumped on every move -- movement is read straight from otherPlayersRef each frame.
+  const [playersVersion, setPlayersVersion] = useState(0);
+
   // travel target ref set to { x, y } to start auto-travel, null to stop
   const travelTargetRef = useRef(null);
   // quest to open when character arrives at chest
@@ -198,6 +208,66 @@ function Dashboard() {
       setLoading(false);
     }
   };
+
+  // connect to the live plaza namespace so we can see (and be seen by) other
+  // party members currently online
+  useEffect(() => {
+    if (!token) return;
+
+    const socket = io(`${API_URL}/plaza`, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+    socketRef.current = socket;
+
+    socket.on("plaza:snapshot", (members) => {
+      otherPlayersRef.current.clear();
+      members.forEach((m) => {
+        otherPlayersRef.current.set(m.userId, {
+          x: m.x,
+          y: m.y,
+          avatarId: m.avatarId,
+          username: m.username,
+        });
+      });
+      setPlayersVersion((v) => v + 1);
+    });
+
+    socket.on("plaza:userJoined", (member) => {
+      otherPlayersRef.current.set(member.userId, {
+        x: member.x,
+        y: member.y,
+        avatarId: member.avatarId,
+        username: member.username,
+      });
+      setPlayersVersion((v) => v + 1);
+    });
+
+    socket.on("plaza:userMoved", ({ userId, x, y }) => {
+      const existing = otherPlayersRef.current.get(userId);
+      if (existing) {
+        existing.x = x;
+        existing.y = y;
+      }
+      // no version bump here -- PlazaCanvas reads this ref live every frame,
+      // so re-rendering React on every move would be wasteful
+    });
+
+    socket.on("plaza:userLeft", ({ userId }) => {
+      otherPlayersRef.current.delete(userId);
+      setPlayersVersion((v) => v + 1);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("plaza socket connection failed:", err.message);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+      otherPlayersRef.current.clear();
+    };
+  }, [token]);
 
   const scheduleSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -332,6 +402,19 @@ function Dashboard() {
       smoothPos.y += (posRef.current.y - smoothPos.y) * lerpFactor;
       posRef.current._smoothX = smoothPos.x;
       posRef.current._smoothY = smoothPos.y;
+
+      // broadcast our position to everyone else in the plaza, throttled so we
+      // don't flood the socket every animation frame. Covers both manual
+      // (arrow key) movement and click-to-travel, since both write to posRef.
+      if (socketRef.current?.connected && now - lastEmitRef.current > 80) {
+        const ex = Number(posRef.current.x.toFixed(4));
+        const ey = Number(posRef.current.y.toFixed(4));
+        if (ex !== lastEmitPosRef.current.x || ey !== lastEmitPosRef.current.y) {
+          socketRef.current.emit("plaza:move", { x: ex, y: ey });
+          lastEmitPosRef.current = { x: ex, y: ey };
+        }
+        lastEmitRef.current = now;
+      }
     };
 
     frameId = requestAnimationFrame(tick);
@@ -445,6 +528,8 @@ function Dashboard() {
             hasActiveQuest={hasActiveQuest}
             travelTargetRef={travelTargetRef}
             onArrived={handleArrived}
+            otherPlayersRef={otherPlayersRef}
+            playersVersion={playersVersion}
           />
         )}
         {threeCtx.scene && (

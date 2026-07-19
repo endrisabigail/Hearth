@@ -481,6 +481,57 @@ function buildBush(rand) {
   return group;
 }
 
+// Builds a positioned/scaled avatar pivot (with its glow ring) from a loaded
+// GLTF. Shared by the local player and every remote player so they're built
+// and animated identically.
+function buildAvatarPivot(gltf, cfg) {
+  const g = gltf.scene;
+  g.traverse((child) => {
+    if (child.isMesh) child.castShadow = true;
+  });
+  const box = new THREE.Box3().setFromObject(g);
+  const sz = box.getSize(new THREE.Vector3());
+  const sc = cfg.scale / sz.y;
+  g.scale.setScalar(sc);
+  const center = box.getCenter(new THREE.Vector3());
+  g.position.sub(center.multiplyScalar(sc));
+  g.position.y += 0.5;
+
+  const pivot = new THREE.Group();
+  pivot.add(g);
+  pivot.position.x = cfg.offsetX;
+  pivot.userData.baseY = g.position.y;
+
+  const glowRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.45, 0.65, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x00e5ff,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+    }),
+  );
+  glowRing.rotation.x = -Math.PI / 2;
+  glowRing.position.y = -g.position.y + 0.05;
+  glowRing.userData.isCharGlow = true;
+  pivot.add(glowRing);
+
+  return pivot;
+}
+
+function disposePivot(pivot) {
+  pivot.traverse((child) => {
+    if (child.isMesh) {
+      child.geometry?.dispose();
+      if (Array.isArray(child.material)) {
+        child.material.forEach((m) => m.dispose());
+      } else {
+        child.material?.dispose();
+      }
+    }
+  });
+}
+
 // Component
 function PlazaCanvas({
   avatarId,
@@ -491,6 +542,8 @@ function PlazaCanvas({
   hasActiveQuest,
   travelTargetRef,
   onArrived,
+  otherPlayersRef,
+  playersVersion,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -499,6 +552,8 @@ function PlazaCanvas({
   const modelRef = useRef(null);
   const loaderRef = useRef(new GLTFLoader());
   const frameRef = useRef(null);
+  // userId -> { pivot, floatT, smoothX, smoothY }
+  const otherModelsRef = useRef(new Map());
   const floatTRef = useRef(0);
   const idleTimeRef = useRef(0);
   const hasActiveQuestRef = useRef(false);
@@ -1233,6 +1288,37 @@ function PlazaCanvas({
         });
       }
 
+      // move remote players toward their latest known position. This reads
+      // otherPlayersRef live so we don't need a React re-render per move event.
+      if (otherPlayersRef) {
+        otherModelsRef.current.forEach((entry, id) => {
+          const player = otherPlayersRef.current.get(id);
+          if (!player) return;
+
+          entry.smoothX += (player.x - entry.smoothX) * 0.15;
+          entry.smoothY += (player.y - entry.smoothY) * 0.15;
+          const wx = normToWorld(entry.smoothX);
+          const wz = normToWorld(entry.smoothY);
+
+          entry.floatT += 0.08;
+          const baseY = entry.pivot.userData.baseY ?? 0;
+
+          const dx = wx - entry.pivot.position.x;
+          const dz = wz - entry.pivot.position.z;
+          if (Math.abs(dx) > 0.0008 || Math.abs(dz) > 0.0008) {
+            const targetAngle = Math.atan2(dx, dz);
+            let delta = targetAngle - entry.pivot.rotation.y;
+            while (delta > Math.PI) delta -= Math.PI * 2;
+            while (delta < -Math.PI) delta += Math.PI * 2;
+            entry.pivot.rotation.y += delta * 0.18;
+          }
+
+          entry.pivot.position.x = wx;
+          entry.pivot.position.y = baseY + Math.sin(entry.floatT) * 0.08;
+          entry.pivot.position.z = wz;
+        });
+      }
+
       renderer.render(scene, camera);
     };
 
@@ -1311,6 +1397,11 @@ function PlazaCanvas({
         scene.remove(d.mesh);
         d.mesh.material.dispose();
       });
+      otherModelsRef.current.forEach((entry) => {
+        scene.remove(entry.pivot);
+        disposePivot(entry.pivot);
+      });
+      otherModelsRef.current.clear();
       renderer.dispose();
       if (mount.contains(renderer.domElement))
         mount.removeChild(renderer.domElement);
@@ -1331,37 +1422,7 @@ function PlazaCanvas({
       `/assets/models/${avatarId}.glb`,
       (gltf) => {
         if (cancelled) return;
-        const g = gltf.scene;
-        g.traverse((child) => {
-          if (child.isMesh) child.castShadow = true;
-        });
-        const box = new THREE.Box3().setFromObject(g);
-        const sz = box.getSize(new THREE.Vector3());
-        const sc = cfg.scale / sz.y;
-        g.scale.setScalar(sc);
-        const center = box.getCenter(new THREE.Vector3());
-        g.position.sub(center.multiplyScalar(sc));
-        g.position.y += 0.5;
-
-        const pivot = new THREE.Group();
-        pivot.add(g);
-        pivot.position.x = cfg.offsetX;
-        pivot.userData.baseY = g.position.y;
-
-        const glowRing = new THREE.Mesh(
-          new THREE.RingGeometry(0.45, 0.65, 32),
-          new THREE.MeshBasicMaterial({
-            color: 0x00e5ff,
-            transparent: true,
-            opacity: 0.0,
-            side: THREE.DoubleSide,
-          }),
-        );
-        glowRing.rotation.x = -Math.PI / 2;
-        glowRing.position.y = -g.position.y + 0.05;
-        glowRing.userData.isCharGlow = true;
-        pivot.add(glowRing);
-
+        const pivot = buildAvatarPivot(gltf, cfg);
         sceneRef.current.add(pivot);
         modelRef.current = pivot;
       },
@@ -1373,6 +1434,52 @@ function PlazaCanvas({
       cancelled = true;
     };
   }, [avatarId]);
+
+  // Sync remote player 3D models whenever someone joins or leaves the plaza.
+  // Position updates in between are NOT handled here -- they're read live
+  // from otherPlayersRef every animation frame instead, so this effect only
+  // needs to run when the *set* of players changes.
+  useEffect(() => {
+    if (!sceneRef.current || !otherPlayersRef) return;
+    const scene = sceneRef.current;
+    const players = otherPlayersRef.current;
+    const models = otherModelsRef.current;
+
+    // remove models for players who left
+    for (const [id, entry] of models) {
+      if (!players.has(id)) {
+        scene.remove(entry.pivot);
+        disposePivot(entry.pivot);
+        models.delete(id);
+      }
+    }
+
+    // add models for newly-joined players
+    for (const [id, player] of players) {
+      if (models.has(id)) continue;
+      const cfg = AVATAR_CONFIG[player.avatarId] || { scale: 1.2, offsetX: 0 };
+      loaderRef.current.load(
+        `/assets/models/${player.avatarId}.glb`,
+        (gltf) => {
+          // bail if we unmounted or they already left again before this loaded
+          if (!sceneRef.current || !otherPlayersRef.current.has(id)) return;
+          const pivot = buildAvatarPivot(gltf, cfg);
+          const wx = normToWorld(player.x);
+          const wz = normToWorld(player.y);
+          pivot.position.set(wx, pivot.userData.baseY ?? 0, wz);
+          scene.add(pivot);
+          models.set(id, {
+            pivot,
+            floatT: Math.random() * Math.PI * 2,
+            smoothX: player.x,
+            smoothY: player.y,
+          });
+        },
+        undefined,
+        (err) => console.error("remote avatar load error:", err),
+      );
+    }
+  }, [playersVersion]);
 
   return <div ref={mountRef} className="plaza-canvas-mount" />;
 }
