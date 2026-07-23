@@ -113,8 +113,8 @@ export default function MessageModal({
     return acc;
   }, []);
 
-  // Conversation previews for the list view, most recently active first.
-  // Teammates with no messages yet still show up so you can say hi.
+  // compose/conversation section attempting to replicate regular texting type of structure.
+  // conversations preview for the list of convo options, most recent activity/convo first. 
   const conversations = teammates
     .map((m) => {
       const msgs = history[m._id] || [];
@@ -173,7 +173,7 @@ export default function MessageModal({
         message: optimisticMsg.message,
       });
 
-      // Replace optimistic message with real one
+      // replace optimistic message with real one
       setHistory((prev) => ({
         ...prev,
         [recipientId]: (prev[recipientId] || []).map((m) =>
@@ -359,3 +359,4 @@ export default function MessageModal({
     </div>
   );
 }
+  

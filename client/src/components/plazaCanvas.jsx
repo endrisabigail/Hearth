@@ -34,10 +34,10 @@ const FIREFLY_COUNT = 20;
 const LILYPAD_COUNT = 9;
 const FISH_COUNT = 6;
 
-function normToWorld(n) {
+export function normToWorld(n) {
   return WORLD_MIN + n * WORLD_SIZE;
 }
-function worldToNorm(w) {
+export function worldToNorm(w) {
   return (w - WORLD_MIN) / WORLD_SIZE;
 }
 
@@ -52,9 +52,9 @@ export const MOVEMENT_BOUNDS = {
 };
 
 // pond  
-const POND_CENTER_X = WORLD_MAX - 15;
-const POND_CENTER_Z = WORLD_MAX - 11;
-const POND_RADIUS = 7.5;
+export const POND_CENTER_X = WORLD_MAX - 15;
+export const POND_CENTER_Z = WORLD_MAX - 11;
+export const POND_RADIUS = 7.5;
 
 // character spawn radius
 const SPAWN_CLEAR_RADIUS = 6.5;
@@ -480,10 +480,6 @@ function buildBush(rand) {
   }
   return group;
 }
-
-// Builds a positioned/scaled avatar pivot (with its glow ring) from a loaded
-// GLTF. Shared by the local player and every remote player so they're built
-// and animated identically.
 function buildAvatarPivot(gltf, cfg) {
   const g = gltf.scene;
   g.traverse((child) => {
@@ -767,7 +763,7 @@ function PlazaCanvas({
       hh: (POND_RADIUS * 1.05) / WORLD_SIZE,
     });
 
-    // lily pads, gently bobbing on the surface
+    // lily pads bobbing on the surface
     const padRand = seededRandom(53);
     const lilyPads = [];
     for (let i = 0; i < LILYPAD_COUNT; i++) {
@@ -798,8 +794,6 @@ function PlazaCanvas({
       fishList.push(fish);
     }
 
-    // ripple / splash rings — a few ambient ones drifting on the pond,
-    // plus ones spawned when the character runs near the shoreline
     const rippleGeo = new THREE.RingGeometry(0.3, 0.42, 24);
     const ripples = [];
     let ambientRippleTimer = 0;
@@ -975,7 +969,7 @@ function PlazaCanvas({
       butterflies.push(sprite);
     }
 
-    // fireflies — soft additive-blended glows drifting near the bushes and pond
+    // fireflies 
     const fireflyRand = seededRandom(113);
     const fireflyTex = buildGlowTexture("255,236,150");
     const fireflies = [];

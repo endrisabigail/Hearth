@@ -1,16 +1,32 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { normToWorld as axisToWorld } from "./plazaCanvas.jsx";
 
-export const NODE_POSITIONS = [
-  { id: "node-1", nx: 0.25, ny: 0.3 },
-  { id: "node-2", nx: 0.75, ny: 0.28 },
-  { id: "node-3", nx: 0.5, ny: 0.55 },
-  { id: "node-4", nx: 0.22, ny: 0.72 },
-  { id: "node-5", nx: 0.78, ny: 0.7 },
-];
+const NODES_PER_ROW = 5;
+const GRID_START_NY = 0.12; // top of the plaza
+const GRID_ROW_GAP = 0.13;
+const GRID_COL_MARGIN = 0.14;
+const GRID_COL_GAP = (1 - GRID_COL_MARGIN * 2) / (NODES_PER_ROW - 1);
+const GRID_MAX_ROWS = 6;
+
+function generateNodePositions(count) {
+  const positions = [];
+  for (let i = 0; i < count; i++) {
+    const row = Math.min(Math.floor(i / NODES_PER_ROW), GRID_MAX_ROWS - 1);
+    const col = i % NODES_PER_ROW;
+    positions.push({
+      id: `node-${i + 1}`,
+      nx: GRID_COL_MARGIN + col * GRID_COL_GAP,
+      ny: GRID_START_NY + row * GRID_ROW_GAP,
+    });
+  }
+  return positions;
+}
+
+export const NODE_POSITIONS = generateNodePositions(30);
 
 function normToWorld(nx, ny) {
-  return new THREE.Vector3((nx - 0.5) * 4.0, 0, (ny - 0.5) * 3.0);
+  return new THREE.Vector3(axisToWorld(nx), 0, axisToWorld(ny));
 }
 
 const CHEST_COLORS = {
@@ -84,6 +100,50 @@ function makeChest(colors) {
   return group;
 }
 
+
+function makeBeacon(color) {
+  const group = new THREE.Group();
+
+  const beamHeight = 7;
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.05, 0.45, beamHeight, 10, 1, true),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.32,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  beam.position.y = beamHeight / 2 + 0.2;
+  group.add(beam);
+
+
+  const base = new THREE.Mesh(
+    new THREE.RingGeometry(0.05, 0.45, 24),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  base.rotation.x = -Math.PI / 2;
+  base.position.y = 0.03;
+  group.add(base);
+
+  const light = new THREE.PointLight(color, 1.4, 8, 2);
+  light.position.y = 1.1;
+  group.add(light);
+
+  group.userData.isBeacon = true;
+  group.userData.beamMesh = beam;
+  group.userData.baseMesh = base;
+  group.userData.light = light;
+  return group;
+}
+
 function makeGlowRing(color) {
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(0.38, 0.55, 32),
@@ -134,6 +194,14 @@ export default function QuestNodes({
         chest.add(ring);
       }
 
+      // beacon so it's easy to spot and walk to from across the plaza 
+      if (quest.status !== "Completed") {
+        const beaconColor =
+          quest.status === "In Progress" ? 0x64b5f6 : 0xffd700;
+        const beacon = makeBeacon(beaconColor);
+        chest.add(beacon);
+      }
+
       scene.add(chest);
       nodesRef.current.push({ group: chest, quest, nodeId: node.id, node });
     });
@@ -150,6 +218,12 @@ export default function QuestNodes({
         group.traverse((child) => {
           if (child.userData.isGlow) {
             child.material.opacity = 0.4 + Math.sin(bobRef.current * 2) * 0.3;
+          }
+          if (child.userData.isBeacon) {
+            const pulse = 0.5 + Math.sin(bobRef.current * 1.5) * 0.5;
+            child.userData.beamMesh.material.opacity = 0.22 + pulse * 0.18;
+            child.userData.baseMesh.material.opacity = 0.4 + pulse * 0.3;
+            child.userData.light.intensity = 1.0 + pulse * 0.7;
           }
         });
       });
@@ -178,7 +252,11 @@ export default function QuestNodes({
       const meshes = [];
       nodesRef.current.forEach(({ group, quest, node }) => {
         group.traverse((child) => {
-          if (child.isMesh && !child.userData.isGlow) {
+          if (
+            child.isMesh &&
+            !child.userData.isGlow &&
+            !child.parent?.userData?.isBeacon
+          ) {
             child.userData.quest = quest;
             child.userData.node = node;
             meshes.push(child);
