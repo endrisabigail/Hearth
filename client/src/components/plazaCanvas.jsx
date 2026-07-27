@@ -170,6 +170,7 @@ function buildWaterTexture() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
 
+  // soft white caustic swirl lines, like light rippling on the surface
   ctx.strokeStyle = "rgba(255,255,255,0.4)";
   ctx.lineWidth = 2.2;
   ctx.lineCap = "round";
@@ -183,6 +184,8 @@ function buildWaterTexture() {
     }
     ctx.stroke();
   }
+
+  // finer secondary swirls for depth
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = 1.4;
   for (let i = 0; i < 5; i++) {
@@ -523,8 +526,7 @@ function buildAgentPivot(object) {
   object.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = true;
-      // fall back to a flat material if the glb has no texture map
-      if (!child.material || !child.material.map) {
+      if (!child.material) {
         child.material = new THREE.MeshStandardMaterial({
           color: 0xffe9b0,
           roughness: 0.55,
@@ -655,8 +657,6 @@ function PlazaCanvas({
   const onArrivedRef = useRef(onArrived);
 
   // ai-agent companion that trails the player and reports its own screen
-  // position back up so the dashboard can render a clickable DOM marker
-  // right on top of it
   const agentRef = useRef(null);
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
@@ -721,8 +721,7 @@ function PlazaCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // Grass ground  
-    // island: grass on top, rock on the sides and underside.
+    // Grass ground
     const grassTex = buildGrassTexture();
     const rockTex = buildRockTexture();
     const ISLAND_DEPTH = 3.4;
@@ -744,8 +743,7 @@ function PlazaCanvas({
     ground.castShadow = true;
     scene.add(ground);
 
-    // chunky boulders hanging off the underside edges, like rock jutting out
-    // from beneath a floating island
+    // chunky boulders hanging off the underside edges 
     const boulderRand = seededRandom(131);
     const boulders = [];
     const BOULDER_COUNT = 20;
@@ -967,7 +965,7 @@ function PlazaCanvas({
       scene.add(seg);
     }
 
-    // flower patches scattered across the grass
+    // flower patches scattered  
     const flowerRand = seededRandom(83);
     const flowerPalettes = [
       [340, 350, 300],
@@ -1391,9 +1389,7 @@ function PlazaCanvas({
         });
       }
 
-      // ai-agent companion: hovers just behind-right of the player wherever
-      // they go, then reports its screen-space position so the dashboard can
-      // place a clickable DOM marker directly on top of it
+      // ai-agent companion 
       const agent = agentRef.current;
       if (agent && model) {
         agentFloatTRef.current += 0.045;
