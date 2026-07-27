@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { GLBLoader } from "three/examples/jsm/loaders/GLBLoader.js";
 
 // how the ai-agent companion trails the player
 const AGENT_TARGET_HEIGHT = 0.55; // world units
@@ -171,7 +170,6 @@ function buildWaterTexture() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
 
-  // soft white caustic swirl lines, like light rippling on the surface
   ctx.strokeStyle = "rgba(255,255,255,0.4)";
   ctx.lineWidth = 2.2;
   ctx.lineCap = "round";
@@ -185,8 +183,6 @@ function buildWaterTexture() {
     }
     ctx.stroke();
   }
-
-  // finer secondary swirls for depth
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = 1.4;
   for (let i = 0; i < 5; i++) {
@@ -523,12 +519,11 @@ function buildAvatarPivot(gltf, cfg) {
 }
 
 // builds the ai-agent companion to float behind the player
-// GLB files scale convention
 function buildAgentPivot(object) {
   object.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = true;
-      // GLBs loaded without an accompanying .mtl come back with a flat
+      // fall back to a flat material if the glb has no texture map
       if (!child.material || !child.material.map) {
         child.material = new THREE.MeshStandardMaterial({
           color: 0xffe9b0,
@@ -726,7 +721,7 @@ function PlazaCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // Grass ground — built with real thickness so it reads as a floating
+    // Grass ground  
     // island: grass on top, rock on the sides and underside.
     const grassTex = buildGrassTexture();
     const rockTex = buildRockTexture();
@@ -1579,16 +1574,17 @@ function PlazaCanvas({
   }, []);
 
   // ai-agent companion loader loads once and lives for the lifetime of
+  // the canvas, independent of which avatar the player is wearing
   useEffect(() => {
     if (!sceneRef.current) return;
     let cancelled = false;
-    const glbLoader = new GLBLoader();
+    const agentLoader = new GLTFLoader();
 
-    glbLoader.load(
+    agentLoader.load(
       "/assets/models/ai-agent.glb",
-      (glb) => {
+      (gltf) => {
         if (cancelled || !sceneRef.current) return;
-        const pivot = buildAgentPivot(glb);
+        const pivot = buildAgentPivot(gltf.scene);
         // spawn it right on top of the player instead of at the world origin
         // so it doesn't have to travel across the map on first load
         if (modelRef.current) {
