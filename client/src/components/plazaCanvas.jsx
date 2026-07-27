@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLBLoader } from "three/examples/jsm/loaders/GLBLoader.js";
+
+// how the ai-agent companion trails the player
+const AGENT_TARGET_HEIGHT = 0.55; // world units
+const AGENT_FOLLOW_DISTANCE = 1.3; // trails behind-right of the avatar
+const AGENT_FOLLOW_LERP = 0.07;
+const AGENT_HOVER_HEIGHT = 0.5; // above the avatar's base
 
 // Config
 const AVATAR_CONFIG = {
@@ -515,6 +522,52 @@ function buildAvatarPivot(gltf, cfg) {
   return pivot;
 }
 
+// builds the ai-agent companion to float behind the player
+// GLB files scale convention
+function buildAgentPivot(object) {
+  object.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      // GLBs loaded without an accompanying .mtl come back with a flat
+      if (!child.material || !child.material.map) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xffe9b0,
+          roughness: 0.55,
+          metalness: 0.05,
+        });
+      }
+    }
+  });
+
+  const box = new THREE.Box3().setFromObject(object);
+  const size = box.getSize(new THREE.Vector3());
+  const scale = AGENT_TARGET_HEIGHT / (size.y || 1);
+  object.scale.setScalar(scale);
+  const center = box.getCenter(new THREE.Vector3());
+  object.position.sub(center.multiplyScalar(scale));
+
+  const pivot = new THREE.Group();
+  pivot.add(object);
+  pivot.userData.baseY = AGENT_TARGET_HEIGHT / 2;
+
+  const glow = new THREE.Mesh(
+    new THREE.RingGeometry(0.22, 0.34, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xf9d423,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = -pivot.userData.baseY + 0.03;
+  pivot.add(glow);
+  pivot.userData.glow = glow;
+
+  return pivot;
+}
+
 function disposePivot(pivot) {
   pivot.traverse((child) => {
     if (child.isMesh) {
@@ -531,9 +584,7 @@ function disposePivot(pivot) {
   });
 }
 
-// small chat-bubble icon shown above a party member's head when they've just
-// messaged you -- drawn by hand (like the rest of this file's textures)
-// rather than relying on emoji font support in canvas across platforms
+// chat bubble when player messages
 function buildMessageBubbleTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 96;
@@ -592,6 +643,7 @@ function PlazaCanvas({
   otherPlayersRef,
   playersVersion,
   messageAlertsRef,
+  onAgentScreenPositionChange,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -607,12 +659,22 @@ function PlazaCanvas({
   const hasActiveQuestRef = useRef(false);
   const onArrivedRef = useRef(onArrived);
 
+  // ai-agent companion that trails the player and reports its own screen
+  // position back up so the dashboard can render a clickable DOM marker
+  // right on top of it
+  const agentRef = useRef(null);
+  const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
+  const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
+
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
   }, [hasActiveQuest]);
   useEffect(() => {
     onArrivedRef.current = onArrived;
   }, [onArrived]);
+  useEffect(() => {
+    onAgentScreenPositionChangeRef.current = onAgentScreenPositionChange;
+  }, [onAgentScreenPositionChange]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -887,7 +949,7 @@ function PlazaCanvas({
       });
     }
 
-    // dirt path — soft overlapping patches wandering from the clearing to the pond
+    // dirt path 
     const dirtTex = buildDirtTexture();
     const pathMat = new THREE.MeshBasicMaterial({
       map: dirtTex,
@@ -1334,8 +1396,50 @@ function PlazaCanvas({
         });
       }
 
-      // move remote players toward their latest known position. This reads
-      // otherPlayersRef live so we don't need a React re-render per move event.
+      // ai-agent companion: hovers just behind-right of the player wherever
+      // they go, then reports its screen-space position so the dashboard can
+      // place a clickable DOM marker directly on top of it
+      const agent = agentRef.current;
+      if (agent && model) {
+        agentFloatTRef.current += 0.045;
+        const trailAngle = model.rotation.y + Math.PI * 0.78;
+        const targetX =
+          model.position.x + Math.sin(trailAngle) * AGENT_FOLLOW_DISTANCE;
+        const targetZ =
+          model.position.z + Math.cos(trailAngle) * AGENT_FOLLOW_DISTANCE;
+
+        agent.position.x += (targetX - agent.position.x) * AGENT_FOLLOW_LERP;
+        agent.position.z += (targetZ - agent.position.z) * AGENT_FOLLOW_LERP;
+
+        const agentBaseY = agent.userData.baseY ?? 0.3;
+        agent.position.y =
+          (model.userData.baseY ?? 0) +
+          AGENT_HOVER_HEIGHT +
+          agentBaseY +
+          Math.sin(agentFloatTRef.current * 1.6) * 0.09;
+        agent.rotation.y += 0.008;
+
+        if (agent.userData.glow) {
+          agent.userData.glow.material.opacity =
+            0.32 + Math.sin(agentFloatTRef.current) * 0.15;
+        }
+
+        const reportPos = onAgentScreenPositionChangeRef.current;
+        if (reportPos && mountRef.current) {
+          const worldPos = new THREE.Vector3();
+          agent.getWorldPosition(worldPos);
+          worldPos.y += 0.4; // marker floats just above the little creature
+          const ndc = worldPos.project(camera);
+          const mount = mountRef.current;
+          reportPos({
+            x: (ndc.x * 0.5 + 0.5) * mount.clientWidth,
+            y: (-ndc.y * 0.5 + 0.5) * mount.clientHeight,
+            visible: ndc.z < 1,
+          });
+        }
+      }
+
+      // move remote players toward their latest known position
       if (otherPlayersRef) {
         otherModelsRef.current.forEach((entry, id) => {
           const player = otherPlayersRef.current.get(id);
@@ -1474,6 +1578,39 @@ function PlazaCanvas({
     };
   }, []);
 
+  // ai-agent companion loader loads once and lives for the lifetime of
+  useEffect(() => {
+    if (!sceneRef.current) return;
+    let cancelled = false;
+    const glbLoader = new GLBLoader();
+
+    glbLoader.load(
+      "/assets/models/ai-agent.glb",
+      (glb) => {
+        if (cancelled || !sceneRef.current) return;
+        const pivot = buildAgentPivot(glb);
+        // spawn it right on top of the player instead of at the world origin
+        // so it doesn't have to travel across the map on first load
+        if (modelRef.current) {
+          pivot.position.copy(modelRef.current.position);
+        }
+        sceneRef.current.add(pivot);
+        agentRef.current = pivot;
+      },
+      undefined,
+      (err) => console.error("ai-agent load error:", err),
+    );
+
+    return () => {
+      cancelled = true;
+      if (agentRef.current && sceneRef.current) {
+        sceneRef.current.remove(agentRef.current);
+        disposePivot(agentRef.current);
+      }
+      agentRef.current = null;
+    };
+  }, []);
+
   // Avatar loader
   useEffect(() => {
     if (!sceneRef.current || !avatarId) return;
@@ -1502,9 +1639,6 @@ function PlazaCanvas({
   }, [avatarId]);
 
   // Sync remote player 3D models whenever someone joins or leaves the plaza.
-  // Position updates in between are NOT handled here -- they're read live
-  // from otherPlayersRef every animation frame instead, so this effect only
-  // needs to run when the *set* of players changes.
   useEffect(() => {
     if (!sceneRef.current || !otherPlayersRef) return;
     const scene = sceneRef.current;

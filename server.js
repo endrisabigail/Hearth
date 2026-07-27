@@ -8,10 +8,8 @@ import authRoutes from "../routes/auth.js";
 import questRoutes from "../routes/quest.js";
 import partyRoutes from "../routes/party.js";
 import dashboardRoutes from "../routes/dashboard.js";
+import agentRoutes from "../routes/agent.js";
 import initPlazaSocket from "./sockets/plaza.js";
-import initAiSocket from "./sockets/ai.js";
-import aiRoutes from "../routes/ai.js"
-
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -37,8 +35,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/quests", questRoutes);
 app.use("/api/party", partyRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/ai", aiRoutes);
-
+app.use("/api/agent", agentRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hearth API is alive!");
@@ -54,7 +51,6 @@ const io = new Server(server, {
 });
 
 initPlazaSocket(io);
-initAiSocket(io);
 
 const PORT = process.env.PORT || 5000;
 

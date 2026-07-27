@@ -13,9 +13,11 @@ import QuestModal from "../components/questModal.jsx";
 import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
 import NavModal from "../components/navModal.jsx";
+import AgentModal from "../components/agentModal.jsx";
 import "../pages/styles/dashboard.css";
 import "../pages/styles/questModal.css";
 import "../pages/styles/messageModal.css";
+import "../pages/styles/agentModal.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -78,6 +80,8 @@ function Dashboard() {
   const [msgModalOpen, setMsgModalOpen] = useState(false);
   const [navModalOpen, setNavModalOpen] = useState(false);
   const [showControls, setShowControls] = useState(true); // show movement controls hint on first load
+  const [agentScreenPos, setAgentScreenPos] = useState(null);
+  const [agentPopupOpen, setAgentPopupOpen] = useState(false);
 
   useEffect(() => {
     const fadeTimer = setTimeout(() => setShowControls("fading"), 8500);
@@ -120,7 +124,7 @@ function Dashboard() {
   // pop a speech bubble above their avatar for a few seconds
   const messageAlertsRef = useRef(new Map());
   // bumped whenever someone joins/leaves so PlazaCanvas knows to load/remove a model.
-  // NOT bumped on every move -- movement is read straight from otherPlayersRef each frame.
+  // movement is read straight from otherPlayersRef each frame.
   const [playersVersion, setPlayersVersion] = useState(0);
 
   // travel target ref set to { x, y } to start auto-travel, null to stop
@@ -252,8 +256,7 @@ function Dashboard() {
         existing.x = x;
         existing.y = y;
       }
-      // no version bump here -- PlazaCanvas reads this ref live every frame,
-      // so re-rendering React on every move would be wasteful
+      // PlazaCanvas reads this ref live every frame
     });
 
     socket.on("plaza:userLeft", ({ userId }) => {
@@ -261,8 +264,7 @@ function Dashboard() {
       setPlayersVersion((v) => v + 1);
     });
 
-    // someone in the plaza just messaged us -- stamp the time so PlazaCanvas
-    // can show a speech bubble over their avatar for a bit
+    // stamp time if someone messages so plazacanvas can show a speech bubble over messaging character 
     socket.on("plaza:messageReceived", ({ fromUserId }) => {
       if (!fromUserId) return;
       messageAlertsRef.current.set(fromUserId, Date.now());
@@ -337,7 +339,7 @@ function Dashboard() {
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
     };
-  }, []); // Safe to leave empty because it only modifies refs, which don't trigger re-renders
+  }, []); // safe to leave empty because it only modifies refs, which don't trigger re-renders
 
   // separate effects, the 60fps frame tick loop independently
   useEffect(() => {
@@ -414,9 +416,8 @@ function Dashboard() {
       posRef.current._smoothX = smoothPos.x;
       posRef.current._smoothY = smoothPos.y;
 
-      // broadcast our position to everyone else in the plaza, throttled so we
-      // don't flood the socket every animation frame. Covers both manual
-      // (arrow key) movement and click-to-travel, since both write to posRef.
+      // broadcast our position to everyone else in the plaza
+      // (arrow key) movement and click-to-travel since both write to posRef.
       if (socketRef.current?.connected && now - lastEmitRef.current > 80) {
         const ex = Number(posRef.current.x.toFixed(4));
         const ey = Number(posRef.current.y.toFixed(4));
@@ -542,8 +543,15 @@ function Dashboard() {
             otherPlayersRef={otherPlayersRef}
             playersVersion={playersVersion}
             messageAlertsRef={messageAlertsRef}
+            onAgentScreenPositionChange={setAgentScreenPos}
           />
         )}
+        <AgentModal
+          screenPos={agentScreenPos}
+          open={agentPopupOpen}
+          onToggle={() => setAgentPopupOpen((v) => !v)}
+          onClose={() => setAgentPopupOpen(false)}
+        />
         {threeCtx.scene && (
           <QuestNodes
             scene={threeCtx.scene}
@@ -842,8 +850,7 @@ function Dashboard() {
             socketRef.current?.emit("plaza:message", { toUserId: recipientId });
           }}
           onThreadOpened={(recipientId) => {
-            // we're actively reading this person's messages now, so clear
-            // any pending "they messaged you" bubble for them
+            // message actively viewed=clear
             messageAlertsRef.current.delete(recipientId);
           }}
         />
