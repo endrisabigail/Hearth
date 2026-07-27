@@ -526,6 +526,8 @@ function buildAgentPivot(object) {
   object.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = true;
+      // only fall back to a flat material if the mesh truly has none —
+      // don't override a glb's own baked-in material/color
       if (!child.material) {
         child.material = new THREE.MeshStandardMaterial({
           color: 0xffe9b0,
@@ -657,6 +659,8 @@ function PlazaCanvas({
   const onArrivedRef = useRef(onArrived);
 
   // ai-agent companion that trails the player and reports its own screen
+  // position back up so the dashboard can render a clickable DOM marker
+  // right on top of it
   const agentRef = useRef(null);
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
@@ -721,7 +725,8 @@ function PlazaCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // Grass ground
+    // Grass ground — built with real thickness so it reads as a floating
+    // island: grass on top, rock on the sides and underside.
     const grassTex = buildGrassTexture();
     const rockTex = buildRockTexture();
     const ISLAND_DEPTH = 3.4;
@@ -743,7 +748,8 @@ function PlazaCanvas({
     ground.castShadow = true;
     scene.add(ground);
 
-    // chunky boulders hanging off the underside edges 
+    // chunky boulders hanging off the underside edges, like rock jutting out
+    // from beneath a floating island
     const boulderRand = seededRandom(131);
     const boulders = [];
     const BOULDER_COUNT = 20;
@@ -965,7 +971,7 @@ function PlazaCanvas({
       scene.add(seg);
     }
 
-    // flower patches scattered  
+    // flower patches scattered across the grass
     const flowerRand = seededRandom(83);
     const flowerPalettes = [
       [340, 350, 300],
@@ -1389,7 +1395,9 @@ function PlazaCanvas({
         });
       }
 
-      // ai-agent companion 
+      // ai-agent companion: hovers just behind-right of the player wherever
+      // they go, then reports its screen-space position so the dashboard can
+      // place a clickable DOM marker directly on top of it
       const agent = agentRef.current;
       if (agent && model) {
         agentFloatTRef.current += 0.045;
@@ -1408,8 +1416,6 @@ function PlazaCanvas({
           AGENT_HOVER_HEIGHT +
           agentBaseY +
           Math.sin(agentFloatTRef.current * 1.6) * 0.09;
-        agent.rotation.y += 0.008;
-
         if (agent.userData.glow) {
           agent.userData.glow.material.opacity =
             0.32 + Math.sin(agentFloatTRef.current) * 0.15;
@@ -1419,7 +1425,7 @@ function PlazaCanvas({
         if (reportPos && mountRef.current) {
           const worldPos = new THREE.Vector3();
           agent.getWorldPosition(worldPos);
-          worldPos.y += 0.4; // marker floats just above the little creature
+          worldPos.y += agentBaseY; // center of the creature, not above it
           const ndc = worldPos.project(camera);
           const mount = mountRef.current;
           reportPos({

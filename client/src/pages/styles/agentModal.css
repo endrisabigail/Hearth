@@ -1,49 +1,24 @@
 .am-marker {
   position: absolute;
-  transform: translate(-50%, -110%);
-  width: 34px;
-  height: 34px;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.75);
-  background: radial-gradient(circle at 35% 30%, #fff4d6, #f9d423 70%);
-  box-shadow: 0 0 0 rgba(249, 212, 35, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: none;
+  background: transparent;
   cursor: pointer;
   z-index: 6;
   padding: 0;
-  animation: am-pulse 2.4s ease-in-out infinite;
-  transition: transform 0.15s;
+  transition: background 0.15s;
 }
 
 .am-marker:hover {
-  transform: translate(-50%, -110%) scale(1.12);
+  background: rgba(249, 212, 35, 0.12);
 }
 
 .am-marker--active {
-  animation: none;
-  box-shadow: 0 0 0 6px rgba(249, 212, 35, 0.25);
+  background: rgba(249, 212, 35, 0.16);
 }
-
-.am-marker-icon {
-  font-size: 15px;
-  color: #8b6914;
-}
-
-@keyframes am-pulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(249, 212, 35, 0.55);
-  }
-
-  50% {
-    box-shadow: 0 0 0 8px rgba(249, 212, 35, 0);
-  }
-}
-
-/* ---------- popup ---------- */
 
 .am-popup {
   position: absolute;
@@ -147,6 +122,7 @@
   border-bottom-left-radius: 4px;
 }
 
+/* swirl loader shown in place of an empty assistant bubble while streaming */
 .am-swirl {
   display: inline-block;
   width: 16px;

@@ -102,9 +102,7 @@ function AgentModal({ screenPos, open, onToggle, onClose }) {
           style={{ left: screenPos.x, top: screenPos.y }}
           onClick={onToggle}
           title="Ask your companion"
-        >
-          <span className="am-marker-icon">✦</span>
-        </button>
+        />
       )}
 
       {open && (
