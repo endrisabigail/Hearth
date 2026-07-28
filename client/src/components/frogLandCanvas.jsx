@@ -23,12 +23,15 @@ import {
 
 export { normToWorld, worldToNorm, MOVEMENT_BOUNDS as FROG_MOVEMENT_BOUNDS };
 
-// same world scale as the grass plaza, just reskinned — a floating island,
-// bigger swampy pond, mushrooms instead of trees, cattails instead of bushes
+//floating island
 const WORLD_MIN = -32;
 const WORLD_MAX = 48;
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN;
 const WORLD_CENTER = (WORLD_MIN + WORLD_MAX) / 2;
+
+//hexagon shape
+const HEX_RADIUS = 70;
+const HEX_APOTHEM = HEX_RADIUS * Math.cos(Math.PI / 6);
 
 const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
@@ -50,7 +53,7 @@ export const POND_RADIUS = 11.5; // noticeably bigger than the grass plaza's pon
 const SPAWN_CLEAR_RADIUS = 6.5;
 const EDGE_PAD = 1.5 / WORLD_SIZE;
 
-// textures 
+//textures
 
 function buildSwampGrassTexture() {
   const canvas = document.createElement("canvas");
@@ -193,13 +196,12 @@ function buildDirtTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
-// ---- meshes ---------------------------------------------------------------
-
+// meshes
 const MUSHROOM_PALETTE = [
-  { h: 0, s: 78, l: 56 }, // bright red
-  { h: 24, s: 85, l: 55 }, // bright orange
-  { h: 320, s: 68, l: 62 }, // magenta/pink
-  { h: 45, s: 88, l: 58 }, // golden yellow
+  { h: 6, s: 77.2, l: 71.2 }, // bright red
+  { h: 30, s: 100, l: 71.2 }, // bright orange
+  { h: 234, s: 52.6, l: 71.2 }, // purple
+  { h: 326, s: 52.6, l: 71.2 }, //pinkish red?
 ];
 
 // little sprigs of grass tucked around a mushroom's base
@@ -235,7 +237,7 @@ function buildMushroomCluster(rand) {
 
     const stem = new THREE.Mesh(
       new THREE.CylinderGeometry(stemR * 0.85, stemR, h, 8),
-      new THREE.MeshLambertMaterial({ color: 0xfff8e8 }),
+      new THREE.MeshLambertMaterial({ color: FFE26B }),
     );
     stem.position.set((rand() - 0.5) * 1.2 * count, h / 2, (rand() - 0.5) * 1.2 * count);
     stem.castShadow = true;
@@ -408,7 +410,7 @@ function buildRockCluster(rand) {
 }
 
 function buildBoulder(rand) {
-  const r = 1.3 + rand() * 1.9;
+  const r = 0.5 + rand() * 0.7;
   const geo = new THREE.IcosahedronGeometry(r, 0);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -447,6 +449,35 @@ function disposeGroup(scene, obj) {
       else child.material?.dispose();
     }
   });
+}
+
+// clamps a world-space (x,z) point to inside the regular hexagon centered
+// at (WORLD_CENTER, WORLD_CENTER) — a few passes over the 6 edge
+// half-planes is plenty for a convex hexagon
+function clampPointToHex(wx, wz) {
+  let px = wx - WORLD_CENTER;
+  let pz = wz - WORLD_CENTER;
+  for (let pass = 0; pass < 3; pass++) {
+    for (let k = 0; k < 6; k++) {
+      const angle = Math.PI / 6 + k * (Math.PI / 3);
+      const nx = Math.cos(angle);
+      const nz = Math.sin(angle);
+      const dist = px * nx + pz * nz;
+      if (dist > HEX_APOTHEM) {
+        const excess = dist - HEX_APOTHEM;
+        px -= nx * excess;
+        pz -= nz * excess;
+      }
+    }
+  }
+  return { x: px + WORLD_CENTER, z: pz + WORLD_CENTER };
+}
+
+// exported so dashboard's movement tick can clamp the character into the
+// hex plane (see posRef.current.clampToBounds)
+export function clampToHexBounds(nx, ny) {
+  const clamped = clampPointToHex(normToWorld(nx), normToWorld(ny));
+  return { x: worldToNorm(clamped.x), y: worldToNorm(clamped.z) };
 }
 
 function FrogLandCanvas({
@@ -536,10 +567,12 @@ function FrogLandCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // floating island 
+    // floating island — now hexagonal instead of square. Sized so the
+    // hexagon's apothem comfortably covers the whole square movement
+    // area (including its corners), so the character never walks past
+    // the visible ground edge.
     const grassTex = buildSwampGrassTexture();
     const ISLAND_DEPTH = 3.4;
-    const HEX_RADIUS = 70;
     const GROUND_TOP_Y = -0.01;
 
     const rockMat = new THREE.MeshLambertMaterial({ color: 0xa8815a });
@@ -578,14 +611,11 @@ function FrogLandCanvas({
 
     const boulderRand = seededRandom(151);
     const boulders = [];
-    for (let i = 0; i < 16; i++) {
-      const edge = Math.floor(boulderRand() * 4);
-      const t = boulderRand();
-      let bx, bz;
-      if (edge === 0) { bx = WORLD_MIN + t * WORLD_SIZE; bz = WORLD_MIN - boulderRand() * 1.6; }
-      else if (edge === 1) { bx = WORLD_MIN + t * WORLD_SIZE; bz = WORLD_MAX + boulderRand() * 1.6; }
-      else if (edge === 2) { bz = WORLD_MIN + t * WORLD_SIZE; bx = WORLD_MIN - boulderRand() * 1.6; }
-      else { bz = WORLD_MIN + t * WORLD_SIZE; bx = WORLD_MAX + boulderRand() * 1.6; }
+    for (let i = 0; i < 22; i++) {
+      const a = boulderRand() * Math.PI * 2;
+      const r = HEX_RADIUS * (0.97 + boulderRand() * 0.07);
+      const bx = WORLD_CENTER + Math.cos(a) * r;
+      const bz = WORLD_CENTER + Math.sin(a) * r;
       const boulder = buildBoulder(boulderRand);
       boulder.position.set(bx, GROUND_TOP_Y - ISLAND_DEPTH * (0.25 + boulderRand() * 0.65), bz);
       boulder.rotation.set(boulderRand() * Math.PI, boulderRand() * Math.PI, boulderRand() * Math.PI);
@@ -616,7 +646,7 @@ function FrogLandCanvas({
       return false;
     }
 
-    // the pond  
+    // the pond — big and swampy, generously covered in giant lily pads
     const pondSeedA = seededRandom(7);
     const pondSeedB = seededRandom(7);
     const shoreShape = buildBlobShape(POND_RADIUS * 1.18, 0.16, 28, pondSeedA);
@@ -913,9 +943,20 @@ function FrogLandCanvas({
       ripples.push({ mesh, born: performance.now(), life: life * 1000 });
     }
 
-    posRef.current.bounds = MOVEMENT_BOUNDS;
+    // the old square MOVEMENT_BOUNDS was much smaller than this hex
+    // plane (its half-extent is ~38 world units vs. the hex's ~60 unit
+    // apothem) — swap in a generous outer square that never actually
+    // triggers, and let the hex clamp be the real, exact boundary
+    const outerHalfNorm = (HEX_RADIUS + 4) / WORLD_SIZE;
+    posRef.current.bounds = {
+      minX: 0.5 - outerHalfNorm,
+      maxX: 0.5 + outerHalfNorm,
+      minY: 0.5 - outerHalfNorm,
+      maxY: 0.5 + outerHalfNorm,
+    };
     posRef.current.isWalkable = undefined;
     posRef.current.nearestWalkable = undefined;
+    posRef.current.clampToBounds = clampToHexBounds;
 
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate);
@@ -1219,7 +1260,7 @@ function FrogLandCanvas({
     };
   }, []);
 
-  // ai-agent companion — matches whichever avatar the player is wearing
+  // ai-agent companion 
   useEffect(() => {
     if (!sceneRef.current || !avatarId) return;
     let cancelled = false;
