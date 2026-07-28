@@ -14,7 +14,7 @@ const agentModelFor = (id) =>
 
 const AGENT_OFFSET_X = 1.5;
 const AGENT_OFFSET_Z = -0.4;
-const AGENT_SCALE_TARGET = 1.5;
+const AGENT_SCALE_TARGET = 0.5;
 
 // nomad sculpted characters !!
 const avatars = [
