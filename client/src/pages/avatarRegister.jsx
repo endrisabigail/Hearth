@@ -98,6 +98,12 @@ function AvatarRegister() {
   const jumpStart = useRef(0);
   const isDragging = useRef(false);
   const lastPointerX = useRef(0);
+  const clickSound = useRef(
+    typeof Audio !== "undefined" ? new Audio("/assets/sounds/click.mp3") : null,
+  );
+  const bgMusic = useRef(
+    typeof Audio !== "undefined" ? new Audio("/assets/sounds/Main.mp3") : null,
+  );
 
   const selected = avatars[selectedIndex];
 
@@ -225,6 +231,28 @@ function AvatarRegister() {
     };
   }, []);
 
+  // background music
+  useEffect(() => {
+    const music = bgMusic.current;
+    if (!music) return;
+
+    music.loop = true;
+    music.volume = 0.4;
+    music.play().catch(() => {
+      // autoplay was blocked - retry on the first user interaction
+      const resume = () => {
+        music.play().catch(() => { });
+        window.removeEventListener("pointerdown", resume);
+      };
+      window.addEventListener("pointerdown", resume, { once: true });
+    });
+
+    return () => {
+      music.pause();
+      music.currentTime = 0;
+    };
+  }, []);
+
   // swap model on selection change
   useEffect(() => {
     const scene = sceneRef.current;
@@ -316,6 +344,11 @@ function AvatarRegister() {
   };
 
   const handleConfirm = () => {
+    if (clickSound.current) {
+      clickSound.current.currentTime = 0;
+      clickSound.current.play().catch(() => { });
+    }
+
     setIsConfirmed(true);
     isJumping.current = true;
     jumpStart.current = Date.now();
