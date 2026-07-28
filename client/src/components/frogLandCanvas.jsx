@@ -23,7 +23,6 @@ import {
 
 export { normToWorld, worldToNorm, MOVEMENT_BOUNDS as FROG_MOVEMENT_BOUNDS };
 
-// world scale
 const WORLD_MIN = -32;
 const WORLD_MAX = 48;
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN;
@@ -47,7 +46,8 @@ export const POND_RADIUS = 11.5; // noticeably bigger than the grass plaza's pon
 const SPAWN_CLEAR_RADIUS = 6.5;
 const EDGE_PAD = 1.5 / WORLD_SIZE;
 
-// textures
+//textures
+
 function buildSwampGrassTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -57,13 +57,13 @@ function buildSwampGrassTexture() {
     for (let col = 0; col < 4; col++) {
       const x = col * 64;
       const y = row * 64;
-      const hue = 96 + ((row * 4 + col) % 5) * 5;
-      ctx.fillStyle = `hsl(${hue}, 34%, 26%)`;
+      const hue = 100 + ((row * 4 + col) % 5) * 4;
+      ctx.fillStyle = `hsl(${hue}, 58%, 46%)`;
       ctx.fillRect(x, y, 64, 64);
-      ctx.strokeStyle = "rgba(0,0,0,0.08)";
+      ctx.strokeStyle = "rgba(0,0,0,0.06)";
       ctx.strokeRect(x + 0.5, y + 0.5, 63, 63);
       const rng = (row * 4 + col + 1) * 13;
-      ctx.fillStyle = `hsl(${hue + 14}, 38%, 34%)`;
+      ctx.fillStyle = `hsl(${hue + 10}, 60%, 55%)`;
       for (let i = 0; i < 7; i++) {
         const bx = x + ((rng * (i + 1) * 7) % 56) + 4;
         const by = y + ((rng * (i + 1) * 11) % 54) + 5;
@@ -72,7 +72,7 @@ function buildSwampGrassTexture() {
       }
       // little dark moss speckles
       if ((row + col) % 2 === 0) {
-        ctx.fillStyle = "rgba(30,45,20,0.45)";
+        ctx.fillStyle = "rgba(40,80,30,0.35)";
         for (let i = 0; i < 4; i++) {
           ctx.beginPath();
           ctx.arc(
@@ -102,11 +102,11 @@ function buildSwampWaterTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
   const grad = ctx.createLinearGradient(0, 0, 128, 128);
-  grad.addColorStop(0, "#2f7a5e");
-  grad.addColorStop(1, "#1c5a4a");
+  grad.addColorStop(0, "#4fd8c4");
+  grad.addColorStop(1, "#2bb1a0");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
-  ctx.strokeStyle = "rgba(180,220,160,0.28)";
+  ctx.strokeStyle = "rgba(255,255,255,0.4)";
   ctx.lineWidth = 2;
   ctx.lineCap = "round";
   for (let i = 0; i < 6; i++) {
@@ -118,7 +118,7 @@ function buildSwampWaterTexture() {
     }
     ctx.stroke();
   }
-  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
   for (let i = 0; i < 10; i++) {
     ctx.fillRect((i * 37) % 128, (i * 53) % 128, 3, 3);
   }
@@ -135,10 +135,10 @@ function buildSkyTextureSwamp() {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, "#6fa383");
-  grad.addColorStop(0.45, "#a8c9a0");
-  grad.addColorStop(0.75, "#d8dfa8");
-  grad.addColorStop(1, "#f0eccb");
+  grad.addColorStop(0, "#5ec6e8");
+  grad.addColorStop(0.45, "#b7e8d8");
+  grad.addColorStop(0.75, "#eef4c4");
+  grad.addColorStop(1, "#fff3d2");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 8, 256);
   return new THREE.CanvasTexture(canvas);
@@ -150,15 +150,15 @@ function buildMossPatchTexture(rand) {
   canvas.height = 96;
   const ctx = canvas.getContext("2d");
   const grad = ctx.createRadialGradient(48, 48, 4, 48, 48, 44);
-  grad.addColorStop(0, "rgba(70,110,45,0.85)");
-  grad.addColorStop(0.6, "rgba(70,110,45,0.5)");
-  grad.addColorStop(1, "rgba(70,110,45,0)");
+  grad.addColorStop(0, "rgba(100,170,55,0.85)");
+  grad.addColorStop(0.6, "rgba(100,170,55,0.5)");
+  grad.addColorStop(1, "rgba(100,170,55,0)");
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.arc(48, 48, 44, 0, Math.PI * 2);
   ctx.fill();
   for (let i = 0; i < 6; i++) {
-    ctx.fillStyle = `rgba(50,${85 + rand() * 30},40,0.3)`;
+    ctx.fillStyle = `rgba(70,${140 + rand() * 40},50,0.3)`;
     ctx.beginPath();
     ctx.arc(20 + rand() * 56, 20 + rand() * 56, 5 + rand() * 8, 0, Math.PI * 2);
     ctx.fill();
@@ -212,9 +212,9 @@ function buildDirtTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
   const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 60);
-  grad.addColorStop(0, "rgba(107,90,58,0.9)");
-  grad.addColorStop(0.55, "rgba(107,90,58,0.5)");
-  grad.addColorStop(1, "rgba(107,90,58,0)");
+  grad.addColorStop(0, "rgba(224,178,120,0.9)");
+  grad.addColorStop(0.55, "rgba(224,178,120,0.5)");
+  grad.addColorStop(1, "rgba(224,178,120,0)");
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.arc(64, 64, 60, 0, Math.PI * 2);
@@ -222,12 +222,19 @@ function buildDirtTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
-// ---- meshes ---------------------------------------------------------------
+//meshes
+
+const MUSHROOM_PALETTE = [
+  { h: 0, s: 78, l: 56 }, // bright red
+  { h: 24, s: 85, l: 55 }, // bright orange
+  { h: 320, s: 68, l: 62 }, // magenta/pink
+  { h: 45, s: 88, l: 58 }, // golden yellow
+];
 
 function buildMushroomCluster(rand) {
   const group = new THREE.Group();
   const count = 1 + Math.floor(rand() * 3);
-  const capHue = rand() > 0.5 ? 0 : 28; // red or brown caps, mixed through the grove
+  const palette = MUSHROOM_PALETTE[Math.floor(rand() * MUSHROOM_PALETTE.length)];
   for (let i = 0; i < count; i++) {
     const h = 1.4 + rand() * 2.2;
     const capR = 0.5 + rand() * 0.55 + h * 0.12;
@@ -235,30 +242,55 @@ function buildMushroomCluster(rand) {
 
     const stem = new THREE.Mesh(
       new THREE.CylinderGeometry(stemR * 0.85, stemR, h, 8),
-      new THREE.MeshLambertMaterial({ color: 0xf3ead2 }),
+      new THREE.MeshLambertMaterial({ color: 0xfff8e8 }),
     );
     stem.position.set((rand() - 0.5) * 1.2 * count, h / 2, (rand() - 0.5) * 1.2 * count);
     stem.castShadow = true;
     stem.receiveShadow = true;
     group.add(stem);
 
-    const cap = new THREE.Mesh(
-      new THREE.SphereGeometry(capR, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+    // little collar band for character
+    const collar = new THREE.Mesh(
+      new THREE.TorusGeometry(stemR * 1.05, stemR * 0.16, 6, 10),
       new THREE.MeshLambertMaterial({
-        color: new THREE.Color(`hsl(${capHue + rand() * 12}, ${55 + rand() * 15}%, ${42 + rand() * 10}%)`),
+        color: new THREE.Color(`hsl(${palette.h}, ${palette.s - 10}%, ${Math.max(palette.l - 18, 30)}%)`),
+      }),
+    );
+    collar.rotation.x = Math.PI / 2;
+    collar.position.set(stem.position.x, h * 0.82, stem.position.z);
+    group.add(collar);
+
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(capR, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      new THREE.MeshLambertMaterial({
+        color: new THREE.Color(
+          `hsl(${palette.h + (rand() - 0.5) * 10}, ${palette.s}%, ${palette.l + (rand() - 0.5) * 6}%)`,
+        ),
       }),
     );
     cap.position.set(stem.position.x, h + capR * 0.25, stem.position.z);
     cap.castShadow = true;
     group.add(cap);
 
+    // glossy toon highlight
+    const highlight = new THREE.Mesh(
+      new THREE.SphereGeometry(capR * 0.28, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 }),
+    );
+    highlight.position.set(
+      stem.position.x - capR * 0.35,
+      h + capR * 0.6,
+      stem.position.z - capR * 0.3,
+    );
+    group.add(highlight);
+
     // pale spots on the cap
-    const spotMat = new THREE.MeshBasicMaterial({ color: 0xfff7e6 });
+    const spotMat = new THREE.MeshBasicMaterial({ color: 0xfffdf3 });
     const spotCount = 4 + Math.floor(rand() * 3);
     for (let s = 0; s < spotCount; s++) {
       const a = rand() * Math.PI * 2;
       const r = rand() * capR * 0.75;
-      const spot = new THREE.Mesh(new THREE.CircleGeometry(capR * 0.09, 6), spotMat);
+      const spot = new THREE.Mesh(new THREE.CircleGeometry(capR * 0.1, 6), spotMat);
       spot.position.set(
         stem.position.x + Math.cos(a) * r,
         h + capR * 0.25 + Math.sin(a * 1.7) * capR * 0.3 + capR * 0.35,
@@ -279,7 +311,7 @@ function buildCattailClump(rand) {
     const stalk = new THREE.Mesh(
       new THREE.CylinderGeometry(0.025, 0.035, h, 6),
       new THREE.MeshLambertMaterial({
-        color: new THREE.Color(`hsl(${95 + rand() * 20}, 42%, ${26 + rand() * 10}%)`),
+        color: new THREE.Color(`hsl(${100 + rand() * 20}, 55%, ${38 + rand() * 10}%)`),
       }),
     );
     stalk.position.set((rand() - 0.5) * 0.5, h / 2, (rand() - 0.5) * 0.5);
@@ -322,7 +354,7 @@ function buildBoulder(rand) {
   return new THREE.Mesh(
     geo,
     new THREE.MeshLambertMaterial({
-      color: new THREE.Color(`hsl(150, 8%, ${34 + rand() * 14}%)`),
+      color: new THREE.Color(`hsl(28, 30%, ${48 + rand() * 14}%)`),
       flatShading: true,
     }),
   );
@@ -401,7 +433,7 @@ function FrogLandCanvas({
     const scene = new THREE.Scene();
     const skyTex = buildSkyTextureSwamp();
     scene.background = skyTex;
-    scene.fog = new THREE.Fog(0xb9d2a8, WORLD_SIZE * 0.46, WORLD_SIZE * 0.86);
+    scene.fog = new THREE.Fog(0xcdeadd, WORLD_SIZE * 0.5, WORLD_SIZE * 0.95);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
@@ -419,8 +451,8 @@ function FrogLandCanvas({
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-    const sun = new THREE.DirectionalLight(0xfff2d0, 1.0);
+    scene.add(new THREE.AmbientLight(0xffffff, 2.1));
+    const sun = new THREE.DirectionalLight(0xfff6dd, 1.15);
     sun.position.set(WORLD_CENTER + 5, 10, WORLD_CENTER + 6);
     sun.target.position.set(WORLD_CENTER, 0, WORLD_CENTER);
     sun.castShadow = true;
@@ -439,12 +471,12 @@ function FrogLandCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // floating island — mossy top, muted rock sides
+    // floating island 
     const grassTex = buildSwampGrassTexture();
     const ISLAND_DEPTH = 3.4;
     const groundGeo = new THREE.BoxGeometry(WORLD_SIZE, ISLAND_DEPTH, WORLD_SIZE);
     const grassTopMat = new THREE.MeshLambertMaterial({ map: grassTex });
-    const rockSideMat = new THREE.MeshLambertMaterial({ color: 0x4a4a3a });
+    const rockSideMat = new THREE.MeshLambertMaterial({ color: 0xa8815a });
     const ground = new THREE.Mesh(groundGeo, [
       rockSideMat,
       rockSideMat,
@@ -499,7 +531,7 @@ function FrogLandCanvas({
       return false;
     }
 
-    // the pond — big and swampy, generously covered in giant lily pads
+    // the pond  
     const pondSeedA = seededRandom(7);
     const pondSeedB = seededRandom(7);
     const shoreShape = buildBlobShape(POND_RADIUS * 1.18, 0.16, 28, pondSeedA);
@@ -507,7 +539,7 @@ function FrogLandCanvas({
 
     const shoreMesh = new THREE.Mesh(
       new THREE.ShapeGeometry(shoreShape),
-      new THREE.MeshLambertMaterial({ color: 0x5c5233 }),
+      new THREE.MeshLambertMaterial({ color: 0xe0c98a }),
     );
     shoreMesh.rotation.x = -Math.PI / 2;
     shoreMesh.position.set(POND_CENTER_X, 0.0, POND_CENTER_Z);
@@ -538,6 +570,10 @@ function FrogLandCanvas({
       const a = padRand() * Math.PI * 2;
       const r = padRand() * POND_RADIUS * 0.82;
       const pad = buildLilyPad(0.8 + padRand() * 1.4, padRand);
+      pad.material = pad.material.clone();
+      pad.material.color = new THREE.Color(
+        `hsl(${102 + padRand() * 20}, 62%, ${46 + padRand() * 12}%)`,
+      );
       const px = POND_CENTER_X + Math.cos(a) * r;
       const pz = POND_CENTER_Z + Math.sin(a) * r;
       pad.position.set(px, 0.03, pz);
