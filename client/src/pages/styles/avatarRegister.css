@@ -214,7 +214,7 @@
   width: 900px;
   height: 320px;
   z-index: 1;
-  overflow: hidden;
+  overflow: hidden; 
 }
 
 .sculpture-stage canvas {
