@@ -14,7 +14,7 @@ const agentModelFor = (id) =>
 
 const AGENT_OFFSET_X = 1.5;
 const AGENT_OFFSET_Z = -0.4;
-const AGENT_SCALE_TARGET = 0.5;
+const AGENT_SCALE_TARGET = 0.6; // size on scale display 
 
 // nomad sculpted characters !!
 const avatars = [
@@ -239,7 +239,7 @@ function AvatarRegister() {
 
         const center = box.getCenter(new THREE.Vector3());
         agent.position.sub(center.multiplyScalar(scale));
-        agent.position.y += 0.4;
+        agent.position.y += 0.0;
         agent.position.x += AGENT_OFFSET_X;
         agent.position.z += AGENT_OFFSET_Z;
         agent.userData.agentBaseY = agent.position.y;
