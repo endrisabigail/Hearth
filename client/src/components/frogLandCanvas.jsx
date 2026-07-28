@@ -237,7 +237,7 @@ function buildMushroomCluster(rand) {
 
     const stem = new THREE.Mesh(
       new THREE.CylinderGeometry(stemR * 0.85, stemR, h, 8),
-      new THREE.MeshLambertMaterial({ color: #FFE26B }),
+      new THREE.MeshLambertMaterial({ color: "#fdeeb3" }),
     );
     stem.position.set((rand() - 0.5) * 1.2 * count, h / 2, (rand() - 0.5) * 1.2 * count);
     stem.castShadow = true;
