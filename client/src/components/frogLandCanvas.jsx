@@ -680,7 +680,7 @@ function FrogLandCanvas({
     }
     hexTopShape.closePath();
     const hexTopGeo = new THREE.ShapeGeometry(hexTopShape, 3);
-    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#8bc76a" });
+    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#84c65a" });
     const grassTop = new THREE.Mesh(hexTopGeo, grassTopMat);
     grassTop.rotation.x = -Math.PI / 2;
     grassTop.position.set(WORLD_CENTER, GROUND_TOP_Y + 0.002, WORLD_CENTER);
@@ -706,6 +706,19 @@ function FrogLandCanvas({
         if (dx * dx + dz * dz < minDist * minDist) return true;
       }
       return false;
+    }
+    // true if (x, z) sits inside the hex island, at least edgePad units
+    // in from the actual grass edge (so props don't clip off the side)
+    function insideHexArea(x, z, edgePad = 0) {
+      const px = x - WORLD_CENTER;
+      const pz = z - WORLD_CENTER;
+      for (let k = 0; k < 6; k++) {
+        const angle = Math.PI / 6 + k * (Math.PI / 3);
+        const nx = Math.cos(angle);
+        const nz = Math.sin(angle);
+        if (px * nx + pz * nz > HEX_APOTHEM - edgePad) return false;
+      }
+      return true;
     }
 
     // the pond — big and swampy, generously covered in giant lily pads
@@ -783,10 +796,12 @@ function FrogLandCanvas({
     const mushroomClusters = [];
     let mAttempts = 0, mPlaced = 0;
     const margin = 2;
-    while (mPlaced < MUSHROOM_COUNT && mAttempts < MUSHROOM_COUNT * 30) {
+    const MUSHROOM_EDGE_PAD = 1.6; // keep clear of the actual hex edge so caps don't clip off the island
+    while (mPlaced < MUSHROOM_COUNT && mAttempts < MUSHROOM_COUNT * 40) {
       mAttempts++;
-      const mx = WORLD_MIN + margin + mushroomRand() * (WORLD_SIZE - margin * 2);
-      const mz = WORLD_MIN + margin + mushroomRand() * (WORLD_SIZE - margin * 2);
+      const mx = WORLD_CENTER + (mushroomRand() - 0.5) * 2 * HEX_APOTHEM;
+      const mz = WORLD_CENTER + (mushroomRand() - 0.5) * 2 * HEX_APOTHEM;
+      if (!insideHexArea(mx, mz, MUSHROOM_EDGE_PAD)) continue;
       if (inClearing(mx, mz) || insidePond(mx, mz, 2) || tooCloseTo(mushroomPositions, mx, mz, MUSHROOM_MIN_SPACING)) continue;
       const cluster = buildMushroomCluster(mushroomRand);
       cluster.position.set(mx, 0, mz);
