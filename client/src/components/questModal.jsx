@@ -301,7 +301,7 @@ function QuestModal({
                 onClick={handleComplete}
                 disabled={saving}
               >
-                {saving ? "..." : "⚔️ mark complete & claim points"}
+                {saving ? "..." : "mark complete & claim points"}
               </button>
             )}
             {quest.status === "Completed" && (
