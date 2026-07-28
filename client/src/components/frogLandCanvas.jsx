@@ -33,6 +33,14 @@ const WORLD_CENTER = (WORLD_MIN + WORLD_MAX) / 2;
 const HEX_RADIUS = 70;
 const HEX_APOTHEM = HEX_RADIUS * Math.cos(Math.PI / 6);
 
+//cam view
+const CAMERA_FOV = 55;
+const CAMERA_HEIGHT = 95;
+const CAMERA_BACK_OFFSET = 80;
+const CAMERA_FOLLOW_FACTOR = 0.35;
+const CAMERA_LERP = 0.06;
+const CAMERA_FAR = 350;
+
 const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
 
@@ -616,11 +624,11 @@ function FrogLandCanvas({
     const scene = new THREE.Scene();
     const skyTex = buildSkyTextureSwamp();
     scene.background = skyTex;
-    scene.fog = new THREE.Fog(0xcdeadd, WORLD_SIZE * 0.5, WORLD_SIZE * 0.95);
+    scene.fog = new THREE.Fog(0xcdeadd, 220, 340);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(WORLD_CENTER, 14, WORLD_CENTER + 12);
+    const camera = new THREE.PerspectiveCamera(CAMERA_FOV, w / h, 0.1, CAMERA_FAR);
+    camera.position.set(WORLD_CENTER, CAMERA_HEIGHT, WORLD_CENTER + CAMERA_BACK_OFFSET);
     camera.lookAt(WORLD_CENTER, 0, WORLD_CENTER);
     cameraRef.current = camera;
 
@@ -680,7 +688,7 @@ function FrogLandCanvas({
     }
     hexTopShape.closePath();
     const hexTopGeo = new THREE.ShapeGeometry(hexTopShape, 3);
-    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#b3ec90" });
+    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#8bc76a" });
     const grassTop = new THREE.Mesh(hexTopGeo, grassTopMat);
     grassTop.rotation.x = -Math.PI / 2;
     grassTop.position.set(WORLD_CENTER, GROUND_TOP_Y + 0.002, WORLD_CENTER);
@@ -1251,10 +1259,12 @@ function FrogLandCanvas({
           s.scale.set(scale, scale, 1);
         });
 
-        camera.position.x += (wx - camera.position.x) * 0.1;
-        camera.position.z += (wz + 12 - camera.position.z) * 0.1;
-        camera.position.y = 14;
-        camera.lookAt(wx, 0, wz);
+        const followX = WORLD_CENTER + (wx - WORLD_CENTER) * CAMERA_FOLLOW_FACTOR;
+        const followZ = WORLD_CENTER + (wz - WORLD_CENTER) * CAMERA_FOLLOW_FACTOR;
+        camera.position.x += (followX - camera.position.x) * CAMERA_LERP;
+        camera.position.z += (followZ + CAMERA_BACK_OFFSET - camera.position.z) * CAMERA_LERP;
+        camera.position.y = CAMERA_HEIGHT;
+        camera.lookAt(followX, 0, followZ);
 
         if (manualInput) {
           const k = keysRef.current;
