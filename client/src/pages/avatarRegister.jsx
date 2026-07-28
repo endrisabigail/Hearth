@@ -104,6 +104,11 @@ function AvatarRegister() {
   const bgMusic = useRef(
     typeof Audio !== "undefined" ? new Audio("/assets/sounds/Main.mp3") : null,
   );
+  const casualClickSound = useRef(
+    typeof Audio !== "undefined"
+      ? new Audio("/assets/sounds/casualClick.mp3")
+      : null,
+  );
 
   const selected = avatars[selectedIndex];
 
@@ -338,6 +343,10 @@ function AvatarRegister() {
   }, [selectedIndex]);
 
   const handleSelect = (index) => {
+    if (casualClickSound.current) {
+      casualClickSound.current.currentTime = 0;
+      casualClickSound.current.play().catch(() => { });
+    }
     setIsConfirmed(false);
     isJumping.current = false;
     setSelectedIndex(index);
@@ -450,9 +459,9 @@ function AvatarRegister() {
         {/* prompt header */}
         <div className="choose-header">
           <p className="choose-eyebrow">step 1 of 1</p>
-          <h1 className="choose-heading">Every adventure needs a companion!</h1>
+          <h1 className="choose-heading">Every story needs a main character!</h1>
           <p className="choose-sub">
-            Arrow through to meet them all — then pick the one you feel
+            Arrow through to meet them all, then pick the one you feel
             connected to ♡
           </p>
         </div>
