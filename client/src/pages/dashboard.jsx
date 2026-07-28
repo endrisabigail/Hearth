@@ -389,14 +389,26 @@ function Dashboard() {
         ny = Math.max(b.minY, Math.min(b.maxY, ny));
 
         // habitats like frog land (all water except lily pads) restrict
-        // where the character is allowed to stand. Try sliding along a
-        // single axis first so bumping a pad's edge feels like brushing
-        // a wall rather than snapping to a dead stop.
+        // where the character is allowed to stand. A step that's only
+        // slightly off the lane gets snapped back onto it (so grazing
+        // an edge doesn't read as "that direction is broken"); only a
+        // step that's genuinely headed into open water gets rejected.
         const walkable = posRef.current.isWalkable;
         if (walkable && !walkable(nx, ny)) {
-          if (walkable(nx, y)) ny = y;
-          else if (walkable(x, ny)) nx = x;
-          else { nx = x; ny = y; }
+          const nearest = posRef.current.nearestWalkable;
+          const snapped = nearest?.(nx, ny);
+          const SNAP_TOLERANCE = 0.045; // normalized units
+          if (snapped && Math.hypot(snapped.x - nx, snapped.y - ny) <= SNAP_TOLERANCE) {
+            nx = snapped.x;
+            ny = snapped.y;
+          } else if (walkable(nx, y)) {
+            ny = y;
+          } else if (walkable(x, ny)) {
+            nx = x;
+          } else {
+            nx = x;
+            ny = y;
+          }
         }
 
         posRef.current = { ...posRef.current, x: nx, y: ny };
