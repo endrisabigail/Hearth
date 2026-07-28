@@ -680,7 +680,7 @@ function FrogLandCanvas({
     }
     hexTopShape.closePath();
     const hexTopGeo = new THREE.ShapeGeometry(hexTopShape, 3);
-    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#84c65a" });
+    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#b3ec90" });
     const grassTop = new THREE.Mesh(hexTopGeo, grassTopMat);
     grassTop.rotation.x = -Math.PI / 2;
     grassTop.position.set(WORLD_CENTER, GROUND_TOP_Y + 0.002, WORLD_CENTER);
