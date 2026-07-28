@@ -404,6 +404,6 @@
   }
   50% {
     transform: scale(0.72);
-    opacity: 0.45;
+    opacity: 0.2;
   }
 }
