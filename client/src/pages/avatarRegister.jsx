@@ -96,6 +96,8 @@ function AvatarRegister() {
   const agentFloatT = useRef(0);
   const isJumping = useRef(false);
   const jumpStart = useRef(0);
+  const isDragging = useRef(false);
+  const lastPointerX = useRef(0);
 
   const selected = avatars[selectedIndex];
 
@@ -124,10 +126,8 @@ function AvatarRegister() {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
     controls.enableZoom = false;
+    controls.enableRotate = false; // camera stays put - dragging now only spins the character
     controls.autoRotate = false;
-    controls.rotateSpeed = 0.4;
-    controls.minPolarAngle = Math.PI / 2;
-    controls.maxPolarAngle = Math.PI / 2;
     controls.target.set(0, 0.5, 0);
     controlsRef.current = controls;
 
@@ -171,7 +171,7 @@ function AvatarRegister() {
           const liftRatio = bob / 0.09; // -1 (low) to 1 (high)
           const s = 1 - liftRatio * 0.2;
           currentAgentShadow.current.scale.setScalar(s);
-          currentAgentShadow.current.material.opacity = 0.28 - liftRatio * 0.1;
+          currentAgentShadow.current.material.opacity = 0.16 - liftRatio * 0.06;
         }
       }
 
@@ -188,9 +188,36 @@ function AvatarRegister() {
     };
     window.addEventListener("resize", onResize);
 
+    // drag-to-spin, applied only to the character model (agent stays independent)
+    const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
+
+    const onPointerDown = (e) => {
+      isDragging.current = true;
+      lastPointerX.current = getClientX(e);
+    };
+    const onPointerMove = (e) => {
+      if (!isDragging.current || !currentModel.current) return;
+      const x = getClientX(e);
+      const deltaX = x - lastPointerX.current;
+      lastPointerX.current = x;
+      currentModel.current.rotation.y += deltaX * 0.01;
+    };
+    const onPointerUp = () => {
+      isDragging.current = false;
+    };
+
+    const dom = renderer.domElement;
+    dom.style.touchAction = "none";
+    dom.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+
     return () => {
       cancelAnimationFrame(animFrame.current);
       window.removeEventListener("resize", onResize);
+      dom.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
       renderer.dispose();
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
@@ -267,7 +294,7 @@ function AvatarRegister() {
           new THREE.MeshBasicMaterial({
             color: 0x000000,
             transparent: true,
-            opacity: 0.5,
+            opacity: 0.18,
             depthWrite: false,
           }),
         );
