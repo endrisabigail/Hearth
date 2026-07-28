@@ -12,9 +12,9 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const agentModelFor = (id) =>
   `/assets/models/ai-agent${id.charAt(0).toUpperCase()}${id.slice(1)}.glb`;
 
-const AGENT_OFFSET_X = 1.5;
-const AGENT_OFFSET_Z = -0.4;
-const AGENT_SCALE_TARGET = 0.6; // size on scale display 
+const AGENT_OFFSET_X = 1.3;
+const AGENT_OFFSET_Z = -0.3;
+const AGENT_SCALE_TARGET = 0.7;
 
 // nomad sculpted characters !!
 const avatars = [
@@ -89,6 +89,7 @@ function AvatarRegister() {
   const controlsRef = useRef(null);
   const currentModel = useRef(null);
   const currentAgentModel = useRef(null);
+  const currentAgentShadow = useRef(null);
   const animFrame = useRef(null);
   const loader = useRef(new GLTFLoader());
   const agentLoader = useRef(new GLTFLoader());
@@ -163,8 +164,15 @@ function AvatarRegister() {
       if (currentAgentModel.current) {
         agentFloatT.current += 0.02;
         const agentBaseY = currentAgentModel.current.userData.agentBaseY ?? 0.3;
-        currentAgentModel.current.position.y =
-          agentBaseY + Math.sin(agentFloatT.current * 1.6 + Math.PI) * 0.09;
+        const bob = Math.sin(agentFloatT.current * 1.6 + Math.PI) * 0.09;
+        currentAgentModel.current.position.y = agentBaseY + bob;
+
+        if (currentAgentShadow.current) {
+          const liftRatio = bob / 0.09; // -1 (low) to 1 (high)
+          const s = 1 - liftRatio * 0.2;
+          currentAgentShadow.current.scale.setScalar(s);
+          currentAgentShadow.current.material.opacity = 0.28 - liftRatio * 0.1;
+        }
       }
 
       renderer.render(scene, camera);
@@ -227,6 +235,10 @@ function AvatarRegister() {
       scene.remove(currentAgentModel.current);
       currentAgentModel.current = null;
     }
+    if (currentAgentShadow.current) {
+      scene.remove(currentAgentShadow.current);
+      currentAgentShadow.current = null;
+    }
 
     agentLoader.current.load(
       agentModelFor(selected.id),
@@ -247,6 +259,22 @@ function AvatarRegister() {
 
         scene.add(agent);
         currentAgentModel.current = agent;
+
+        // flat shadow blob sitting at the agent's estimated ground contact point
+        const groundY = agent.position.y - (size.y * scale) / 2;
+        const shadow = new THREE.Mesh(
+          new THREE.CircleGeometry(AGENT_SCALE_TARGET * 0.35, 24),
+          new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.28,
+            depthWrite: false,
+          }),
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.set(agent.position.x, groundY + 0.01, agent.position.z);
+        scene.add(shadow);
+        currentAgentShadow.current = shadow;
       },
       undefined,
       (err) =>
