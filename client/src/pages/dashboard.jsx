@@ -217,7 +217,8 @@ function Dashboard() {
     }
   };
 
-  // connect to the live plaza namespace
+  // connect to the live plaza namespace so we can see (and be seen by) other
+  // party members currently online
   useEffect(() => {
     if (!token) return;
 
@@ -405,6 +406,16 @@ function Dashboard() {
             nx = x;
             ny = y;
           }
+        }
+
+        // some habitats define an exact (non-rectangular) play area —
+        // e.g. frog land's hexagonal plane — via a clamp function that
+        // pulls an out-of-bounds step back to the nearest edge point
+        const clampToBounds = posRef.current.clampToBounds;
+        if (clampToBounds) {
+          const clamped = clampToBounds(nx, ny);
+          nx = clamped.x;
+          ny = clamped.y;
         }
 
         posRef.current = { ...posRef.current, x: nx, y: ny };
