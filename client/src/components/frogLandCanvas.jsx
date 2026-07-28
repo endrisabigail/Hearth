@@ -28,7 +28,7 @@ import {
   makeChest,
 } from "./questNodes.jsx";
 
-//world scale
+// world scale
 const WORLD_MIN = -18;
 const WORLD_MAX = 18;
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN;
@@ -52,10 +52,10 @@ export const FROG_MOVEMENT_BOUNDS = {
 const TRAVEL_SPEED = 0.0022;
 const ARRIVAL_THRESHOLD = 0.016;
 
-// lily-pad path network
+// lilypad network
 const HUB_NX = 0.5;
 const HUB_NY = Math.max(GRID_START_NY - 0.09, 0.02);
-const LANE_HALF_WIDTH = 0.028;
+const LANE_HALF_WIDTH = 0.036;
 const NODE_PAD_RADIUS = 0.034;
 const HUB_PAD_RADIUS = 0.05;
 
@@ -163,7 +163,7 @@ export function buildLilyChestNode(quest, node, colors) {
   return group;
 }
 
-//coins & tadpole trail 
+// coins & tadpole trail
 const COIN_SPAWN_INTERVAL = [4000, 8000]; // ms, random between
 const MAX_COINS = 6;
 const COIN_COLLECT_RADIUS = 0.028;
@@ -350,7 +350,10 @@ function FrogLandCanvas({
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
         const footprint = Math.max(size.x, size.z) || 1;
-        const scale = WORLD_SIZE / footprint;
+        // noticeably bigger than the walkable lattice, so the shoreline
+        // reads as a distant edge instead of looming right behind you
+        const TERRAIN_SCALE_MULT = 2.6;
+        const scale = (WORLD_SIZE * TERRAIN_SCALE_MULT) / footprint;
         model.scale.setScalar(scale);
         const center = box.getCenter(new THREE.Vector3());
         model.position.set(
@@ -386,14 +389,16 @@ function FrogLandCanvas({
       const baseScale = TARGET_DIAMETER / footprint;
       const center = box.getCenter(new THREE.Vector3());
 
-      function place(nx, ny, sizeMul, seed) {
+      function place(nx, ny, sizeMul, seed, offsetWorld) {
         const rand = seededRandom(Math.floor(nx * 100000 + ny * 3331 + seed));
         const clone = template.clone(true);
         const s = baseScale * sizeMul * (0.85 + rand() * 0.3);
         clone.scale.setScalar(s);
         clone.position.sub(center.clone().multiplyScalar(s));
-        clone.position.x += normToWorld(nx) + (rand() - 0.5) * 0.12;
-        clone.position.z += normToWorld(ny) + (rand() - 0.5) * 0.12;
+        const jitterX = (rand() - 0.5) * 0.16;
+        const jitterZ = (rand() - 0.5) * 0.16;
+        clone.position.x += normToWorld(nx) + (offsetWorld?.x || 0) + jitterX;
+        clone.position.z += normToWorld(ny) + (offsetWorld?.z || 0) + jitterZ;
         clone.position.y += 0.03;
         clone.rotation.y = rand() * Math.PI * 2;
         clone.traverse((c) => {
@@ -407,17 +412,27 @@ function FrogLandCanvas({
         });
       }
 
-      const STEP = 0.03;
+      const STEP = 0.026;
+      const MEANDER_AMPLITUDE = 0.6; // world units — gentle bow along each run
       LANE_SEGMENTS.forEach((s, segIdx) => {
-        const len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
+        const dx = s.x2 - s.x1;
+        const dy = s.y2 - s.y1;
+        const len = Math.hypot(dx, dy) || 1;
         const steps = Math.max(1, Math.round(len / STEP));
+        const dirX = dx / len;
+        const dirY = dy / len;
+        const perpX = -dirY;
+        const perpZ = dirX;
+        const bowSign = seededRandom(segIdx * 7 + 3)() > 0.5 ? 1 : -1;
         for (let i = 0; i <= steps; i++) {
           const t = i / steps;
+          const bow = Math.sin(t * Math.PI) * MEANDER_AMPLITUDE * bowSign;
           place(
-            s.x1 + (s.x2 - s.x1) * t,
-            s.y1 + (s.y2 - s.y1) * t,
+            s.x1 + dx * t,
+            s.y1 + dy * t,
             1,
             segIdx * 1000 + i,
+            { x: perpX * bow, z: perpZ * bow },
           );
         }
       });
@@ -508,6 +523,103 @@ function FrogLandCanvas({
       undefined,
       (err) => console.error("frogTree load error:", err),
     );
+
+    // moss patches — soft green decals floating on the water, purely
+    // cosmetic (no collision), scattered a bit more freely than bamboo
+    // since moss reads fine drifting close to a pad
+    function buildMossPatchTexture(rand) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 96;
+      canvas.height = 96;
+      const ctx = canvas.getContext("2d");
+      const grad = ctx.createRadialGradient(48, 48, 4, 48, 48, 44);
+      grad.addColorStop(0, "rgba(88,138,58,0.8)");
+      grad.addColorStop(0.6, "rgba(88,138,58,0.45)");
+      grad.addColorStop(1, "rgba(88,138,58,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(48, 48, 44, 0, Math.PI * 2);
+      ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = `rgba(60,${100 + rand() * 30},50,0.3)`;
+        const x = 20 + rand() * 56;
+        const y = 20 + rand() * 56;
+        const r = 5 + rand() * 9;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // land specs — tiny mossy islets barely poking above the water,
+    // also cosmetic only
+    function buildLandSpeck(rand) {
+      const group = new THREE.Group();
+      const r = 0.22 + rand() * 0.22;
+      const mound = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({
+          color: new THREE.Color(`hsl(${28 + rand() * 18}, 28%, ${28 + rand() * 12}%)`),
+        }),
+      );
+      group.add(mound);
+      const moss = new THREE.Mesh(
+        new THREE.SphereGeometry(r * 0.75, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.35),
+        new THREE.MeshLambertMaterial({
+          color: new THREE.Color(`hsl(${95 + rand() * 20}, 40%, ${26 + rand() * 10}%)`),
+        }),
+      );
+      moss.position.y = r * 0.12;
+      group.add(moss);
+      return group;
+    }
+
+    const mossRand = seededRandom(523);
+    const mossPatches = [];
+    const MOSS_COUNT = 22;
+    for (let i = 0; i < MOSS_COUNT; i++) {
+      const a = mossRand() * Math.PI * 2;
+      const r = Math.sqrt(mossRand()) * 0.47;
+      const nx = 0.5 + Math.cos(a) * r;
+      const ny = 0.5 + Math.sin(a) * r * 0.9;
+      if (nx < 0.02 || nx > 0.98 || ny < 0.02 || ny > 0.98) continue;
+      if (distToNearestLane(nx, ny) < 0.012) continue; // keep off the pads themselves
+
+      const tex = buildMossPatchTexture(mossRand);
+      const size = 0.6 + mossRand() * 0.8;
+      const patch = new THREE.Mesh(
+        new THREE.PlaneGeometry(size, size),
+        new THREE.MeshBasicMaterial({
+          map: tex,
+          transparent: true,
+          depthWrite: false,
+        }),
+      );
+      patch.rotation.x = -Math.PI / 2;
+      patch.rotation.z = mossRand() * Math.PI * 2;
+      patch.position.set(normToWorld(nx), 0.012, normToWorld(ny));
+      scene.add(patch);
+      mossPatches.push(patch);
+    }
+
+    const landRand = seededRandom(631);
+    const landSpecks = [];
+    const LAND_SPECK_COUNT = 10;
+    for (let i = 0; i < LAND_SPECK_COUNT; i++) {
+      const a = landRand() * Math.PI * 2;
+      const r = Math.sqrt(landRand()) * 0.44;
+      const nx = 0.5 + Math.cos(a) * r;
+      const ny = 0.5 + Math.sin(a) * r * 0.9;
+      if (nx < 0.03 || nx > 0.97 || ny < 0.03 || ny > 0.97) continue;
+      if (distToNearestLane(nx, ny) < 0.035) continue;
+
+      const speck = buildLandSpeck(landRand);
+      speck.position.set(normToWorld(nx), 0, normToWorld(ny));
+      speck.rotation.y = landRand() * Math.PI * 2;
+      scene.add(speck);
+      landSpecks.push(speck);
+    }
 
     // clouds, reused sky-dressing
     const cloudMeshes = [];
@@ -985,6 +1097,21 @@ function FrogLandCanvas({
             } else {
               child.material?.dispose();
             }
+          }
+        });
+      });
+      mossPatches.forEach((patch) => {
+        scene.remove(patch);
+        patch.geometry.dispose();
+        patch.material.map?.dispose();
+        patch.material.dispose();
+      });
+      landSpecks.forEach((speck) => {
+        scene.remove(speck);
+        speck.traverse((child) => {
+          if (child.isMesh) {
+            child.geometry?.dispose();
+            child.material?.dispose();
           }
         });
       });
