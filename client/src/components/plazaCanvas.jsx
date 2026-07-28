@@ -3,13 +3,17 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 // how the ai-agent companion trails the player
-const AGENT_TARGET_HEIGHT = 0.55; // world units
-const AGENT_FOLLOW_DISTANCE = 1.3; // trails behind-right of the avatar
-const AGENT_FOLLOW_LERP = 0.07;
-const AGENT_HOVER_HEIGHT = 0.5; // above the avatar's base
+export const AGENT_TARGET_HEIGHT = 0.55; // world units
+export const AGENT_FOLLOW_DISTANCE = 1.3; // trails behind-right of the avatar
+export const AGENT_FOLLOW_LERP = 0.07;
+export const AGENT_HOVER_HEIGHT = 0.5; // above the avatar's base
+
+// each avatar has its own matching companion
+export const agentModelFor = (id) =>
+  `/assets/models/ai-agent${id.charAt(0).toUpperCase()}${id.slice(1)}.glb`;
 
 // Config
-const AVATAR_CONFIG = {
+export const AVATAR_CONFIG = {
   tomato: { scale: 1.2, offsetX: 0 },
   frog: { scale: 1.2, offsetX: 0 },
   fish: { scale: 1.2, offsetX: 0.05 },
@@ -158,7 +162,7 @@ function buildCloudTexture() {
 }
 
 // animated water texture
-function buildWaterTexture() {
+export function buildWaterTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 128;
   canvas.height = 128;
@@ -212,7 +216,7 @@ function buildWaterTexture() {
 }
 
 // sky gradient (used as scene.background)
-function buildSkyTexture() {
+export function buildSkyTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 8;
   canvas.height = 256;
@@ -312,7 +316,7 @@ function buildButterflyTexture(hue) {
 }
 
 // soft radial glow, used for fireflies and water splash droplets
-function buildGlowTexture(rgb) {
+export function buildGlowTexture(rgb) {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
   canvas.height = 64;
@@ -399,7 +403,7 @@ function buildBoulder(rand) {
 }
 
 // pac-man-shaped lily pad  
-function buildLilyPad(radius, rand) {
+export function buildLilyPad(radius, rand) {
   const shape = new THREE.Shape();
   const notch = 0.3 + rand() * 0.2;
   const start = notch / 2;
@@ -439,7 +443,7 @@ const TREE_MIN_HEIGHT = 1.8;
 const TREE_MAX_HEIGHT = 3.0;
 
 // Seeded random
-function seededRandom(seed) {
+export function seededRandom(seed) {
   let s = seed;
   return () => {
     s = (s * 16807 + 0) % 2147483647;
@@ -486,7 +490,7 @@ function buildBush(rand) {
   }
   return group;
 }
-function buildAvatarPivot(gltf, cfg) {
+export function buildAvatarPivot(gltf, cfg) {
   const g = gltf.scene;
   g.traverse((child) => {
     if (child.isMesh) child.castShadow = true;
@@ -522,7 +526,7 @@ function buildAvatarPivot(gltf, cfg) {
 }
 
 // builds the ai-agent companion to float behind the player
-function buildAgentPivot(object) {
+export function buildAgentPivot(object) {
   object.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = true;
@@ -567,7 +571,7 @@ function buildAgentPivot(object) {
   return pivot;
 }
 
-function disposePivot(pivot) {
+export function disposePivot(pivot) {
   pivot.traverse((child) => {
     if (child.isMesh) {
       child.geometry?.dispose();
@@ -584,7 +588,7 @@ function disposePivot(pivot) {
 }
 
 // chat bubble when player messages
-function buildMessageBubbleTexture() {
+export function buildMessageBubbleTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 96;
   canvas.height = 96;
@@ -1575,15 +1579,21 @@ function PlazaCanvas({
     };
   }, []);
 
-  // ai-agent companion loader loads once and lives for the lifetime of
-  // the canvas, independent of which avatar the player is wearing
+  // ai-agent companion — swaps to match whichever avatar the player is
+  // wearing, and reloads if they change avatars
   useEffect(() => {
-    if (!sceneRef.current) return;
+    if (!sceneRef.current || !avatarId) return;
     let cancelled = false;
     const agentLoader = new GLTFLoader();
 
+    if (agentRef.current) {
+      sceneRef.current.remove(agentRef.current);
+      disposePivot(agentRef.current);
+      agentRef.current = null;
+    }
+
     agentLoader.load(
-      "/assets/models/ai-agent.glb",
+      agentModelFor(avatarId),
       (gltf) => {
         if (cancelled || !sceneRef.current) return;
         const pivot = buildAgentPivot(gltf.scene);
@@ -1596,7 +1606,7 @@ function PlazaCanvas({
         agentRef.current = pivot;
       },
       undefined,
-      (err) => console.error("ai-agent load error:", err),
+      (err) => console.error(`ai-agent load error for ${avatarId}:`, err),
     );
 
     return () => {
@@ -1607,7 +1617,7 @@ function PlazaCanvas({
       }
       agentRef.current = null;
     };
-  }, []);
+  }, [avatarId]);
 
   // Avatar loader
   useEffect(() => {

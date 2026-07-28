@@ -8,7 +8,11 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
-import PlazaCanvas, { MOVEMENT_BOUNDS } from "../components/plazaCanvas.jsx";
+import PlazaCanvas, { MOVEMENT_BOUNDS, normToWorld as grassNormToWorld } from "../components/plazaCanvas.jsx";
+import FrogLandCanvas, {
+  normToWorld as frogNormToWorld,
+  buildLilyChestNode,
+} from "../components/frogLandCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
 import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
@@ -384,6 +388,17 @@ function Dashboard() {
         nx = Math.max(b.minX, Math.min(b.maxX, nx));
         ny = Math.max(b.minY, Math.min(b.maxY, ny));
 
+        // habitats like frog land (all water except lily pads) restrict
+        // where the character is allowed to stand. Try sliding along a
+        // single axis first so bumping a pad's edge feels like brushing
+        // a wall rather than snapping to a dead stop.
+        const walkable = posRef.current.isWalkable;
+        if (walkable && !walkable(nx, ny)) {
+          if (walkable(nx, y)) ny = y;
+          else if (walkable(x, ny)) nx = x;
+          else { nx = x; ny = y; }
+        }
+
         posRef.current = { ...posRef.current, x: nx, y: ny };
         scheduleSave();
 
@@ -482,6 +497,15 @@ function Dashboard() {
     [party],
   );
 
+  // TODO(backend): this assumes the party document has a `habitatId` field
+  // set when the owner picks their habitat, defaulting to the owner's own
+  // avatar for parties created before that field existed. Every member
+  // renders THIS habitat regardless of their own avatarId/avatar model —
+  // only which .glb loads for each person's own character differs.
+  const habitat = party?.habitatId || party?.owner?.avatarId || userData?.avatarId;
+  const isFrogLand = habitat === "frog";
+  const habitatNormToWorld = isFrogLand ? frogNormToWorld : grassNormToWorld;
+
   const mailIcon = (n) => {
     if (n.type === "quest_complete") return "⚔️";
     if (n.type === "badge_earned") return "🏅";
@@ -528,7 +552,23 @@ function Dashboard() {
         }}
       />
       <div className="scene-bg" ref={mapAreaRef}>
-        {userData?.avatarId && (
+        {userData?.avatarId && (isFrogLand ? (
+          <FrogLandCanvas
+            avatarId={userData.avatarId}
+            posRef={posRef}
+            keysRef={keysRef}
+            onSceneReady={(scene, camera, renderer) =>
+              setThreeCtx({ scene, camera, renderer })
+            }
+            hasActiveQuest={hasActiveQuest}
+            travelTargetRef={travelTargetRef}
+            onArrived={handleArrived}
+            otherPlayersRef={otherPlayersRef}
+            playersVersion={playersVersion}
+            messageAlertsRef={messageAlertsRef}
+            onAgentScreenPositionChange={setAgentScreenPos}
+          />
+        ) : (
           <PlazaCanvas
             avatarId={userData.avatarId}
             posRef={posRef}
@@ -545,7 +585,7 @@ function Dashboard() {
             messageAlertsRef={messageAlertsRef}
             onAgentScreenPositionChange={setAgentScreenPos}
           />
-        )}
+        ))}
         <AgentModal
           screenPos={agentScreenPos}
           open={agentPopupOpen}
@@ -559,6 +599,8 @@ function Dashboard() {
             renderer={threeCtx.renderer}
             quests={quests}
             onNodeClick={handleNodeClick}
+            normToWorld={habitatNormToWorld}
+            buildNodeMesh={isFrogLand ? buildLilyChestNode : undefined}
           />
         )}
         {showControls && (

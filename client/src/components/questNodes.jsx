@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { normToWorld as axisToWorld } from "./plazaCanvas.jsx";
+import { normToWorld as defaultAxisToWorld } from "./plazaCanvas.jsx";
 
-const NODES_PER_ROW = 5;
-const GRID_START_NY = 0.12; // top of the plaza
-const GRID_ROW_GAP = 0.13;
-const GRID_COL_MARGIN = 0.14;
-const GRID_COL_GAP = (1 - GRID_COL_MARGIN * 2) / (NODES_PER_ROW - 1);
-const GRID_MAX_ROWS = 6;
+export const NODES_PER_ROW = 5;
+export const GRID_START_NY = 0.12; // top of the plaza
+export const GRID_ROW_GAP = 0.13;
+export const GRID_COL_MARGIN = 0.14;
+export const GRID_COL_GAP = (1 - GRID_COL_MARGIN * 2) / (NODES_PER_ROW - 1);
+export const GRID_MAX_ROWS = 6;
 
 function generateNodePositions(count) {
   const positions = [];
@@ -25,7 +25,7 @@ function generateNodePositions(count) {
 
 export const NODE_POSITIONS = generateNodePositions(30);
 
-function normToWorld(nx, ny) {
+function normToWorld(nx, ny, axisToWorld) {
   return new THREE.Vector3(axisToWorld(nx), 0, axisToWorld(ny));
 }
 
@@ -47,7 +47,7 @@ function getChestColors(quest) {
   return CHEST_COLORS.available;
 }
 
-function makeChest(colors) {
+export function makeChest(colors) {
   const group = new THREE.Group();
 
   const bodyMat = new THREE.MeshLambertMaterial({ color: colors.body });
@@ -165,7 +165,13 @@ export default function QuestNodes({
   renderer,
   quests,
   onNodeClick,
+  normToWorld: axisToWorldProp,
+  // frog land (and other alt habitats) place chests on lily pads rather
+  // than freestanding on grass — pass a mesh-builder override to swap
+  // the visual without touching the click/proximity/animation logic below.
+  buildNodeMesh,
 }) {
+  const axisToWorld = axisToWorldProp || defaultAxisToWorld;
   const nodesRef = useRef([]);
   const bobRef = useRef(0);
   const frameRef = useRef(null);
@@ -181,8 +187,8 @@ export default function QuestNodes({
       const colors = getChestColors(quest);
       if (!colors) return;
 
-      const chest = makeChest(colors);
-      const wp = normToWorld(node.nx, node.ny);
+      const chest = buildNodeMesh ? buildNodeMesh(quest, node, colors) : makeChest(colors);
+      const wp = normToWorld(node.nx, node.ny, axisToWorld);
       chest.position.set(wp.x, wp.y, wp.z);
       chest.userData.baseY = wp.y;
       chest.userData.nodeId = node.id;
