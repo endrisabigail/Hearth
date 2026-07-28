@@ -52,7 +52,7 @@ export const FROG_MOVEMENT_BOUNDS = {
 const TRAVEL_SPEED = 0.0022;
 const ARRIVAL_THRESHOLD = 0.016;
 
-//lily pad
+// lilypad network
 const HUB_NX = 0.5;
 const HUB_NY = Math.max(GRID_START_NY - 0.09, 0.02);
 const LANE_HALF_WIDTH = 0.028;
@@ -100,8 +100,7 @@ function distToSegment(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - cx, py - cy);
 }
 
-// exported so dashboard-level movement (arrow keys) can refuse to step the
-// character off a pad and into the water — see posRef.current.isWalkable
+// exported so dashboard-level movement (arrow keys)
 export function isOnLilyPad(nx, ny) {
   for (const c of PAD_CIRCLES) {
     if (Math.hypot(nx - c.x, ny - c.y) <= c.r) return true;
@@ -114,7 +113,7 @@ export function isOnLilyPad(nx, ny) {
   return false;
 }
 
-// nearest walkable point
+// nearest walkable point, used both to recover a character who spawns
 export function nearestWalkablePoint(nx, ny) {
   if (isOnLilyPad(nx, ny)) return { x: nx, y: ny };
   let best = { x: HUB_NX, y: HUB_NY };
@@ -138,7 +137,9 @@ export function nearestWalkablePoint(nx, ny) {
   return best;
 }
 
-// simple two-waypoint route along the lattice 
+// simple two-waypoint route along the lattice (go along the current
+// column to the target's row, then along that row to the target column)
+// so click-to-travel never cuts a diagonal line across open water
 function buildTravelRoute(from, to) {
   const waypoints = [];
   const mid = { x: from.x, y: to.y };
@@ -159,7 +160,7 @@ export function buildLilyChestNode(quest, node, colors) {
   return group;
 }
 
-// coins & tadpole trail 
+//coins & tadpoles
 const COIN_SPAWN_INTERVAL = [4000, 8000]; // ms, random between
 const MAX_COINS = 6;
 const COIN_COLLECT_RADIUS = 0.028;
@@ -227,24 +228,6 @@ function buildTadpole() {
 
   group.userData.baseY = 0.06;
   group.userData.bobSeed = Math.random() * Math.PI * 2;
-  return group;
-}
-
-// small decorative reed cluster for the pond edges (purely visual, no collision)
-function buildReedClump(rand) {
-  const group = new THREE.Group();
-  const count = 4 + Math.floor(rand() * 3);
-  for (let i = 0; i < count; i++) {
-    const h = 0.9 + rand() * 0.9;
-    const geo = new THREE.CylinderGeometry(0.03, 0.045, h, 6);
-    const mat = new THREE.MeshLambertMaterial({
-      color: new THREE.Color(`hsl(${95 + rand() * 20}, 40%, ${28 + rand() * 12}%)`),
-    });
-    const reed = new THREE.Mesh(geo, mat);
-    reed.position.set((rand() - 0.5) * 0.4, h / 2, (rand() - 0.5) * 0.4);
-    reed.rotation.z = (rand() - 0.5) * 0.25;
-    group.add(reed);
-  }
   return group;
 }
 
@@ -350,40 +333,11 @@ function FrogLandCanvas({
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // frog land terrain 
+    // frog land terrain — a flat disc GLB, authored with its own blue
+    // (water) top and sand-colored underside, so we just place it as-is
     const terrainLoader = new GLTFLoader();
     let terrainCancelled = false;
     let frogLandModel = null;
-
-    function tintTopBlue(model, color = 0x2e9ddb) {
-      const overallBox = new THREE.Box3().setFromObject(model);
-      const span = overallBox.max.y - overallBox.min.y || 1;
-      const topThreshold = overallBox.max.y - span * 0.08;
-      model.traverse((child) => {
-        if (!child.isMesh) return;
-        child.geometry.computeBoundingBox();
-        const meshBox = child.geometry.boundingBox
-          .clone()
-          .applyMatrix4(child.matrixWorld);
-        if (meshBox.max.y >= topThreshold) {
-          const srcMat = Array.isArray(child.material)
-            ? child.material[0]
-            : child.material;
-          const tinted = srcMat
-            ? srcMat.clone()
-            : new THREE.MeshLambertMaterial();
-          tinted.color = new THREE.Color(color);
-          tinted.transparent = true;
-          tinted.opacity = 0.92;
-          child.material = tinted;
-          child.userData.isWaterTop = true;
-          child.receiveShadow = true;
-        } else {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-    }
 
     terrainLoader.load(
       "/assets/models/frogland.glb",
@@ -401,7 +355,12 @@ function FrogLandCanvas({
           -box.min.y * scale,
           WORLD_CENTER - center.z * scale,
         );
-        tintTopBlue(model);
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.receiveShadow = true;
+            child.castShadow = true;
+          }
+        });
         scene.add(model);
         frogLandModel = model;
       },
@@ -409,7 +368,7 @@ function FrogLandCanvas({
       (err) => console.error("frog land terrain load error:", err),
     );
 
-    // lily pads  
+    // lily pads
     const lilyLoader = new GLTFLoader();
     let lilyCancelled = false;
     const lilyPads = []; // { obj, baseY, bobSeed }
@@ -418,7 +377,7 @@ function FrogLandCanvas({
       const box = new THREE.Box3().setFromObject(template);
       const size = box.getSize(new THREE.Vector3());
       const footprint = Math.max(size.x, size.z) || 1;
-      const TARGET_DIAMETER = 1.15; // world units — tune to taste
+      const TARGET_DIAMETER = 0.5; // world units — kept small per design
       const baseScale = TARGET_DIAMETER / footprint;
       const center = box.getCenter(new THREE.Vector3());
 
@@ -428,8 +387,8 @@ function FrogLandCanvas({
         const s = baseScale * sizeMul * (0.85 + rand() * 0.3);
         clone.scale.setScalar(s);
         clone.position.sub(center.clone().multiplyScalar(s));
-        clone.position.x += normToWorld(nx) + (rand() - 0.5) * 0.25;
-        clone.position.z += normToWorld(ny) + (rand() - 0.5) * 0.25;
+        clone.position.x += normToWorld(nx) + (rand() - 0.5) * 0.12;
+        clone.position.z += normToWorld(ny) + (rand() - 0.5) * 0.12;
         clone.position.y += 0.03;
         clone.rotation.y = rand() * Math.PI * 2;
         clone.traverse((c) => {
@@ -443,7 +402,7 @@ function FrogLandCanvas({
         });
       }
 
-      const STEP = 0.045;
+      const STEP = 0.03;
       LANE_SEGMENTS.forEach((s, segIdx) => {
         const len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
         const steps = Math.max(1, Math.round(len / STEP));
@@ -457,11 +416,10 @@ function FrogLandCanvas({
           );
         }
       });
-      // node pads (chests sit visually on their own pad via
-      // buildLilyChestNode, but a pad here too keeps the lattice unbroken)
-      NODE_POSITIONS.forEach((n, i) => place(n.nx, n.ny, 1.6, 50000 + i));
+      // node pads 
+      NODE_POSITIONS.forEach((n, i) => place(n.nx, n.ny, 1.5, 50000 + i));
       // hub pad, bigger since it's the spawn point
-      place(HUB_NX, HUB_NY, 2.1, 99999);
+      place(HUB_NX, HUB_NY, 1.8, 99999);
     }
 
     lilyLoader.load(
@@ -474,21 +432,75 @@ function FrogLandCanvas({
       (err) => console.error("lily pad load error:", err),
     );
 
-    // a few reed clumps around the outer edge, purely decorative
-    const reedRand = seededRandom(311);
-    const reeds = [];
-    for (let i = 0; i < 14; i++) {
-      const a = reedRand() * Math.PI * 2;
-      const r = WORLD_SIZE * 0.62 + reedRand() * WORLD_SIZE * 0.06;
-      const reed = buildReedClump(reedRand);
-      reed.position.set(
-        WORLD_CENTER + Math.cos(a) * r,
-        -0.05,
-        WORLD_CENTER + Math.sin(a) * r,
-      );
-      scene.add(reed);
-      reeds.push(reed);
+    // bamboo scattered
+    const treeLoader = new GLTFLoader();
+    let treesCancelled = false;
+    const frogTrees = [];
+
+    function distToNearestLane(nx, ny) {
+      let best = Infinity;
+      for (const c of PAD_CIRCLES) {
+        best = Math.min(best, Math.hypot(nx - c.x, ny - c.y) - c.r);
+      }
+      for (const s of LANE_SEGMENTS) {
+        best = Math.min(
+          best,
+          distToSegment(nx, ny, s.x1, s.y1, s.x2, s.y2) - LANE_HALF_WIDTH,
+        );
+      }
+      return best;
     }
+
+    function scatterBamboo(template) {
+      const box = new THREE.Box3().setFromObject(template);
+      const size = box.getSize(new THREE.Vector3());
+      const footprint = Math.max(size.x, size.z) || 1;
+      const baseScale = 1.4 / footprint; // world-unit target height-ish
+      const center = box.getCenter(new THREE.Vector3());
+      const rand = seededRandom(419);
+
+      const BAMBOO_COUNT = 26;
+      const CLEARANCE = 0.05; // normalized units, keeps bamboo off the path
+      let placed = 0;
+      let attempts = 0;
+      while (placed < BAMBOO_COUNT && attempts < BAMBOO_COUNT * 20) {
+        attempts++;
+        // uniform-ish sampling within the disc
+        const a = rand() * Math.PI * 2;
+        const r = Math.sqrt(rand()) * 0.46;
+        const nx = 0.5 + Math.cos(a) * r;
+        const ny = 0.5 + Math.sin(a) * r * 0.9;
+        if (nx < 0.03 || nx > 0.97 || ny < 0.03 || ny > 0.97) continue;
+        if (distToNearestLane(nx, ny) < CLEARANCE) continue;
+
+        const clone = template.clone(true);
+        const s = baseScale * (0.75 + rand() * 0.5);
+        clone.scale.setScalar(s);
+        clone.position.sub(center.clone().multiplyScalar(s));
+        clone.position.x += normToWorld(nx);
+        clone.position.z += normToWorld(ny);
+        clone.rotation.y = rand() * Math.PI * 2;
+        clone.traverse((c) => {
+          if (c.isMesh) {
+            c.castShadow = true;
+            c.receiveShadow = true;
+          }
+        });
+        scene.add(clone);
+        frogTrees.push(clone);
+        placed++;
+      }
+    }
+
+    treeLoader.load(
+      "/assets/models/frogTree.glb",
+      (gltf) => {
+        if (treesCancelled) return;
+        scatterBamboo(gltf.scene);
+      },
+      undefined,
+      (err) => console.error("frogTree load error:", err),
+    );
 
     // clouds, reused sky-dressing
     const cloudMeshes = [];
@@ -955,7 +967,20 @@ function FrogLandCanvas({
           }
         });
       });
-      reeds.forEach((r) => scene.remove(r));
+      treesCancelled = true;
+      frogTrees.forEach((tree) => {
+        scene.remove(tree);
+        tree.traverse((child) => {
+          if (child.isMesh) {
+            child.geometry?.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose());
+            } else {
+              child.material?.dispose();
+            }
+          }
+        });
+      });
       skyTex.dispose();
       splashTex.dispose();
       rippleGeo.dispose();
