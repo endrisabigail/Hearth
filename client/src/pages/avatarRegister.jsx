@@ -8,6 +8,14 @@ import "../pages/styles/avatarRegister.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// each avatar has a matching companion, e.g. "mushroom" -> ai-agentMushroom.glb
+const agentModelFor = (id) =>
+  `/assets/models/ai-agent${id.charAt(0).toUpperCase()}${id.slice(1)}.glb`;
+
+const AGENT_OFFSET_X = 1.5;
+const AGENT_OFFSET_Z = -0.4;
+const AGENT_SCALE_TARGET = 1.5;
+
 // nomad sculpted characters !!
 const avatars = [
   {
@@ -80,8 +88,11 @@ function AvatarRegister() {
   const cameraRef = useRef(null);
   const controlsRef = useRef(null);
   const currentModel = useRef(null);
+  const currentAgentModel = useRef(null);
   const animFrame = useRef(null);
   const loader = useRef(new GLTFLoader());
+  const agentLoader = useRef(new GLTFLoader());
+  const agentFloatT = useRef(0);
   const isJumping = useRef(false);
   const jumpStart = useRef(0);
 
@@ -149,6 +160,13 @@ function AvatarRegister() {
         }
       }
 
+      if (currentAgentModel.current) {
+        agentFloatT.current += 0.02;
+        const agentBaseY = currentAgentModel.current.userData.agentBaseY ?? 0.3;
+        currentAgentModel.current.position.y =
+          agentBaseY + Math.sin(agentFloatT.current * 1.6 + Math.PI) * 0.09;
+      }
+
       renderer.render(scene, camera);
     };
     animate();
@@ -203,6 +221,36 @@ function AvatarRegister() {
       },
       undefined,
       (err) => console.error("Model load error:", err),
+    );
+
+    if (currentAgentModel.current) {
+      scene.remove(currentAgentModel.current);
+      currentAgentModel.current = null;
+    }
+
+    agentLoader.current.load(
+      agentModelFor(selected.id),
+      (gltf) => {
+        const agent = gltf.scene;
+        const box = new THREE.Box3().setFromObject(agent);
+        const size = box.getSize(new THREE.Vector3());
+        const scale = AGENT_SCALE_TARGET / size.y;
+        agent.scale.setScalar(scale);
+
+        const center = box.getCenter(new THREE.Vector3());
+        agent.position.sub(center.multiplyScalar(scale));
+        agent.position.y += 0.4;
+        agent.position.x += AGENT_OFFSET_X;
+        agent.position.z += AGENT_OFFSET_Z;
+        agent.userData.agentBaseY = agent.position.y;
+        agent.rotation.y = -0.4; // angled slightly toward the character
+
+        scene.add(agent);
+        currentAgentModel.current = agent;
+      },
+      undefined,
+      (err) =>
+        console.error(`Agent model load error for ${selected.id}:`, err),
     );
   }, [selectedIndex]);
 
