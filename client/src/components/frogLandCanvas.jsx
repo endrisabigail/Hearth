@@ -52,12 +52,12 @@ export const FROG_MOVEMENT_BOUNDS = {
 const TRAVEL_SPEED = 0.0022;
 const ARRIVAL_THRESHOLD = 0.016;
 
-// lilypad network
+//lily-pad path network
 const HUB_NX = 0.5;
 const HUB_NY = Math.max(GRID_START_NY - 0.09, 0.02);
-const LANE_HALF_WIDTH = 0.036;
-const NODE_PAD_RADIUS = 0.034;
-const HUB_PAD_RADIUS = 0.05;
+const LANE_HALF_WIDTH = 0.05;
+const NODE_PAD_RADIUS = 0.05;
+const HUB_PAD_RADIUS = 0.068;
 
 const COL_X = Array.from(
   { length: NODES_PER_ROW },
@@ -381,29 +381,87 @@ function FrogLandCanvas({
     let lilyCancelled = false;
     const lilyPads = []; // { obj, baseY, bobSeed }
 
+    // tiny cute flower accent, dotted onto a fraction of the giant pads
+    function buildPadFlower(rand) {
+      const group = new THREE.Group();
+      const petalMat = new THREE.MeshLambertMaterial({
+        color: new THREE.Color(rand() > 0.5 ? 0xfff3f6 : 0xfff8d6),
+      });
+      const petalCount = 5;
+      for (let i = 0; i < petalCount; i++) {
+        const a = (i / petalCount) * Math.PI * 2;
+        const petal = new THREE.Mesh(
+          new THREE.SphereGeometry(0.09, 6, 5),
+          petalMat,
+        );
+        petal.scale.set(1, 0.5, 1.6);
+        petal.position.set(Math.cos(a) * 0.1, 0.04, Math.sin(a) * 0.1);
+        group.add(petal);
+      }
+      const center = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 8, 6),
+        new THREE.MeshLambertMaterial({ color: 0xffd94a }),
+      );
+      center.position.y = 0.05;
+      group.add(center);
+      return group;
+    }
+
     function scatterLilyPads(template) {
       const box = new THREE.Box3().setFromObject(template);
       const size = box.getSize(new THREE.Vector3());
       const footprint = Math.max(size.x, size.z) || 1;
-      const TARGET_DIAMETER = 0.5; // world units — kept small per design
+      const TARGET_DIAMETER = 2.4; // world units — big, huggable stepping stones
       const baseScale = TARGET_DIAMETER / footprint;
       const center = box.getCenter(new THREE.Vector3());
 
       function place(nx, ny, sizeMul, seed, offsetWorld) {
         const rand = seededRandom(Math.floor(nx * 100000 + ny * 3331 + seed));
         const clone = template.clone(true);
-        const s = baseScale * sizeMul * (0.85 + rand() * 0.3);
+        const s = baseScale * sizeMul * (0.78 + rand() * 0.5);
         clone.scale.setScalar(s);
         clone.position.sub(center.clone().multiplyScalar(s));
-        const jitterX = (rand() - 0.5) * 0.16;
-        const jitterZ = (rand() - 0.5) * 0.16;
+        const jitterX = (rand() - 0.5) * 0.55;
+        const jitterZ = (rand() - 0.5) * 0.55;
         clone.position.x += normToWorld(nx) + (offsetWorld?.x || 0) + jitterX;
         clone.position.z += normToWorld(ny) + (offsetWorld?.z || 0) + jitterZ;
         clone.position.y += 0.03;
         clone.rotation.y = rand() * Math.PI * 2;
+
+        // gentle per-pad hue/shade variety so a whole field of giant pads
+        // doesn't read as one copy-pasted mesh
+        const hueShift = (rand() - 0.5) * 0.12;
+        const shadeShift = (rand() - 0.5) * 0.18;
         clone.traverse((c) => {
-          if (c.isMesh) c.castShadow = true;
+          if (!c.isMesh) return;
+          c.castShadow = true;
+          const srcMat = Array.isArray(c.material) ? c.material[0] : c.material;
+          if (srcMat?.color) {
+            const tinted = srcMat.clone();
+            const hsl = { h: 0, s: 0, l: 0 };
+            tinted.color.getHSL(hsl);
+            tinted.color.setHSL(
+              (hsl.h + hueShift + 1) % 1,
+              THREE.MathUtils.clamp(hsl.s, 0, 1),
+              THREE.MathUtils.clamp(hsl.l + shadeShift * 0.15, 0.08, 0.85),
+            );
+            c.material = tinted;
+          }
         });
+
+        // a small chance of a cute little blossom on top
+        if (rand() < 0.22) {
+          const flower = buildPadFlower(rand);
+          const fr = footprint * s * 0.28;
+          flower.position.set(
+            (rand() - 0.5) * fr,
+            (size.y || 0.1) * s * 0.5 + 0.02,
+            (rand() - 0.5) * fr,
+          );
+          flower.rotation.y = rand() * Math.PI * 2;
+          clone.add(flower);
+        }
+
         scene.add(clone);
         lilyPads.push({
           obj: clone,
@@ -412,8 +470,10 @@ function FrogLandCanvas({
         });
       }
 
-      const STEP = 0.026;
-      const MEANDER_AMPLITUDE = 0.6; // world units — gentle bow along each run
+      // spaced so giant pads overlap generously into one lush, unbroken
+      // stepping-stone path rather than a thin dotted line
+      const STEP = 0.05;
+      const MEANDER_AMPLITUDE = 0.9; // world units — gentle bow along each run
       LANE_SEGMENTS.forEach((s, segIdx) => {
         const dx = s.x2 - s.x1;
         const dy = s.y2 - s.y1;
@@ -438,9 +498,9 @@ function FrogLandCanvas({
       });
       // node pads (chests sit visually on their own pad via
       // buildLilyChestNode, but a pad here too keeps the lattice unbroken)
-      NODE_POSITIONS.forEach((n, i) => place(n.nx, n.ny, 1.5, 50000 + i));
-      // hub pad, bigger since it's the spawn point
-      place(HUB_NX, HUB_NY, 1.8, 99999);
+      NODE_POSITIONS.forEach((n, i) => place(n.nx, n.ny, 1.25, 50000 + i));
+      // hub pad, biggest since it's the spawn point
+      place(HUB_NX, HUB_NY, 1.45, 99999);
     }
 
     lilyLoader.load(
