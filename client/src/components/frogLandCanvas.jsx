@@ -36,15 +36,17 @@ const HEX_APOTHEM = HEX_RADIUS * Math.cos(Math.PI / 6);
 const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
 
-const MUSHROOM_COUNT = 78;
+const MUSHROOM_COUNT = 62;
 const CATTAIL_COUNT = 110;
-const DRAGONFLY_COUNT = 10;
+const DRAGONFLY_COUNT = 18;
 const FIREFLY_COUNT = 34;
 const MOSS_PATCH_COUNT = 40;
 const LILYPAD_COUNT = 24;
 const FISH_COUNT = 8;
 const FLOWER_TUFT_COUNT = 55;
 const ROCK_CLUSTER_COUNT = 24;
+const FROG_COUNT = 9;
+const MUSHROOM_MIN_SPACING = 4.6; // spread the mushroom groves out more than before
 
 export const POND_CENTER_X = WORLD_MAX - 16;
 export const POND_CENTER_Z = WORLD_MAX - 12;
@@ -54,54 +56,6 @@ const SPAWN_CLEAR_RADIUS = 6.5;
 const EDGE_PAD = 1.5 / WORLD_SIZE;
 
 //textures
-
-function buildSwampGrassTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext("2d");
-  for (let row = 0; row < 4; row++) {
-    for (let col = 0; col < 4; col++) {
-      const x = col * 64;
-      const y = row * 64;
-      const hue = 100 + ((row * 4 + col) % 5) * 4;
-      ctx.fillStyle = `hsl(${hue}, 58%, 46%)`;
-      ctx.fillRect(x, y, 64, 64);
-      ctx.strokeStyle = "rgba(0,0,0,0.06)";
-      ctx.strokeRect(x + 0.5, y + 0.5, 63, 63);
-      const rng = (row * 4 + col + 1) * 13;
-      ctx.fillStyle = `hsl(${hue + 10}, 60%, 55%)`;
-      for (let i = 0; i < 7; i++) {
-        const bx = x + ((rng * (i + 1) * 7) % 56) + 4;
-        const by = y + ((rng * (i + 1) * 11) % 54) + 5;
-        ctx.fillRect(bx, by, 2, 6);
-        ctx.fillRect(bx + 3, by + 2, 2, 5);
-      }
-      // little dark moss speckles
-      if ((row + col) % 2 === 0) {
-        ctx.fillStyle = "rgba(40,80,30,0.35)";
-        for (let i = 0; i < 4; i++) {
-          ctx.beginPath();
-          ctx.arc(
-            x + 10 + ((col * 11) % 44),
-            y + 10 + ((row * 13) % 44),
-            2 + (i % 3),
-            0,
-            Math.PI * 2,
-          );
-          ctx.fill();
-        }
-      }
-    }
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(WORLD_SIZE / 8, WORLD_SIZE / 8);
-  tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
-  return tex;
-}
 
 function buildSkyTextureSwamp() {
   const canvas = document.createElement("canvas");
@@ -409,22 +363,155 @@ function buildRockCluster(rand) {
   return group;
 }
 
-function buildBoulder(rand) {
-  const r = 0.5 + rand() * 0.7;
-  const geo = new THREE.IcosahedronGeometry(r, 0);
-  const pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const n = 0.88 + rand() * 0.28;
-    pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n, pos.getZ(i) * n);
-  }
-  geo.computeVertexNormals();
-  return new THREE.Mesh(
-    geo,
-    new THREE.MeshLambertMaterial({
-      color: new THREE.Color(`hsl(28, 30%, ${48 + rand() * 14}%)`),
-      flatShading: true,
-    }),
+// a tiny cottage built out of a single giant mushroom — round door, glowing
+// window, spotted cap roof
+function buildMushroomHouse(rand) {
+  const group = new THREE.Group();
+  const wallR = 1.35;
+  const wallH = 2.5;
+  const roofR = 2.2;
+
+  const wallMat = new THREE.MeshLambertMaterial({ color: "#f2e0b3" });
+  const wall = new THREE.Mesh(
+    new THREE.CylinderGeometry(wallR, wallR * 1.1, wallH, 14),
+    wallMat,
   );
+  wall.position.y = wallH / 2;
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  group.add(wall);
+
+  // collar band where the wall meets the cap, matching the regular mushrooms
+  const collar = new THREE.Mesh(
+    new THREE.TorusGeometry(wallR * 1.06, wallR * 0.14, 8, 16),
+    new THREE.MeshLambertMaterial({ color: "#c98a4a" }),
+  );
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = wallH * 0.94;
+  group.add(collar);
+
+  // round door with an arched top, wrapped onto the curved wall
+  const doorMat = new THREE.MeshLambertMaterial({ color: "#6b4327" });
+  const door = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), doorMat);
+  door.position.set(0, 0.62, wallR * 1.001);
+  group.add(door);
+  const doorArch = new THREE.Mesh(
+    new THREE.CircleGeometry(0.4, 14, 0, Math.PI),
+    doorMat,
+  );
+  doorArch.position.set(0, 1.22, wallR * 1.001);
+  group.add(doorArch);
+  // little doorknob
+  const knob = new THREE.Mesh(
+    new THREE.SphereGeometry(0.05, 6, 6),
+    new THREE.MeshBasicMaterial({ color: "#ffe9a8" }),
+  );
+  knob.position.set(0.25, 0.62, wallR * 1.02);
+  group.add(knob);
+
+  // glowing round windows set into the curved wall
+  const windowAngles = [1.05, -1.05];
+  windowAngles.forEach((a) => {
+    const glow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.3, 16),
+      new THREE.MeshBasicMaterial({ color: "#ffe9a8" }),
+    );
+    glow.position.set(Math.sin(a) * wallR * 1.001, 1.55, Math.cos(a) * wallR * 1.001);
+    glow.rotation.y = a;
+    group.add(glow);
+    const frame = new THREE.Mesh(
+      new THREE.TorusGeometry(0.32, 0.05, 6, 16),
+      new THREE.MeshLambertMaterial({ color: "#c98a4a" }),
+    );
+    frame.position.copy(glow.position);
+    frame.rotation.y = a;
+    group.add(frame);
+  });
+
+  // spotted mushroom-cap roof
+  const roof = new THREE.Mesh(
+    new THREE.SphereGeometry(roofR, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
+    new THREE.MeshLambertMaterial({ color: "#d1483c" }),
+  );
+  roof.position.y = wallH;
+  roof.castShadow = true;
+  group.add(roof);
+  const spotMat = new THREE.MeshBasicMaterial({ color: 0xfffdf3 });
+  const spotCount = 8 + Math.floor(rand() * 4);
+  for (let s = 0; s < spotCount; s++) {
+    const a = rand() * Math.PI * 2;
+    const r = rand() * roofR * 0.78;
+    const spot = new THREE.Mesh(new THREE.CircleGeometry(roofR * 0.09, 8), spotMat);
+    spot.position.set(
+      Math.cos(a) * r,
+      wallH + Math.sin(a * 1.6) * roofR * 0.25 + roofR * 0.32,
+      Math.sin(a) * r,
+    );
+    spot.rotation.x = -Math.PI / 2.3;
+    group.add(spot);
+  }
+
+  // tiny chimney poking out of the cap
+  const chimney = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.14, 0.16, 0.55, 8),
+    new THREE.MeshLambertMaterial({ color: "#8a8a8a" }),
+  );
+  chimney.position.set(roofR * 0.35, wallH + roofR * 0.62, -roofR * 0.15);
+  chimney.rotation.z = -0.15;
+  group.add(chimney);
+
+  // grass tucked around the base
+  const blades = buildGrassBlades(rand, wallR);
+  group.add(blades);
+
+  return group;
+}
+
+// small sitting frog — flattened body, bump eyes, hint of front feet
+function buildFrog(rand) {
+  const group = new THREE.Group();
+  const scale = 0.55 + rand() * 0.3;
+  const hue = 96 + rand() * 26;
+  const bodyMat = new THREE.MeshLambertMaterial({
+    color: new THREE.Color(`hsl(${hue}, 45%, ${36 + rand() * 10}%)`),
+  });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), bodyMat);
+  body.scale.set(1.15 * scale, 0.72 * scale, 1.3 * scale);
+  body.position.y = scale * 0.55;
+  body.castShadow = true;
+  group.add(body);
+
+  const belly = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45),
+    new THREE.MeshLambertMaterial({ color: new THREE.Color(`hsl(${hue + 25}, 35%, 80%)`) }),
+  );
+  belly.scale.copy(body.scale);
+  belly.position.copy(body.position);
+  group.add(belly);
+
+  [-1, 1].forEach((side) => {
+    const bump = new THREE.Mesh(new THREE.SphereGeometry(scale * 0.32, 8, 8), bodyMat);
+    bump.position.set(side * scale * 0.4, scale * 1.0, scale * 0.55);
+    group.add(bump);
+    const pupil = new THREE.Mesh(
+      new THREE.SphereGeometry(scale * 0.15, 6, 6),
+      new THREE.MeshBasicMaterial({ color: 0x14210f }),
+    );
+    pupil.position.set(side * scale * 0.4, scale * 1.05, scale * 0.78);
+    group.add(pupil);
+  });
+
+  [-1, 1].forEach((side) => {
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(scale * 0.2, 6, 6), bodyMat);
+    foot.scale.set(1.3, 0.5, 1);
+    foot.position.set(side * scale * 0.7, scale * 0.16, scale * 0.85);
+    group.add(foot);
+  });
+
+  group.userData.hopPhase = rand() * Math.PI * 2;
+  group.userData.hopSpeed = 0.7 + rand() * 0.7;
+  return group;
 }
 
 function buildBlobShape(radius, irregularity, points, rand) {
@@ -571,7 +658,6 @@ function FrogLandCanvas({
     // hexagon's apothem comfortably covers the whole square movement
     // area (including its corners), so the character never walks past
     // the visible ground edge.
-    const grassTex = buildSwampGrassTexture();
     const ISLAND_DEPTH = 3.4;
     const GROUND_TOP_Y = -0.01;
 
@@ -594,36 +680,12 @@ function FrogLandCanvas({
     }
     hexTopShape.closePath();
     const hexTopGeo = new THREE.ShapeGeometry(hexTopShape, 3);
-    const hexUV = new Float32Array(hexTopGeo.attributes.position.count * 2);
-    const posAttr = hexTopGeo.attributes.position;
-    for (let i = 0; i < posAttr.count; i++) {
-      hexUV[i * 2] = posAttr.getX(i) / 8;
-      hexUV[i * 2 + 1] = posAttr.getY(i) / 8;
-    }
-    hexTopGeo.setAttribute("uv", new THREE.BufferAttribute(hexUV, 2));
-    grassTex.repeat.set(1, 1);
-    const grassTopMat = new THREE.MeshLambertMaterial({ map: grassTex });
+    const grassTopMat = new THREE.MeshLambertMaterial({ color: "#8bc76a" });
     const grassTop = new THREE.Mesh(hexTopGeo, grassTopMat);
     grassTop.rotation.x = -Math.PI / 2;
     grassTop.position.set(WORLD_CENTER, GROUND_TOP_Y + 0.002, WORLD_CENTER);
     grassTop.receiveShadow = true;
     scene.add(grassTop);
-
-    const boulderRand = seededRandom(151);
-    const boulders = [];
-    for (let i = 0; i < 22; i++) {
-      const a = boulderRand() * Math.PI * 2;
-      const r = HEX_RADIUS * (0.97 + boulderRand() * 0.07);
-      const bx = WORLD_CENTER + Math.cos(a) * r;
-      const bz = WORLD_CENTER + Math.sin(a) * r;
-      const boulder = buildBoulder(boulderRand);
-      boulder.position.set(bx, GROUND_TOP_Y - ISLAND_DEPTH * (0.25 + boulderRand() * 0.65), bz);
-      boulder.rotation.set(boulderRand() * Math.PI, boulderRand() * Math.PI, boulderRand() * Math.PI);
-      boulder.castShadow = true;
-      boulder.receiveShadow = true;
-      scene.add(boulder);
-      boulders.push(boulder);
-    }
 
     collisionBoxesRef.current = [];
 
@@ -721,11 +783,11 @@ function FrogLandCanvas({
     const mushroomClusters = [];
     let mAttempts = 0, mPlaced = 0;
     const margin = 2;
-    while (mPlaced < MUSHROOM_COUNT && mAttempts < MUSHROOM_COUNT * 15) {
+    while (mPlaced < MUSHROOM_COUNT && mAttempts < MUSHROOM_COUNT * 30) {
       mAttempts++;
       const mx = WORLD_MIN + margin + mushroomRand() * (WORLD_SIZE - margin * 2);
       const mz = WORLD_MIN + margin + mushroomRand() * (WORLD_SIZE - margin * 2);
-      if (inClearing(mx, mz) || insidePond(mx, mz, 2) || tooCloseTo(mushroomPositions, mx, mz, 3.2)) continue;
+      if (inClearing(mx, mz) || insidePond(mx, mz, 2) || tooCloseTo(mushroomPositions, mx, mz, MUSHROOM_MIN_SPACING)) continue;
       const cluster = buildMushroomCluster(mushroomRand);
       cluster.position.set(mx, 0, mz);
       cluster.rotation.y = mushroomRand() * Math.PI * 2;
@@ -853,6 +915,66 @@ function FrogLandCanvas({
       rockPlaced++;
     }
 
+    // a tiny mushroom house tucked into the grove, out of the way of the
+    // spawn clearing, the pond, and the other mushroom clusters
+    const houseRand = seededRandom(401);
+    const mushroomHouse = buildMushroomHouse(houseRand);
+    let houseX = WORLD_CENTER, houseZ = WORLD_CENTER;
+    {
+      let hAttempts = 0;
+      let placed = false;
+      while (hAttempts < 200 && !placed) {
+        hAttempts++;
+        const hx = WORLD_MIN + margin + houseRand() * (WORLD_SIZE - margin * 2);
+        const hz = WORLD_MIN + margin + houseRand() * (WORLD_SIZE - margin * 2);
+        if (inClearing(hx, hz) || insidePond(hx, hz, 4)) continue;
+        if (tooCloseTo(mushroomPositions, hx, hz, 3.2)) continue;
+        houseX = hx;
+        houseZ = hz;
+        placed = true;
+      }
+    }
+    mushroomHouse.position.set(houseX, 0, houseZ);
+    mushroomHouse.rotation.y = houseRand() * Math.PI * 2;
+    scene.add(mushroomHouse);
+    collisionBoxesRef.current.push({
+      cx: worldToNorm(houseX),
+      cy: worldToNorm(houseZ),
+      hw: 2.1 / WORLD_SIZE,
+      hh: 2.1 / WORLD_SIZE,
+    });
+
+    // little frogs scattered around the pond edge and grass for froggy vibes
+    const frogRand = seededRandom(421);
+    const frogPositions = [];
+    const frogs = [];
+    let frogAttempts = 0, frogPlaced = 0;
+    while (frogPlaced < FROG_COUNT && frogAttempts < FROG_COUNT * 30) {
+      frogAttempts++;
+      const nearShore = frogRand() < 0.65;
+      let fx, fz;
+      if (nearShore) {
+        const a = frogRand() * Math.PI * 2;
+        const r = POND_RADIUS * (0.95 + frogRand() * 0.4);
+        fx = POND_CENTER_X + Math.cos(a) * r;
+        fz = POND_CENTER_Z + Math.sin(a) * r;
+      } else {
+        fx = WORLD_MIN + margin + frogRand() * (WORLD_SIZE - margin * 2);
+        fz = WORLD_MIN + margin + frogRand() * (WORLD_SIZE - margin * 2);
+      }
+      if (inClearing(fx, fz) || insidePond(fx, fz, 0.6) || tooCloseTo(frogPositions, fx, fz, 2.6)) continue;
+      if (tooCloseTo(mushroomPositions, fx, fz, 1.2)) continue;
+      const frog = buildFrog(frogRand);
+      frog.position.set(fx, 0, fz);
+      frog.rotation.y = frogRand() * Math.PI * 2;
+      frog.userData.baseX = fx;
+      frog.userData.baseZ = fz;
+      scene.add(frog);
+      frogPositions.push({ x: fx, z: fz });
+      frogs.push(frog);
+      frogPlaced++;
+    }
+
     // dragonflies drifting in lazy loops
     const dragonflyRand = seededRandom(97);
     const dragonflies = [];
@@ -978,6 +1100,13 @@ function FrogLandCanvas({
         fish.position.z = nz;
         const heading = Math.atan2(nx - prevX, nz - prevZ);
         if (isFinite(heading)) fish.rotation.y = heading;
+      });
+
+      frogs.forEach((frog) => {
+        const u = frog.userData;
+        const hop = Math.max(0, Math.sin(t * u.hopSpeed + u.hopPhase));
+        frog.position.y = hop * 0.18;
+        frog.scale.y = 1 - hop * 0.12;
       });
 
       dragonflies.forEach((d) => {
@@ -1224,12 +1353,10 @@ function FrogLandCanvas({
     return () => {
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", onResize);
-      grassTex.dispose();
       groundGeo.dispose();
       rockMat.dispose();
       hexTopGeo.dispose();
       grassTopMat.dispose();
-      boulders.forEach((b) => { scene.remove(b); b.geometry.dispose(); b.material.dispose(); });
       skyTex.dispose();
       waterMesh.geometry.dispose();
       waterMat.dispose();
@@ -1244,6 +1371,8 @@ function FrogLandCanvas({
       lilyPads.forEach((pad) => { scene.remove(pad); pad.geometry.dispose(); pad.material.dispose(); });
       fishList.forEach((fish) => { scene.remove(fish); fish.geometry.dispose(); fish.material.dispose(); });
       mushroomClusters.forEach((cluster) => disposeGroup(scene, cluster));
+      disposeGroup(scene, mushroomHouse);
+      frogs.forEach((frog) => disposeGroup(scene, frog));
       cattailClumps.forEach((clump) => disposeGroup(scene, clump));
       flowerTufts.forEach((tuft) => disposeGroup(scene, tuft));
       rockClusters.forEach((cluster) => disposeGroup(scene, cluster));
