@@ -28,7 +28,7 @@ import {
   makeChest,
 } from "./questNodes.jsx";
 
-// world scale
+//world scale
 const WORLD_MIN = -18;
 const WORLD_MAX = 18;
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN;
@@ -52,7 +52,7 @@ export const FROG_MOVEMENT_BOUNDS = {
 const TRAVEL_SPEED = 0.0022;
 const ARRIVAL_THRESHOLD = 0.016;
 
-// lilypad network
+// lily-pad path network
 const HUB_NX = 0.5;
 const HUB_NY = Math.max(GRID_START_NY - 0.09, 0.02);
 const LANE_HALF_WIDTH = 0.028;
@@ -100,7 +100,8 @@ function distToSegment(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - cx, py - cy);
 }
 
-// exported so dashboard-level movement (arrow keys)
+// exported so dashboard-level movement (arrow keys) can refuse to step the
+// character off a pad and into the water — see posRef.current.isWalkable
 export function isOnLilyPad(nx, ny) {
   for (const c of PAD_CIRCLES) {
     if (Math.hypot(nx - c.x, ny - c.y) <= c.r) return true;
@@ -114,6 +115,8 @@ export function isOnLilyPad(nx, ny) {
 }
 
 // nearest walkable point, used both to recover a character who spawns
+// somewhere off a pad, and to snap a near-miss movement step back onto
+// the lane instead of hard-blocking it right at the edge
 export function nearestWalkablePoint(nx, ny) {
   if (isOnLilyPad(nx, ny)) return { x: nx, y: ny };
   let best = { x: HUB_NX, y: HUB_NY };
@@ -160,7 +163,7 @@ export function buildLilyChestNode(quest, node, colors) {
   return group;
 }
 
-//coins & tadpoles
+//coins & tadpole trail 
 const COIN_SPAWN_INTERVAL = [4000, 8000]; // ms, random between
 const MAX_COINS = 6;
 const COIN_COLLECT_RADIUS = 0.028;
@@ -352,7 +355,7 @@ function FrogLandCanvas({
         const center = box.getCenter(new THREE.Vector3());
         model.position.set(
           WORLD_CENTER - center.x * scale,
-          -box.min.y * scale,
+          -box.max.y * scale,
           WORLD_CENTER - center.z * scale,
         );
         model.traverse((child) => {
@@ -368,7 +371,9 @@ function FrogLandCanvas({
       (err) => console.error("frog land terrain load error:", err),
     );
 
-    // lily pads
+    // lily pads — clone the provided pad model at every point along the
+    // lane lattice, so the path itself is made of real lily pads rather
+    // than an invisible walkable rule
     const lilyLoader = new GLTFLoader();
     let lilyCancelled = false;
     const lilyPads = []; // { obj, baseY, bobSeed }
@@ -416,7 +421,8 @@ function FrogLandCanvas({
           );
         }
       });
-      // node pads 
+      // node pads (chests sit visually on their own pad via
+      // buildLilyChestNode, but a pad here too keeps the lattice unbroken)
       NODE_POSITIONS.forEach((n, i) => place(n.nx, n.ny, 1.5, 50000 + i));
       // hub pad, bigger since it's the spawn point
       place(HUB_NX, HUB_NY, 1.8, 99999);
@@ -432,7 +438,8 @@ function FrogLandCanvas({
       (err) => console.error("lily pad load error:", err),
     );
 
-    // bamboo scattered
+    // bamboo — randomly scattered across the water, kept clear of the
+    // lily-pad lane lattice so nothing overlaps the walkable path
     const treeLoader = new GLTFLoader();
     let treesCancelled = false;
     const frogTrees = [];
