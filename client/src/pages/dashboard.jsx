@@ -9,10 +9,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 import PlazaCanvas, { MOVEMENT_BOUNDS, normToWorld as grassNormToWorld } from "../components/plazaCanvas.jsx";
-import FrogLandCanvas, {
-  normToWorld as frogNormToWorld,
-  buildLilyChestNode,
-} from "../components/frogLandCanvas.jsx";
+import FrogLandCanvas from "../components/frogLandCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
 import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
@@ -220,8 +217,7 @@ function Dashboard() {
     }
   };
 
-  // connect to the live plaza namespace so we can see (and be seen by) other
-  // party members currently online
+  // connect to the live plaza namespace
   useEffect(() => {
     if (!token) return;
 
@@ -516,7 +512,6 @@ function Dashboard() {
   // only which .glb loads for each person's own character differs.
   const habitat = party?.habitatId || party?.owner?.avatarId || userData?.avatarId;
   const isFrogLand = habitat === "frog";
-  const habitatNormToWorld = isFrogLand ? frogNormToWorld : grassNormToWorld;
 
   const mailIcon = (n) => {
     if (n.type === "quest_complete") return "⚔️";
@@ -569,6 +564,7 @@ function Dashboard() {
             avatarId={userData.avatarId}
             posRef={posRef}
             keysRef={keysRef}
+            collisionBoxesRef={collisionBoxesRef}
             onSceneReady={(scene, camera, renderer) =>
               setThreeCtx({ scene, camera, renderer })
             }
@@ -611,8 +607,7 @@ function Dashboard() {
             renderer={threeCtx.renderer}
             quests={quests}
             onNodeClick={handleNodeClick}
-            normToWorld={habitatNormToWorld}
-            buildNodeMesh={isFrogLand ? buildLilyChestNode : undefined}
+            normToWorld={grassNormToWorld}
           />
         )}
         {showControls && (

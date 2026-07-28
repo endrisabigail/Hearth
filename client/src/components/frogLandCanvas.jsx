@@ -2,6 +2,9 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
+  normToWorld,
+  worldToNorm,
+  MOVEMENT_BOUNDS,
   AVATAR_CONFIG,
   AGENT_TARGET_HEIGHT,
   AGENT_FOLLOW_DISTANCE,
@@ -17,227 +20,343 @@ import {
   buildMessageBubbleTexture,
   disposePivot,
 } from "./plazaCanvas.jsx";
-import {
-  NODE_POSITIONS,
-  NODES_PER_ROW,
-  GRID_START_NY,
-  GRID_ROW_GAP,
-  GRID_COL_MARGIN,
-  GRID_COL_GAP,
-  GRID_MAX_ROWS,
-  makeChest,
-} from "./questNodes.jsx";
+
+export { normToWorld, worldToNorm, MOVEMENT_BOUNDS as FROG_MOVEMENT_BOUNDS };
 
 // world scale
-const WORLD_MIN = -18;
-const WORLD_MAX = 18;
+const WORLD_MIN = -32;
+const WORLD_MAX = 48;
 const WORLD_SIZE = WORLD_MAX - WORLD_MIN;
 const WORLD_CENTER = (WORLD_MIN + WORLD_MAX) / 2;
 
-export function normToWorld(n) {
-  return WORLD_MIN + n * WORLD_SIZE;
-}
-export function worldToNorm(w) {
-  return (w - WORLD_MIN) / WORLD_SIZE;
-}
+const TRAVEL_SPEED = 0.002;
+const ARRIVAL_THRESHOLD = 0.018;
 
+const MUSHROOM_COUNT = 46;
+const CATTAIL_COUNT = 70;
+const DRAGONFLY_COUNT = 8;
+const FIREFLY_COUNT = 30;
+const MOSS_PATCH_COUNT = 30;
+const LILYPAD_COUNT = 20;
+const FISH_COUNT = 7;
+
+export const POND_CENTER_X = WORLD_MAX - 16;
+export const POND_CENTER_Z = WORLD_MAX - 12;
+export const POND_RADIUS = 11.5; // noticeably bigger than the grass plaza's pond
+
+const SPAWN_CLEAR_RADIUS = 6.5;
 const EDGE_PAD = 1.5 / WORLD_SIZE;
-export const FROG_MOVEMENT_BOUNDS = {
-  minX: EDGE_PAD,
-  maxX: 1 - EDGE_PAD,
-  minY: EDGE_PAD,
-  maxY: 1 - EDGE_PAD,
-};
 
-const TRAVEL_SPEED = 0.0022;
-const ARRIVAL_THRESHOLD = 0.016;
-
-//lily-pad path network
-const HUB_NX = 0.5;
-const HUB_NY = Math.max(GRID_START_NY - 0.09, 0.02);
-const LANE_HALF_WIDTH = 0.05;
-const NODE_PAD_RADIUS = 0.05;
-const HUB_PAD_RADIUS = 0.068;
-
-const COL_X = Array.from(
-  { length: NODES_PER_ROW },
-  (_, c) => GRID_COL_MARGIN + c * GRID_COL_GAP,
-);
-const ROW_Y = Array.from(
-  { length: GRID_MAX_ROWS },
-  (_, r) => GRID_START_NY + r * GRID_ROW_GAP,
-);
-const ROW_TOP = ROW_Y[0];
-const ROW_BOTTOM = ROW_Y[ROW_Y.length - 1];
-
-const LANE_SEGMENTS = [
-  // hub down into row 0, along the center column
-  { x1: HUB_NX, y1: HUB_NY, x2: HUB_NX, y2: ROW_TOP },
-  // vertical column lanes
-  ...COL_X.map((x) => ({ x1: x, y1: ROW_TOP, x2: x, y2: ROW_BOTTOM })),
-  // horizontal row lanes
-  ...ROW_Y.map((y) => ({
-    x1: COL_X[0],
-    y1: y,
-    x2: COL_X[COL_X.length - 1],
-    y2: y,
-  })),
-];
-
-const PAD_CIRCLES = [
-  { x: HUB_NX, y: HUB_NY, r: HUB_PAD_RADIUS },
-  ...NODE_POSITIONS.map((n) => ({ x: n.nx, y: n.ny, r: NODE_PAD_RADIUS })),
-];
-
-function distToSegment(px, py, x1, y1, x2, y2) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const lenSq = dx * dx + dy * dy;
-  let t = lenSq > 0 ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0;
-  t = Math.max(0, Math.min(1, t));
-  const cx = x1 + t * dx;
-  const cy = y1 + t * dy;
-  return Math.hypot(px - cx, py - cy);
-}
-
-// exported so dashboard-level movement (arrow keys) can refuse to step the
-// character off a pad and into the water — see posRef.current.isWalkable
-export function isOnLilyPad(nx, ny) {
-  for (const c of PAD_CIRCLES) {
-    if (Math.hypot(nx - c.x, ny - c.y) <= c.r) return true;
-  }
-  for (const s of LANE_SEGMENTS) {
-    if (distToSegment(nx, ny, s.x1, s.y1, s.x2, s.y2) <= LANE_HALF_WIDTH) {
-      return true;
+// textures
+function buildSwampGrassTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const x = col * 64;
+      const y = row * 64;
+      const hue = 96 + ((row * 4 + col) % 5) * 5;
+      ctx.fillStyle = `hsl(${hue}, 34%, 26%)`;
+      ctx.fillRect(x, y, 64, 64);
+      ctx.strokeStyle = "rgba(0,0,0,0.08)";
+      ctx.strokeRect(x + 0.5, y + 0.5, 63, 63);
+      const rng = (row * 4 + col + 1) * 13;
+      ctx.fillStyle = `hsl(${hue + 14}, 38%, 34%)`;
+      for (let i = 0; i < 7; i++) {
+        const bx = x + ((rng * (i + 1) * 7) % 56) + 4;
+        const by = y + ((rng * (i + 1) * 11) % 54) + 5;
+        ctx.fillRect(bx, by, 2, 6);
+        ctx.fillRect(bx + 3, by + 2, 2, 5);
+      }
+      // little dark moss speckles
+      if ((row + col) % 2 === 0) {
+        ctx.fillStyle = "rgba(30,45,20,0.45)";
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.arc(
+            x + 10 + ((col * 11) % 44),
+            y + 10 + ((row * 13) % 44),
+            2 + (i % 3),
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+      }
     }
   }
-  return false;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(WORLD_SIZE / 8, WORLD_SIZE / 8);
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  return tex;
 }
 
-// nearest walkable point, used both to recover a character who spawns
-// somewhere off a pad, and to snap a near-miss movement step back onto
-// the lane instead of hard-blocking it right at the edge
-export function nearestWalkablePoint(nx, ny) {
-  if (isOnLilyPad(nx, ny)) return { x: nx, y: ny };
-  let best = { x: HUB_NX, y: HUB_NY };
-  let bestDist = Infinity;
-  const consider = (x, y) => {
-    const d = Math.hypot(nx - x, ny - y);
-    if (d < bestDist) {
-      bestDist = d;
-      best = { x, y };
+function buildSwampWaterTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, "#2f7a5e");
+  grad.addColorStop(1, "#1c5a4a");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.strokeStyle = "rgba(180,220,160,0.28)";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 6; i++) {
+    const y0 = (i * 23) % 128;
+    ctx.beginPath();
+    ctx.moveTo(-10, y0);
+    for (let x = 0; x <= 140; x += 12) {
+      ctx.lineTo(x, y0 + Math.sin((x + i * 31) * 0.08) * 11);
     }
-  };
-  PAD_CIRCLES.forEach((c) => consider(c.x, c.y));
-  LANE_SEGMENTS.forEach((s) => {
-    const dx = s.x2 - s.x1;
-    const dy = s.y2 - s.y1;
-    const lenSq = dx * dx + dy * dy;
-    let t = lenSq > 0 ? ((nx - s.x1) * dx + (ny - s.y1) * dy) / lenSq : 0;
-    t = Math.max(0, Math.min(1, t));
-    consider(s.x1 + t * dx, s.y1 + t * dy);
-  });
-  return best;
+    ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  for (let i = 0; i < 10; i++) {
+    ctx.fillRect((i * 37) % 128, (i * 53) % 128, 3, 3);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4);
+  return tex;
 }
 
-// simple two-waypoint route along the lattice (go along the current
-// column to the target's row, then along that row to the target column)
-// so click-to-travel never cuts a diagonal line across open water
-function buildTravelRoute(from, to) {
-  const waypoints = [];
-  const mid = { x: from.x, y: to.y };
-  if (Math.hypot(mid.x - from.x, mid.y - from.y) > 0.005) waypoints.push(mid);
-  waypoints.push({ x: to.x, y: to.y });
-  return waypoints;
+function buildSkyTextureSwamp() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 8;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, "#6fa383");
+  grad.addColorStop(0.45, "#a8c9a0");
+  grad.addColorStop(0.75, "#d8dfa8");
+  grad.addColorStop(1, "#f0eccb");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 8, 256);
+  return new THREE.CanvasTexture(canvas);
 }
 
-// builds a chest sitting on its own lily pad, for QuestNodes' buildNodeMesh
-export function buildLilyChestNode(quest, node, colors) {
+function buildMossPatchTexture(rand) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 96;
+  canvas.height = 96;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createRadialGradient(48, 48, 4, 48, 48, 44);
+  grad.addColorStop(0, "rgba(70,110,45,0.85)");
+  grad.addColorStop(0.6, "rgba(70,110,45,0.5)");
+  grad.addColorStop(1, "rgba(70,110,45,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(48, 48, 44, 0, Math.PI * 2);
+  ctx.fill();
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = `rgba(50,${85 + rand() * 30},40,0.3)`;
+    ctx.beginPath();
+    ctx.arc(20 + rand() * 56, 20 + rand() * 56, 5 + rand() * 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return new THREE.CanvasTexture(canvas);
+}
+
+function buildDragonflyTexture(hue) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  ctx.translate(32, 32);
+  // two long thin iridescent wings
+  ctx.fillStyle = `hsla(${hue}, 70%, 78%, 0.55)`;
+  ctx.beginPath();
+  ctx.ellipse(-14, 0, 16, 5, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(14, 0, 16, 5, 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  // slender body
+  ctx.fillStyle = `hsl(${hue}, 55%, 34%)`;
+  ctx.fillRect(-2, -18, 4, 36);
+  ctx.beginPath();
+  ctx.arc(0, -18, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  return new THREE.CanvasTexture(canvas);
+}
+
+function buildZzzTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  ctx.font = "bold 20px 'Comic Sans MS', sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(30, 70, 40, 0.95)";
+  ctx.strokeText("Z", 32, 34);
+  ctx.fillStyle = "#294f2c";
+  ctx.fillText("Z", 32, 34);
+  return new THREE.CanvasTexture(canvas);
+}
+
+function buildDirtTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 60);
+  grad.addColorStop(0, "rgba(107,90,58,0.9)");
+  grad.addColorStop(0.55, "rgba(107,90,58,0.5)");
+  grad.addColorStop(1, "rgba(107,90,58,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(64, 64, 60, 0, Math.PI * 2);
+  ctx.fill();
+  return new THREE.CanvasTexture(canvas);
+}
+
+// ---- meshes ---------------------------------------------------------------
+
+function buildMushroomCluster(rand) {
   const group = new THREE.Group();
-  const seed = Array.from(node.id).reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  const rand = seededRandom(seed);
-  const pad = buildLilyPad(0.9 + rand() * 0.2, rand);
-  pad.position.y = 0.02;
-  group.add(pad);
-  group.add(makeChest(colors));
+  const count = 1 + Math.floor(rand() * 3);
+  const capHue = rand() > 0.5 ? 0 : 28; // red or brown caps, mixed through the grove
+  for (let i = 0; i < count; i++) {
+    const h = 1.4 + rand() * 2.2;
+    const capR = 0.5 + rand() * 0.55 + h * 0.12;
+    const stemR = capR * 0.28;
+
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(stemR * 0.85, stemR, h, 8),
+      new THREE.MeshLambertMaterial({ color: 0xf3ead2 }),
+    );
+    stem.position.set((rand() - 0.5) * 1.2 * count, h / 2, (rand() - 0.5) * 1.2 * count);
+    stem.castShadow = true;
+    stem.receiveShadow = true;
+    group.add(stem);
+
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(capR, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      new THREE.MeshLambertMaterial({
+        color: new THREE.Color(`hsl(${capHue + rand() * 12}, ${55 + rand() * 15}%, ${42 + rand() * 10}%)`),
+      }),
+    );
+    cap.position.set(stem.position.x, h + capR * 0.25, stem.position.z);
+    cap.castShadow = true;
+    group.add(cap);
+
+    // pale spots on the cap
+    const spotMat = new THREE.MeshBasicMaterial({ color: 0xfff7e6 });
+    const spotCount = 4 + Math.floor(rand() * 3);
+    for (let s = 0; s < spotCount; s++) {
+      const a = rand() * Math.PI * 2;
+      const r = rand() * capR * 0.75;
+      const spot = new THREE.Mesh(new THREE.CircleGeometry(capR * 0.09, 6), spotMat);
+      spot.position.set(
+        stem.position.x + Math.cos(a) * r,
+        h + capR * 0.25 + Math.sin(a * 1.7) * capR * 0.3 + capR * 0.35,
+        stem.position.z + Math.sin(a) * r,
+      );
+      spot.rotation.x = -Math.PI / 2.3;
+      group.add(spot);
+    }
+  }
   return group;
 }
 
-// coins & tadpole trail
-const COIN_SPAWN_INTERVAL = [4000, 8000]; // ms, random between
-const MAX_COINS = 6;
-const COIN_COLLECT_RADIUS = 0.028;
-const TRAIL_SAMPLE_INTERVAL = 4; // frames between history samples
-const TRAIL_GAP = 6; // history samples between each tadpole
-
-function buildCoin() {
+function buildCattailClump(rand) {
   const group = new THREE.Group();
-  const geo = new THREE.CylinderGeometry(0.16, 0.16, 0.04, 16);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xffd54a,
-    metalness: 0.6,
-    roughness: 0.25,
-    emissive: 0x7a5b00,
-    emissiveIntensity: 0.25,
-  });
-  const coin = new THREE.Mesh(geo, mat);
-  coin.rotation.x = Math.PI / 2;
-  coin.position.y = 0.18;
-  group.add(coin);
+  const count = 3 + Math.floor(rand() * 4);
+  for (let i = 0; i < count; i++) {
+    const h = 1.6 + rand() * 1.3;
+    const stalk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.025, 0.035, h, 6),
+      new THREE.MeshLambertMaterial({
+        color: new THREE.Color(`hsl(${95 + rand() * 20}, 42%, ${26 + rand() * 10}%)`),
+      }),
+    );
+    stalk.position.set((rand() - 0.5) * 0.5, h / 2, (rand() - 0.5) * 0.5);
+    stalk.rotation.z = (rand() - 0.5) * 0.15;
+    group.add(stalk);
 
-  const glowTex = buildGlowTexture("255,221,110");
-  const glow = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: glowTex,
-      transparent: true,
-      opacity: 0.5,
-      depthWrite: false,
+    const head = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.045, 0.32, 4, 6),
+      new THREE.MeshLambertMaterial({ color: 0x5a3a24 }),
+    );
+    head.position.set(stalk.position.x, h * 0.92, stalk.position.z);
+    head.rotation.z = stalk.rotation.z;
+    group.add(head);
+  }
+  return group;
+}
+
+function buildFish(rand) {
+  const len = 0.9 + rand() * 0.9;
+  const geo = new THREE.SphereGeometry(len * 0.5, 10, 8);
+  geo.scale(1, 0.16, 0.42);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x123326,
+    transparent: true,
+    opacity: 0.4,
+    depthWrite: false,
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+function buildBoulder(rand) {
+  const r = 1.3 + rand() * 1.9;
+  const geo = new THREE.IcosahedronGeometry(r, 0);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const n = 0.88 + rand() * 0.28;
+    pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n, pos.getZ(i) * n);
+  }
+  geo.computeVertexNormals();
+  return new THREE.Mesh(
+    geo,
+    new THREE.MeshLambertMaterial({
+      color: new THREE.Color(`hsl(150, 8%, ${34 + rand() * 14}%)`),
+      flatShading: true,
     }),
   );
-  glow.scale.set(0.5, 0.5, 1);
-  glow.position.y = 0.18;
-  group.add(glow);
-
-  group.userData.spin = 0;
-  return group;
 }
 
-function buildTadpole() {
-  const group = new THREE.Group();
-  const bodyMat = new THREE.MeshLambertMaterial({ color: 0x2e3b1f });
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), bodyMat);
-  body.scale.set(1, 0.85, 1.15);
-  group.add(body);
+function buildBlobShape(radius, irregularity, points, rand) {
+  const shape = new THREE.Shape();
+  for (let i = 0; i <= points; i++) {
+    const theta = (i / points) * Math.PI * 2;
+    const r = radius * (1 + (rand() - 0.5) * irregularity);
+    const x = Math.cos(theta) * r;
+    const y = Math.sin(theta) * r;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  return shape;
+}
 
-  const tailMat = new THREE.MeshLambertMaterial({
-    color: 0x39481f,
-    transparent: true,
-    opacity: 0.85,
+function disposeGroup(scene, obj) {
+  scene.remove(obj);
+  obj.traverse((child) => {
+    if (child.isMesh) {
+      child.geometry?.dispose();
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+      else child.material?.dispose();
+    }
   });
-  const tail = new THREE.Mesh(
-    new THREE.ConeGeometry(0.09, 0.32, 8),
-    tailMat,
-  );
-  tail.rotation.x = Math.PI / 2;
-  tail.position.z = -0.22;
-  group.add(tail);
-
-  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-  [-0.06, 0.06].forEach((ex) => {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), eyeMat);
-    eye.position.set(ex, 0.08, 0.1);
-    group.add(eye);
-  });
-
-  group.userData.baseY = 0.06;
-  group.userData.bobSeed = Math.random() * Math.PI * 2;
-  return group;
 }
 
 function FrogLandCanvas({
   avatarId,
   posRef,
   keysRef,
+  collisionBoxesRef,
   onSceneReady,
   hasActiveQuest,
   travelTargetRef,
@@ -246,7 +365,6 @@ function FrogLandCanvas({
   playersVersion,
   messageAlertsRef,
   onAgentScreenPositionChange,
-  onCoinCountChange,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -265,20 +383,6 @@ function FrogLandCanvas({
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
-  // click-to-travel route queue (lattice-following waypoints, not a
-  // straight line, so travel never cuts across open water)
-  const routeRef = useRef([]);
-  const lastTravelTargetRef = useRef(null);
-
-  // coins + trailing tadpole conga-line
-  const coinsRef = useRef([]); // { group, nx, ny }
-  const nextCoinSpawnRef = useRef(0);
-  const tadpolesRef = useRef([]); // { group }
-  const trailHistoryRef = useRef([]); // recent world positions of the frog
-  const trailFrameRef = useRef(0);
-  const coinCountRef = useRef(0);
-  const onCoinCountChangeRef = useRef(onCoinCountChange);
-
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
   }, [hasActiveQuest]);
@@ -288,9 +392,6 @@ function FrogLandCanvas({
   useEffect(() => {
     onAgentScreenPositionChangeRef.current = onAgentScreenPositionChange;
   }, [onAgentScreenPositionChange]);
-  useEffect(() => {
-    onCoinCountChangeRef.current = onCoinCountChange;
-  }, [onCoinCountChange]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -298,13 +399,13 @@ function FrogLandCanvas({
     const h = mount.clientHeight;
 
     const scene = new THREE.Scene();
-    const skyTex = buildSkyTexture();
+    const skyTex = buildSkyTextureSwamp();
     scene.background = skyTex;
-    scene.fog = new THREE.Fog(0xbfe6f2, WORLD_SIZE * 0.5, WORLD_SIZE * 0.95);
+    scene.fog = new THREE.Fog(0xb9d2a8, WORLD_SIZE * 0.46, WORLD_SIZE * 0.86);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(WORLD_CENTER, 13, WORLD_CENTER + 11);
+    camera.position.set(WORLD_CENTER, 14, WORLD_CENTER + 12);
     camera.lookAt(WORLD_CENTER, 0, WORLD_CENTER);
     cameraRef.current = camera;
 
@@ -318,384 +419,329 @@ function FrogLandCanvas({
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+    const sun = new THREE.DirectionalLight(0xfff2d0, 1.0);
     sun.position.set(WORLD_CENTER + 5, 10, WORLD_CENTER + 6);
     sun.target.position.set(WORLD_CENTER, 0, WORLD_CENTER);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -22;
-    sun.shadow.camera.right = 22;
-    sun.shadow.camera.top = 22;
-    sun.shadow.camera.bottom = -22;
+    sun.shadow.camera.left = -32;
+    sun.shadow.camera.right = 32;
+    sun.shadow.camera.top = 32;
+    sun.shadow.camera.bottom = -32;
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 60;
     sun.shadow.bias = -0.0015;
     sun.shadow.radius = 3;
     scene.add(sun);
     scene.add(sun.target);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+    const fill = new THREE.DirectionalLight(0xd7ffe0, 0.45);
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
-    // frog land terrain — a flat disc GLB, authored with its own blue
-    // (water) top and sand-colored underside, so we just place it as-is
-    const terrainLoader = new GLTFLoader();
-    let terrainCancelled = false;
-    let frogLandModel = null;
+    // floating island — mossy top, muted rock sides
+    const grassTex = buildSwampGrassTexture();
+    const ISLAND_DEPTH = 3.4;
+    const groundGeo = new THREE.BoxGeometry(WORLD_SIZE, ISLAND_DEPTH, WORLD_SIZE);
+    const grassTopMat = new THREE.MeshLambertMaterial({ map: grassTex });
+    const rockSideMat = new THREE.MeshLambertMaterial({ color: 0x4a4a3a });
+    const ground = new THREE.Mesh(groundGeo, [
+      rockSideMat,
+      rockSideMat,
+      grassTopMat,
+      rockSideMat,
+      rockSideMat,
+      rockSideMat,
+    ]);
+    const GROUND_TOP_Y = -0.01;
+    ground.position.set(WORLD_CENTER, GROUND_TOP_Y - ISLAND_DEPTH / 2, WORLD_CENTER);
+    ground.receiveShadow = true;
+    ground.castShadow = true;
+    scene.add(ground);
 
-    terrainLoader.load(
-      "/assets/models/frogland.glb",
-      (gltf) => {
-        if (terrainCancelled) return;
-        const model = gltf.scene;
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const footprint = Math.max(size.x, size.z) || 1;
-        // noticeably bigger than the walkable lattice, so the shoreline
-        // reads as a distant edge instead of looming right behind you
-        const TERRAIN_SCALE_MULT = 2.6;
-        const scale = (WORLD_SIZE * TERRAIN_SCALE_MULT) / footprint;
-        model.scale.setScalar(scale);
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.set(
-          WORLD_CENTER - center.x * scale,
-          -box.max.y * scale,
-          WORLD_CENTER - center.z * scale,
-        );
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.receiveShadow = true;
-            child.castShadow = true;
-          }
-        });
-        scene.add(model);
-        frogLandModel = model;
-      },
-      undefined,
-      (err) => console.error("frog land terrain load error:", err),
+    const boulderRand = seededRandom(151);
+    const boulders = [];
+    for (let i = 0; i < 16; i++) {
+      const edge = Math.floor(boulderRand() * 4);
+      const t = boulderRand();
+      let bx, bz;
+      if (edge === 0) { bx = WORLD_MIN + t * WORLD_SIZE; bz = WORLD_MIN - boulderRand() * 1.6; }
+      else if (edge === 1) { bx = WORLD_MIN + t * WORLD_SIZE; bz = WORLD_MAX + boulderRand() * 1.6; }
+      else if (edge === 2) { bz = WORLD_MIN + t * WORLD_SIZE; bx = WORLD_MIN - boulderRand() * 1.6; }
+      else { bz = WORLD_MIN + t * WORLD_SIZE; bx = WORLD_MAX + boulderRand() * 1.6; }
+      const boulder = buildBoulder(boulderRand);
+      boulder.position.set(bx, GROUND_TOP_Y - ISLAND_DEPTH * (0.25 + boulderRand() * 0.65), bz);
+      boulder.rotation.set(boulderRand() * Math.PI, boulderRand() * Math.PI, boulderRand() * Math.PI);
+      boulder.castShadow = true;
+      boulder.receiveShadow = true;
+      scene.add(boulder);
+      boulders.push(boulder);
+    }
+
+    collisionBoxesRef.current = [];
+
+    function insidePond(x, z, pad) {
+      const dx = x - POND_CENTER_X;
+      const dz = z - POND_CENTER_Z;
+      return dx * dx + dz * dz < (POND_RADIUS + pad) * (POND_RADIUS + pad);
+    }
+    function inClearing(x, z) {
+      const dx = x - WORLD_CENTER;
+      const dz = z - WORLD_CENTER;
+      return dx * dx + dz * dz < SPAWN_CLEAR_RADIUS * SPAWN_CLEAR_RADIUS;
+    }
+    function tooCloseTo(list, x, z, minDist) {
+      for (const p of list) {
+        const dx = x - p.x;
+        const dz = z - p.z;
+        if (dx * dx + dz * dz < minDist * minDist) return true;
+      }
+      return false;
+    }
+
+    // the pond — big and swampy, generously covered in giant lily pads
+    const pondSeedA = seededRandom(7);
+    const pondSeedB = seededRandom(7);
+    const shoreShape = buildBlobShape(POND_RADIUS * 1.18, 0.16, 28, pondSeedA);
+    const waterShape = buildBlobShape(POND_RADIUS, 0.18, 28, pondSeedB);
+
+    const shoreMesh = new THREE.Mesh(
+      new THREE.ShapeGeometry(shoreShape),
+      new THREE.MeshLambertMaterial({ color: 0x5c5233 }),
     );
+    shoreMesh.rotation.x = -Math.PI / 2;
+    shoreMesh.position.set(POND_CENTER_X, 0.0, POND_CENTER_Z);
+    shoreMesh.receiveShadow = true;
+    scene.add(shoreMesh);
 
-    // lily pads — clone the provided pad model at every point along the
-    // lane lattice, so the path itself is made of real lily pads rather
-    // than an invisible walkable rule
-    const lilyLoader = new GLTFLoader();
-    let lilyCancelled = false;
-    const lilyPads = []; // { obj, baseY, bobSeed }
+    const waterTex = buildSwampWaterTexture();
+    const waterMat = new THREE.MeshLambertMaterial({
+      map: waterTex,
+      transparent: true,
+      opacity: 0.94,
+    });
+    const waterMesh = new THREE.Mesh(new THREE.ShapeGeometry(waterShape), waterMat);
+    waterMesh.rotation.x = -Math.PI / 2;
+    waterMesh.position.set(POND_CENTER_X, 0.02, POND_CENTER_Z);
+    scene.add(waterMesh);
 
-    // tiny cute flower accent, dotted onto a fraction of the giant pads
-    function buildPadFlower(rand) {
-      const group = new THREE.Group();
-      const petalMat = new THREE.MeshLambertMaterial({
-        color: new THREE.Color(rand() > 0.5 ? 0xfff3f6 : 0xfff8d6),
+    collisionBoxesRef.current.push({
+      cx: worldToNorm(POND_CENTER_X),
+      cy: worldToNorm(POND_CENTER_Z),
+      hw: (POND_RADIUS * 1.05) / WORLD_SIZE,
+      hh: (POND_RADIUS * 1.05) / WORLD_SIZE,
+    });
+
+    const padRand = seededRandom(53);
+    const lilyPads = [];
+    for (let i = 0; i < LILYPAD_COUNT; i++) {
+      const a = padRand() * Math.PI * 2;
+      const r = padRand() * POND_RADIUS * 0.82;
+      const pad = buildLilyPad(0.8 + padRand() * 1.4, padRand);
+      const px = POND_CENTER_X + Math.cos(a) * r;
+      const pz = POND_CENTER_Z + Math.sin(a) * r;
+      pad.position.set(px, 0.03, pz);
+      pad.userData.baseY = 0.03;
+      pad.userData.bobSeed = padRand() * Math.PI * 2;
+      scene.add(pad);
+      lilyPads.push(pad);
+    }
+
+    const fishRand = seededRandom(61);
+    const fishList = [];
+    for (let i = 0; i < FISH_COUNT; i++) {
+      const fish = buildFish(fishRand);
+      fish.userData.orbitRadius = POND_RADIUS * (0.25 + fishRand() * 0.55);
+      fish.userData.orbitSpeed = 0.15 + fishRand() * 0.2;
+      fish.userData.orbitPhase = fishRand() * Math.PI * 2;
+      fish.userData.orbitOffsetX = (fishRand() - 0.5) * POND_RADIUS * 0.3;
+      fish.userData.orbitOffsetZ = (fishRand() - 0.5) * POND_RADIUS * 0.3;
+      fish.position.y = -0.12;
+      scene.add(fish);
+      fishList.push(fish);
+    }
+
+    // mushroom groves instead of trees
+    const mushroomRand = seededRandom(42);
+    const mushroomPositions = [];
+    const mushroomClusters = [];
+    let mAttempts = 0, mPlaced = 0;
+    const margin = 2;
+    while (mPlaced < MUSHROOM_COUNT && mAttempts < MUSHROOM_COUNT * 15) {
+      mAttempts++;
+      const mx = WORLD_MIN + margin + mushroomRand() * (WORLD_SIZE - margin * 2);
+      const mz = WORLD_MIN + margin + mushroomRand() * (WORLD_SIZE - margin * 2);
+      if (inClearing(mx, mz) || insidePond(mx, mz, 2) || tooCloseTo(mushroomPositions, mx, mz, 3.2)) continue;
+      const cluster = buildMushroomCluster(mushroomRand);
+      cluster.position.set(mx, 0, mz);
+      cluster.rotation.y = mushroomRand() * Math.PI * 2;
+      scene.add(cluster);
+      mushroomClusters.push(cluster);
+      mushroomPositions.push({ x: mx, z: mz });
+      mPlaced++;
+      collisionBoxesRef.current.push({
+        cx: worldToNorm(mx),
+        cy: worldToNorm(mz),
+        hw: 0.9 / WORLD_SIZE,
+        hh: 0.9 / WORLD_SIZE,
       });
-      const petalCount = 5;
-      for (let i = 0; i < petalCount; i++) {
-        const a = (i / petalCount) * Math.PI * 2;
-        const petal = new THREE.Mesh(
-          new THREE.SphereGeometry(0.09, 6, 5),
-          petalMat,
-        );
-        petal.scale.set(1, 0.5, 1.6);
-        petal.position.set(Math.cos(a) * 0.1, 0.04, Math.sin(a) * 0.1);
-        group.add(petal);
-      }
-      const center = new THREE.Mesh(
-        new THREE.SphereGeometry(0.06, 8, 6),
-        new THREE.MeshLambertMaterial({ color: 0xffd94a }),
-      );
-      center.position.y = 0.05;
-      group.add(center);
-      return group;
     }
 
-    function scatterLilyPads(template) {
-      const box = new THREE.Box3().setFromObject(template);
-      const size = box.getSize(new THREE.Vector3());
-      const footprint = Math.max(size.x, size.z) || 1;
-      const TARGET_DIAMETER = 2.4; // world units — big, huggable stepping stones
-      const baseScale = TARGET_DIAMETER / footprint;
-      const center = box.getCenter(new THREE.Vector3());
-
-      function place(nx, ny, sizeMul, seed, offsetWorld) {
-        const rand = seededRandom(Math.floor(nx * 100000 + ny * 3331 + seed));
-        const clone = template.clone(true);
-        const s = baseScale * sizeMul * (0.78 + rand() * 0.5);
-        clone.scale.setScalar(s);
-        clone.position.sub(center.clone().multiplyScalar(s));
-        const jitterX = (rand() - 0.5) * 0.55;
-        const jitterZ = (rand() - 0.5) * 0.55;
-        clone.position.x += normToWorld(nx) + (offsetWorld?.x || 0) + jitterX;
-        clone.position.z += normToWorld(ny) + (offsetWorld?.z || 0) + jitterZ;
-        clone.position.y += 0.03;
-        clone.rotation.y = rand() * Math.PI * 2;
-
-        // gentle per-pad hue/shade variety so a whole field of giant pads
-        // doesn't read as one copy-pasted mesh
-        const hueShift = (rand() - 0.5) * 0.12;
-        const shadeShift = (rand() - 0.5) * 0.18;
-        clone.traverse((c) => {
-          if (!c.isMesh) return;
-          c.castShadow = true;
-          const srcMat = Array.isArray(c.material) ? c.material[0] : c.material;
-          if (srcMat?.color) {
-            const tinted = srcMat.clone();
-            const hsl = { h: 0, s: 0, l: 0 };
-            tinted.color.getHSL(hsl);
-            tinted.color.setHSL(
-              (hsl.h + hueShift + 1) % 1,
-              THREE.MathUtils.clamp(hsl.s, 0, 1),
-              THREE.MathUtils.clamp(hsl.l + shadeShift * 0.15, 0.08, 0.85),
-            );
-            c.material = tinted;
-          }
-        });
-
-        // a small chance of a cute little blossom on top
-        if (rand() < 0.22) {
-          const flower = buildPadFlower(rand);
-          const fr = footprint * s * 0.28;
-          flower.position.set(
-            (rand() - 0.5) * fr,
-            (size.y || 0.1) * s * 0.5 + 0.02,
-            (rand() - 0.5) * fr,
-          );
-          flower.rotation.y = rand() * Math.PI * 2;
-          clone.add(flower);
-        }
-
-        scene.add(clone);
-        lilyPads.push({
-          obj: clone,
-          baseY: clone.position.y,
-          bobSeed: rand() * Math.PI * 2,
-        });
+    // cattails, thickest right around the pond's edge
+    const cattailRand = seededRandom(31);
+    const cattailPositions = [];
+    const cattailClumps = [];
+    let cAttempts = 0, cPlaced = 0;
+    while (cPlaced < CATTAIL_COUNT && cAttempts < CATTAIL_COUNT * 15) {
+      cAttempts++;
+      const nearShore = cattailRand() < 0.6;
+      let cx, cz;
+      if (nearShore) {
+        const a = cattailRand() * Math.PI * 2;
+        const r = POND_RADIUS * (1.05 + cattailRand() * 0.35);
+        cx = POND_CENTER_X + Math.cos(a) * r;
+        cz = POND_CENTER_Z + Math.sin(a) * r;
+      } else {
+        cx = WORLD_MIN + margin + cattailRand() * (WORLD_SIZE - margin * 2);
+        cz = WORLD_MIN + margin + cattailRand() * (WORLD_SIZE - margin * 2);
       }
-
-      // spaced so giant pads overlap generously into one lush, unbroken
-      // stepping-stone path rather than a thin dotted line
-      const STEP = 0.05;
-      const MEANDER_AMPLITUDE = 0.9; // world units — gentle bow along each run
-      LANE_SEGMENTS.forEach((s, segIdx) => {
-        const dx = s.x2 - s.x1;
-        const dy = s.y2 - s.y1;
-        const len = Math.hypot(dx, dy) || 1;
-        const steps = Math.max(1, Math.round(len / STEP));
-        const dirX = dx / len;
-        const dirY = dy / len;
-        const perpX = -dirY;
-        const perpZ = dirX;
-        const bowSign = seededRandom(segIdx * 7 + 3)() > 0.5 ? 1 : -1;
-        for (let i = 0; i <= steps; i++) {
-          const t = i / steps;
-          const bow = Math.sin(t * Math.PI) * MEANDER_AMPLITUDE * bowSign;
-          place(
-            s.x1 + dx * t,
-            s.y1 + dy * t,
-            1,
-            segIdx * 1000 + i,
-            { x: perpX * bow, z: perpZ * bow },
-          );
-        }
-      });
-      // node pads (chests sit visually on their own pad via
-      // buildLilyChestNode, but a pad here too keeps the lattice unbroken)
-      NODE_POSITIONS.forEach((n, i) => place(n.nx, n.ny, 1.25, 50000 + i));
-      // hub pad, biggest since it's the spawn point
-      place(HUB_NX, HUB_NY, 1.45, 99999);
+      if (inClearing(cx, cz) || insidePond(cx, cz, 0.5) || tooCloseTo(cattailPositions, cx, cz, 1.1)) continue;
+      if (tooCloseTo(mushroomPositions, cx, cz, 1.3)) continue;
+      const clump = buildCattailClump(cattailRand);
+      clump.position.set(cx, 0, cz);
+      clump.rotation.y = cattailRand() * Math.PI * 2;
+      scene.add(clump);
+      cattailClumps.push(clump);
+      cattailPositions.push({ x: cx, z: cz });
+      cPlaced++;
     }
 
-    lilyLoader.load(
-      "/assets/models/lilypad.glb",
-      (gltf) => {
-        if (lilyCancelled) return;
-        scatterLilyPads(gltf.scene);
-      },
-      undefined,
-      (err) => console.error("lily pad load error:", err),
-    );
-
-    // bamboo — randomly scattered across the water, kept clear of the
-    // lily-pad lane lattice so nothing overlaps the walkable path
-    const treeLoader = new GLTFLoader();
-    let treesCancelled = false;
-    const frogTrees = [];
-
-    function distToNearestLane(nx, ny) {
-      let best = Infinity;
-      for (const c of PAD_CIRCLES) {
-        best = Math.min(best, Math.hypot(nx - c.x, ny - c.y) - c.r);
-      }
-      for (const s of LANE_SEGMENTS) {
-        best = Math.min(
-          best,
-          distToSegment(nx, ny, s.x1, s.y1, s.x2, s.y2) - LANE_HALF_WIDTH,
-        );
-      }
-      return best;
+    // dirt path from spawn to the pond
+    const dirtTex = buildDirtTexture();
+    const pathMat = new THREE.MeshBasicMaterial({ map: dirtTex, transparent: true, depthWrite: false });
+    const pathRand = seededRandom(71);
+    for (let i = 0; i <= 26; i++) {
+      const t = i / 26;
+      const wiggle = Math.sin(t * Math.PI * 2.4) * 1.4;
+      const px = THREE.MathUtils.lerp(WORLD_CENTER, POND_CENTER_X, t) + wiggle;
+      const pz = THREE.MathUtils.lerp(WORLD_CENTER, POND_CENTER_Z, t);
+      if (insidePond(px, pz, 1.5)) continue;
+      const size = 2.6 + pathRand() * 1.2;
+      const seg = new THREE.Mesh(new THREE.PlaneGeometry(size, size), pathMat);
+      seg.rotation.x = -Math.PI / 2;
+      seg.rotation.z = pathRand() * Math.PI;
+      seg.position.set(px, 0.006, pz);
+      scene.add(seg);
     }
 
-    function scatterBamboo(template) {
-      const box = new THREE.Box3().setFromObject(template);
-      const size = box.getSize(new THREE.Vector3());
-      const footprint = Math.max(size.x, size.z) || 1;
-      const baseScale = 1.4 / footprint; // world-unit target height-ish
-      const center = box.getCenter(new THREE.Vector3());
-      const rand = seededRandom(419);
-
-      const BAMBOO_COUNT = 26;
-      const CLEARANCE = 0.05; // normalized units, keeps bamboo off the path
-      let placed = 0;
-      let attempts = 0;
-      while (placed < BAMBOO_COUNT && attempts < BAMBOO_COUNT * 20) {
-        attempts++;
-        // uniform-ish sampling within the disc
-        const a = rand() * Math.PI * 2;
-        const r = Math.sqrt(rand()) * 0.46;
-        const nx = 0.5 + Math.cos(a) * r;
-        const ny = 0.5 + Math.sin(a) * r * 0.9;
-        if (nx < 0.03 || nx > 0.97 || ny < 0.03 || ny > 0.97) continue;
-        if (distToNearestLane(nx, ny) < CLEARANCE) continue;
-
-        const clone = template.clone(true);
-        const s = baseScale * (0.75 + rand() * 0.5);
-        clone.scale.setScalar(s);
-        clone.position.sub(center.clone().multiplyScalar(s));
-        clone.position.x += normToWorld(nx);
-        clone.position.z += normToWorld(ny);
-        clone.rotation.y = rand() * Math.PI * 2;
-        clone.traverse((c) => {
-          if (c.isMesh) {
-            c.castShadow = true;
-            c.receiveShadow = true;
-          }
-        });
-        scene.add(clone);
-        frogTrees.push(clone);
-        placed++;
-      }
-    }
-
-    treeLoader.load(
-      "/assets/models/frogTree.glb",
-      (gltf) => {
-        if (treesCancelled) return;
-        scatterBamboo(gltf.scene);
-      },
-      undefined,
-      (err) => console.error("frogTree load error:", err),
-    );
-
-    // moss patches — soft green decals floating on the water, purely
-    // cosmetic (no collision), scattered a bit more freely than bamboo
-    // since moss reads fine drifting close to a pad
-    function buildMossPatchTexture(rand) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 96;
-      canvas.height = 96;
-      const ctx = canvas.getContext("2d");
-      const grad = ctx.createRadialGradient(48, 48, 4, 48, 48, 44);
-      grad.addColorStop(0, "rgba(88,138,58,0.8)");
-      grad.addColorStop(0.6, "rgba(88,138,58,0.45)");
-      grad.addColorStop(1, "rgba(88,138,58,0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(48, 48, 44, 0, Math.PI * 2);
-      ctx.fill();
-      for (let i = 0; i < 6; i++) {
-        ctx.fillStyle = `rgba(60,${100 + rand() * 30},50,0.3)`;
-        const x = 20 + rand() * 56;
-        const y = 20 + rand() * 56;
-        const r = 5 + rand() * 9;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      return new THREE.CanvasTexture(canvas);
-    }
-
-    // land specs — tiny mossy islets barely poking above the water,
-    // also cosmetic only
-    function buildLandSpeck(rand) {
-      const group = new THREE.Group();
-      const r = 0.22 + rand() * 0.22;
-      const mound = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-        new THREE.MeshLambertMaterial({
-          color: new THREE.Color(`hsl(${28 + rand() * 18}, 28%, ${28 + rand() * 12}%)`),
-        }),
-      );
-      group.add(mound);
-      const moss = new THREE.Mesh(
-        new THREE.SphereGeometry(r * 0.75, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.35),
-        new THREE.MeshLambertMaterial({
-          color: new THREE.Color(`hsl(${95 + rand() * 20}, 40%, ${26 + rand() * 10}%)`),
-        }),
-      );
-      moss.position.y = r * 0.12;
-      group.add(moss);
-      return group;
-    }
-
-    const mossRand = seededRandom(523);
+    // moss patches scattered across the grass
+    const mossRand = seededRandom(83);
+    const mossPositions = [];
     const mossPatches = [];
-    const MOSS_COUNT = 22;
-    for (let i = 0; i < MOSS_COUNT; i++) {
-      const a = mossRand() * Math.PI * 2;
-      const r = Math.sqrt(mossRand()) * 0.47;
-      const nx = 0.5 + Math.cos(a) * r;
-      const ny = 0.5 + Math.sin(a) * r * 0.9;
-      if (nx < 0.02 || nx > 0.98 || ny < 0.02 || ny > 0.98) continue;
-      if (distToNearestLane(nx, ny) < 0.012) continue; // keep off the pads themselves
-
+    let mossAttempts = 0, mossPlaced = 0;
+    while (mossPlaced < MOSS_PATCH_COUNT && mossAttempts < MOSS_PATCH_COUNT * 15) {
+      mossAttempts++;
+      const fx = WORLD_MIN + margin + mossRand() * (WORLD_SIZE - margin * 2);
+      const fz = WORLD_MIN + margin + mossRand() * (WORLD_SIZE - margin * 2);
+      if (insidePond(fx, fz, 1.6) || tooCloseTo(mossPositions, fx, fz, 2.4)) continue;
       const tex = buildMossPatchTexture(mossRand);
-      const size = 0.6 + mossRand() * 0.8;
+      const size = 2.2 + mossRand() * 1.8;
       const patch = new THREE.Mesh(
         new THREE.PlaneGeometry(size, size),
-        new THREE.MeshBasicMaterial({
-          map: tex,
-          transparent: true,
-          depthWrite: false,
-        }),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
       );
       patch.rotation.x = -Math.PI / 2;
       patch.rotation.z = mossRand() * Math.PI * 2;
-      patch.position.set(normToWorld(nx), 0.012, normToWorld(ny));
+      patch.position.set(fx, 0.012, fz);
       scene.add(patch);
+      mossPositions.push({ x: fx, z: fz });
       mossPatches.push(patch);
+      mossPlaced++;
     }
 
-    const landRand = seededRandom(631);
-    const landSpecks = [];
-    const LAND_SPECK_COUNT = 10;
-    for (let i = 0; i < LAND_SPECK_COUNT; i++) {
-      const a = landRand() * Math.PI * 2;
-      const r = Math.sqrt(landRand()) * 0.44;
-      const nx = 0.5 + Math.cos(a) * r;
-      const ny = 0.5 + Math.sin(a) * r * 0.9;
-      if (nx < 0.03 || nx > 0.97 || ny < 0.03 || ny > 0.97) continue;
-      if (distToNearestLane(nx, ny) < 0.035) continue;
-
-      const speck = buildLandSpeck(landRand);
-      speck.position.set(normToWorld(nx), 0, normToWorld(ny));
-      speck.rotation.y = landRand() * Math.PI * 2;
-      scene.add(speck);
-      landSpecks.push(speck);
+    // dragonflies drifting in lazy loops
+    const dragonflyRand = seededRandom(97);
+    const dragonflies = [];
+    for (let i = 0; i < DRAGONFLY_COUNT; i++) {
+      const hue = 170 + dragonflyRand() * 60;
+      const mat = new THREE.SpriteMaterial({ map: buildDragonflyTexture(hue), transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      const baseScale = 0.55 + dragonflyRand() * 0.25;
+      sprite.scale.set(baseScale, baseScale, 1);
+      sprite.userData = {
+        centerX: WORLD_MIN + margin + dragonflyRand() * (WORLD_SIZE - margin * 2),
+        centerZ: WORLD_MIN + margin + dragonflyRand() * (WORLD_SIZE - margin * 2),
+        radiusX: 2 + dragonflyRand() * 3,
+        radiusZ: 2 + dragonflyRand() * 3,
+        speed: 0.5 + dragonflyRand() * 0.5,
+        phase: dragonflyRand() * Math.PI * 2,
+        bobPhase: dragonflyRand() * Math.PI * 2,
+        baseScale,
+      };
+      scene.add(sprite);
+      dragonflies.push(sprite);
     }
 
-    // clouds, reused sky-dressing
-    const cloudMeshes = [];
+    // fireflies
+    const fireflyRand = seededRandom(113);
+    const fireflyTex = buildGlowTexture("255,236,150");
+    const fireflies = [];
+    for (let i = 0; i < FIREFLY_COUNT; i++) {
+      const mat = new THREE.SpriteMaterial({
+        map: fireflyTex,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.35, 0.35, 1);
+      sprite.userData = {
+        centerX: WORLD_MIN + margin + fireflyRand() * (WORLD_SIZE - margin * 2),
+        centerZ: WORLD_MIN + margin + fireflyRand() * (WORLD_SIZE - margin * 2),
+        radius: 1 + fireflyRand() * 2.5,
+        speed: 0.2 + fireflyRand() * 0.25,
+        phase: fireflyRand() * Math.PI * 2,
+        twinkleSpeed: 1.5 + fireflyRand() * 2,
+        baseHeight: 0.5 + fireflyRand() * 1.2,
+      };
+      scene.add(sprite);
+      fireflies.push(sprite);
+    }
 
-    // ambient ripples across the pond
+    // sleepy "Zzz" while idle
+    const zzzTex = buildZzzTexture();
+    const zzzSprites = [];
+    for (let i = 0; i < 3; i++) {
+      const mat = new THREE.SpriteMaterial({ map: zzzTex, transparent: true, opacity: 0, depthWrite: false });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.3, 0.3, 1);
+      scene.add(sprite);
+      zzzSprites.push(sprite);
+    }
+
+    // splash droplets + ripples near the pond edge
+    const splashTex = buildGlowTexture("220,255,235");
+    const droplets = [];
+    function spawnSplash(x, z) {
+      for (let i = 0; i < 4; i++) {
+        const mat = new THREE.SpriteMaterial({ map: splashTex, transparent: true, opacity: 0.85, depthWrite: false });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(0.18, 0.18, 1);
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 0.4 + Math.random() * 0.5;
+        sprite.position.set(x, 0.1, z);
+        sprite.userData = { vx: Math.cos(ang) * spd, vz: Math.sin(ang) * spd, vy: 0.9 + Math.random() * 0.4 };
+        scene.add(sprite);
+        droplets.push({ mesh: sprite, born: performance.now(), life: 500 });
+      }
+    }
     const rippleGeo = new THREE.RingGeometry(0.3, 0.42, 24);
     const ripples = [];
     let ambientRippleTimer = 0;
     let lastSplashTime = -999;
     function spawnRipple(x, z, life = 1.6) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false,
-      });
+      const mat = new THREE.MeshBasicMaterial({ color: 0xdff5e6, transparent: true, opacity: 0.5, depthWrite: false });
       const mesh = new THREE.Mesh(rippleGeo, mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(x, 0.035, z);
@@ -703,103 +749,9 @@ function FrogLandCanvas({
       ripples.push({ mesh, born: performance.now(), life: life * 1000 });
     }
 
-    // splash droplets, spawned as the frog hops
-    const splashTex = buildGlowTexture("255,255,255");
-    const droplets = [];
-    function spawnSplash(x, z) {
-      for (let i = 0; i < 4; i++) {
-        const mat = new THREE.SpriteMaterial({
-          map: splashTex,
-          transparent: true,
-          opacity: 0.85,
-          depthWrite: false,
-        });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(0.16, 0.16, 1);
-        const ang = Math.random() * Math.PI * 2;
-        const spd = 0.35 + Math.random() * 0.4;
-        sprite.position.set(x, 0.1, z);
-        sprite.userData = {
-          vx: Math.cos(ang) * spd,
-          vz: Math.sin(ang) * spd,
-          vy: 0.8 + Math.random() * 0.3,
-        };
-        scene.add(sprite);
-        droplets.push({ mesh: sprite, born: performance.now(), life: 450 });
-      }
-    }
-
-    // sleepy "Zzz" while idle
-    const zzzCanvas = document.createElement("canvas");
-    zzzCanvas.width = 64;
-    zzzCanvas.height = 64;
-    const zctx = zzzCanvas.getContext("2d");
-    zctx.font = "bold 20px 'Comic Sans MS', sans-serif";
-    zctx.textAlign = "center";
-    zctx.textBaseline = "middle";
-    zctx.fillStyle = "#123a4a";
-    zctx.fillText("Z", 32, 34);
-    const zzzTex = new THREE.CanvasTexture(zzzCanvas);
-    const ZZZ_COUNT = 3;
-    const zzzSprites = [];
-    for (let i = 0; i < ZZZ_COUNT; i++) {
-      const mat = new THREE.SpriteMaterial({
-        map: zzzTex,
-        transparent: true,
-        opacity: 0,
-        depthWrite: false,
-      });
-      const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(0.3, 0.3, 1);
-      scene.add(sprite);
-      zzzSprites.push(sprite);
-    }
-
-    posRef.current.bounds = FROG_MOVEMENT_BOUNDS;
-    posRef.current.isWalkable = isOnLilyPad;
-    posRef.current.nearestWalkable = nearestWalkablePoint;
-
-    // recover a character whose saved position (from another habitat, or
-    // before this pad layout existed) doesn't land on a pad
-    if (!isOnLilyPad(posRef.current.x, posRef.current.y)) {
-      const safe = nearestWalkablePoint(posRef.current.x, posRef.current.y);
-      posRef.current = { ...posRef.current, x: safe.x, y: safe.y };
-    }
-
-    function collectCoinsNear(wx, wz) {
-      for (let i = coinsRef.current.length - 1; i >= 0; i--) {
-        const coin = coinsRef.current[i];
-        const dx = normToWorld(coin.nx) - wx;
-        const dz = normToWorld(coin.ny) - wz;
-        if (Math.hypot(dx, dz) < COIN_COLLECT_RADIUS * WORLD_SIZE) {
-          scene.remove(coin.group);
-          coin.group.traverse((c) => {
-            c.geometry?.dispose?.();
-            c.material?.dispose?.();
-          });
-          coinsRef.current.splice(i, 1);
-
-          const tadpole = buildTadpole();
-          scene.add(tadpole);
-          tadpolesRef.current.push({ group: tadpole });
-
-          coinCountRef.current += 1;
-          onCoinCountChangeRef.current?.(coinCountRef.current);
-        }
-      }
-    }
-
-    function trySpawnCoin(now) {
-      if (coinsRef.current.length >= MAX_COINS) return;
-      if (now < nextCoinSpawnRef.current) return;
-      const spot = PAD_CIRCLES[Math.floor(Math.random() * PAD_CIRCLES.length)];
-      const coin = buildCoin();
-      coin.position.set(normToWorld(spot.x), 0, normToWorld(spot.y));
-      scene.add(coin);
-      coinsRef.current.push({ group: coin, nx: spot.x, ny: spot.y });
-      const [minGap, maxGap] = COIN_SPAWN_INTERVAL;
-      nextCoinSpawnRef.current = now + minGap + Math.random() * (maxGap - minGap);
-    }
+    posRef.current.bounds = MOVEMENT_BOUNDS;
+    posRef.current.isWalkable = undefined;
+    posRef.current.nearestWalkable = undefined;
 
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate);
@@ -807,28 +759,50 @@ function FrogLandCanvas({
       const now = performance.now();
       const t = now * 0.001;
 
-      // lily pads bob gently, same as the grass-plaza pond pads
+      waterTex.offset.x += 0.0005;
+      waterTex.offset.y += 0.00025;
+
       lilyPads.forEach((pad) => {
-        pad.obj.position.y = pad.baseY + Math.sin(t * 0.8 + pad.bobSeed) * 0.015;
+        pad.position.y = pad.userData.baseY + Math.sin(t * 0.8 + pad.userData.bobSeed) * 0.015;
       });
 
-      // coins bob and spin
-      coinsRef.current.forEach((coin) => {
-        coin.group.rotation.y += 0.05;
-        coin.group.position.y = 0.05 + Math.sin(t * 2 + coin.nx * 40) * 0.05;
+      fishList.forEach((fish) => {
+        const u = fish.userData;
+        const angle = t * u.orbitSpeed + u.orbitPhase;
+        const nx = POND_CENTER_X + u.orbitOffsetX + Math.cos(angle) * u.orbitRadius;
+        const nz = POND_CENTER_Z + u.orbitOffsetZ + Math.sin(angle * 1.3) * u.orbitRadius * 0.7;
+        const prevX = fish.position.x, prevZ = fish.position.z;
+        fish.position.x = nx;
+        fish.position.z = nz;
+        const heading = Math.atan2(nx - prevX, nz - prevZ);
+        if (isFinite(heading)) fish.rotation.y = heading;
       });
-      trySpawnCoin(now);
+
+      dragonflies.forEach((d) => {
+        const u = d.userData;
+        const angle = t * u.speed + u.phase;
+        d.position.x = u.centerX + Math.cos(angle) * u.radiusX;
+        d.position.z = u.centerZ + Math.sin(angle * 1.4) * u.radiusZ;
+        d.position.y = 1.6 + Math.sin(t * 3 + u.bobPhase) * 0.4;
+        const scaleJitter = 1 + Math.sin(t * 10 + u.phase) * 0.08;
+        d.scale.set(u.baseScale * scaleJitter, u.baseScale, 1);
+      });
+
+      fireflies.forEach((f) => {
+        const u = f.userData;
+        const angle = t * u.speed + u.phase;
+        f.position.x = u.centerX + Math.cos(angle) * u.radius;
+        f.position.z = u.centerZ + Math.sin(angle * 0.8) * u.radius;
+        f.position.y = u.baseHeight + Math.sin(t * 0.7 + u.phase) * 0.3;
+        f.material.opacity = 0.35 + 0.4 * (0.5 + 0.5 * Math.sin(t * u.twinkleSpeed));
+      });
 
       ambientRippleTimer -= 1;
       if (ambientRippleTimer <= 0) {
-        ambientRippleTimer = 70 + Math.floor(Math.random() * 50);
+        ambientRippleTimer = 90 + Math.floor(Math.random() * 60);
         const a = Math.random() * Math.PI * 2;
-        const r = Math.random() * WORLD_SIZE * 0.5;
-        spawnRipple(
-          WORLD_CENTER + Math.cos(a) * r,
-          WORLD_CENTER + Math.sin(a) * r,
-          2.2,
-        );
+        const r = Math.random() * POND_RADIUS * 0.8;
+        spawnRipple(POND_CENTER_X + Math.cos(a) * r, POND_CENTER_Z + Math.sin(a) * r, 2.2);
       }
       for (let i = ripples.length - 1; i >= 0; i--) {
         const rp = ripples[i];
@@ -841,7 +815,7 @@ function FrogLandCanvas({
         }
         const scale = 0.5 + progress * 4.5;
         rp.mesh.scale.set(scale, scale, scale);
-        rp.mesh.material.opacity = 0.55 * (1 - progress);
+        rp.mesh.material.opacity = 0.5 * (1 - progress);
       }
       for (let i = droplets.length - 1; i >= 0; i--) {
         const d = droplets[i];
@@ -861,45 +835,20 @@ function FrogLandCanvas({
       }
 
       const manualInput =
-        keysRef.current.ArrowUp ||
-        keysRef.current.ArrowDown ||
-        keysRef.current.ArrowLeft ||
-        keysRef.current.ArrowRight;
+        keysRef.current.ArrowUp || keysRef.current.ArrowDown ||
+        keysRef.current.ArrowLeft || keysRef.current.ArrowRight;
 
-      if (manualInput && travelTargetRef) {
-        travelTargetRef.current = null;
-        routeRef.current = [];
-        lastTravelTargetRef.current = null;
-      }
-
-      // (re)build the waypoint route whenever a new travel target appears
+      if (manualInput && travelTargetRef) travelTargetRef.current = null;
       const target = travelTargetRef?.current;
-      if (target && target !== lastTravelTargetRef.current) {
-        lastTravelTargetRef.current = target;
-        routeRef.current = buildTravelRoute(
-          { x: posRef.current.x, y: posRef.current.y },
-          target,
-        );
-      }
-      if (!target) {
-        routeRef.current = [];
-        lastTravelTargetRef.current = null;
-      }
 
-      if (!manualInput && routeRef.current.length > 0) {
-        const wp = routeRef.current[0];
-        const dx = wp.x - posRef.current.x;
-        const dy = wp.y - posRef.current.y;
+      if (target && !manualInput) {
+        const dx = target.x - posRef.current.x;
+        const dy = target.y - posRef.current.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-
         if (dist < ARRIVAL_THRESHOLD) {
-          posRef.current = { ...posRef.current, x: wp.x, y: wp.y };
-          routeRef.current = routeRef.current.slice(1);
-          if (routeRef.current.length === 0) {
-            travelTargetRef.current = null;
-            lastTravelTargetRef.current = null;
-            onArrivedRef.current?.();
-          }
+          posRef.current = { ...posRef.current, x: target.x, y: target.y };
+          travelTargetRef.current = null;
+          onArrivedRef.current?.();
         } else {
           posRef.current = {
             ...posRef.current,
@@ -919,48 +868,27 @@ function FrogLandCanvas({
       if (model) {
         const wx = normToWorld(posRef.current._smoothX ?? posRef.current.x);
         const wz = normToWorld(posRef.current._smoothY ?? posRef.current.y);
-
-        const isMoving = manualInput || routeRef.current.length > 0;
-        floatTRef.current += isMoving ? 0.14 : 0.04;
+        const isMoving = manualInput || !!target;
+        floatTRef.current += isMoving ? 0.12 : 0.04;
         const baseY = model.userData.baseY ?? 0;
 
         model.position.x = wx;
-        model.position.y =
-          baseY + Math.abs(Math.sin(floatTRef.current)) * (isMoving ? 0.16 : 0.04);
+        model.position.y = baseY + Math.sin(floatTRef.current) * (isMoving ? 0.1 : 0.05);
         model.position.z = wz;
 
-        if (isMoving && now - lastSplashTime > 220) {
-          lastSplashTime = now;
-          spawnRipple(wx, wz, 0.7);
-          if (Math.sin(floatTRef.current) > 0.85) spawnSplash(wx, wz);
-        }
-
-        collectCoinsNear(wx, wz);
-
-        // sample the frog's own trail every few frames; each collected
-        // tadpole locks onto one of the older samples, so the line grows
-        // longer the more coins you've picked up
-        trailFrameRef.current += 1;
-        if (trailFrameRef.current % TRAIL_SAMPLE_INTERVAL === 0) {
-          trailHistoryRef.current.push({ x: wx, z: wz, ry: model.rotation.y });
-          const maxLen = TRAIL_GAP * (tadpolesRef.current.length + 1) + 4;
-          if (trailHistoryRef.current.length > maxLen) {
-            trailHistoryRef.current.shift();
+        if (isMoving) {
+          const ddx = wx - POND_CENTER_X;
+          const ddz = wz - POND_CENTER_Z;
+          const distFromCenter = Math.sqrt(ddx * ddx + ddz * ddz);
+          const nearShore = distFromCenter > POND_RADIUS * 0.92 && distFromCenter < POND_RADIUS * 1.3;
+          if (nearShore && now - lastSplashTime > 180) {
+            lastSplashTime = now;
+            const edgeX = POND_CENTER_X + (ddx / distFromCenter) * POND_RADIUS * 1.02;
+            const edgeZ = POND_CENTER_Z + (ddz / distFromCenter) * POND_RADIUS * 1.02;
+            spawnRipple(edgeX, edgeZ, 0.9);
+            spawnSplash(edgeX, edgeZ);
           }
         }
-        tadpolesRef.current.forEach((tad, i) => {
-          const histIndex =
-            trailHistoryRef.current.length - 1 - TRAIL_GAP * (i + 1);
-          const sample =
-            trailHistoryRef.current[Math.max(0, histIndex)] ||
-            trailHistoryRef.current[0];
-          if (!sample) return;
-          const bob = Math.sin(t * 2.4 + tad.group.userData.bobSeed) * 0.05;
-          tad.group.position.x += (sample.x - tad.group.position.x) * 0.35;
-          tad.group.position.z += (sample.z - tad.group.position.z) * 0.35;
-          tad.group.position.y = tad.group.userData.baseY + bob;
-          tad.group.rotation.y += (sample.ry - tad.group.rotation.y) * 0.2;
-        });
 
         if (isMoving) idleTimeRef.current = 0;
         else idleTimeRef.current += 1 / 60;
@@ -968,11 +896,7 @@ function FrogLandCanvas({
         zzzSprites.forEach((s, i) => {
           const cycle = 2.2;
           const localT = ((t + i * 0.7) % cycle) / cycle;
-          s.position.set(
-            wx + 0.35 + Math.sin(t * 1.4 + i) * 0.05,
-            baseY + 1.1 + localT * 0.9,
-            wz - 0.15,
-          );
+          s.position.set(wx + 0.4 + Math.sin(t * 1.4 + i) * 0.05, baseY + 1.3 + localT * 0.9, wz - 0.15);
           const fadeIn = Math.min(localT / 0.15, 1);
           const fadeOut = Math.min((1 - localT) / 0.25, 1);
           const targetOpacity = showZzz ? Math.min(fadeIn, fadeOut) * 0.9 : 0;
@@ -982,14 +906,13 @@ function FrogLandCanvas({
         });
 
         camera.position.x += (wx - camera.position.x) * 0.1;
-        camera.position.z += (wz + 11 - camera.position.z) * 0.1;
-        camera.position.y = 13;
+        camera.position.z += (wz + 12 - camera.position.z) * 0.1;
+        camera.position.y = 14;
         camera.lookAt(wx, 0, wz);
 
         if (manualInput) {
           const k = keysRef.current;
-          let dx = 0,
-            dz = 0;
+          let dx = 0, dz = 0;
           if (k.ArrowLeft) dx -= 1;
           if (k.ArrowRight) dx += 1;
           if (k.ArrowUp) dz -= 1;
@@ -1005,39 +928,27 @@ function FrogLandCanvas({
         model.traverse((child) => {
           if (child.userData.isCharGlow) {
             const active = hasActiveQuestRef.current;
-            const glowTarget = active
-              ? 0.4 + Math.sin(floatTRef.current * 2) * 0.25
-              : 0;
-            child.material.opacity +=
-              (glowTarget - child.material.opacity) * 0.08;
+            const glowTarget = active ? 0.4 + Math.sin(floatTRef.current * 2) * 0.25 : 0;
+            child.material.opacity += (glowTarget - child.material.opacity) * 0.08;
           }
         });
       }
 
-      // ai-agent companion follow (identical behavior to the grass plaza)
       const agent = agentRef.current;
       if (agent && model) {
         agentFloatTRef.current += 0.045;
         const trailAngle = model.rotation.y + Math.PI * 0.78;
-        const targetX =
-          model.position.x + Math.sin(trailAngle) * AGENT_FOLLOW_DISTANCE;
-        const targetZ =
-          model.position.z + Math.cos(trailAngle) * AGENT_FOLLOW_DISTANCE;
-
+        const targetX = model.position.x + Math.sin(trailAngle) * AGENT_FOLLOW_DISTANCE;
+        const targetZ = model.position.z + Math.cos(trailAngle) * AGENT_FOLLOW_DISTANCE;
         agent.position.x += (targetX - agent.position.x) * AGENT_FOLLOW_LERP;
         agent.position.z += (targetZ - agent.position.z) * AGENT_FOLLOW_LERP;
-
         const agentBaseY = agent.userData.baseY ?? 0.3;
         agent.position.y =
-          (model.userData.baseY ?? 0) +
-          AGENT_HOVER_HEIGHT +
-          agentBaseY +
+          (model.userData.baseY ?? 0) + AGENT_HOVER_HEIGHT + agentBaseY +
           Math.sin(agentFloatTRef.current * 1.6) * 0.09;
         if (agent.userData.glow) {
-          agent.userData.glow.material.opacity =
-            0.32 + Math.sin(agentFloatTRef.current) * 0.15;
+          agent.userData.glow.material.opacity = 0.32 + Math.sin(agentFloatTRef.current) * 0.15;
         }
-
         const reportPos = onAgentScreenPositionChangeRef.current;
         if (reportPos && mountRef.current) {
           const worldPos = new THREE.Vector3();
@@ -1053,20 +964,16 @@ function FrogLandCanvas({
         }
       }
 
-      // remote party members, also confined to the lily-pad lattice
       if (otherPlayersRef) {
         otherModelsRef.current.forEach((entry, id) => {
           const player = otherPlayersRef.current.get(id);
           if (!player) return;
-
           entry.smoothX += (player.x - entry.smoothX) * 0.15;
           entry.smoothY += (player.y - entry.smoothY) * 0.15;
           const wx = normToWorld(entry.smoothX);
           const wz = normToWorld(entry.smoothY);
-
           entry.floatT += 0.08;
           const baseY = entry.pivot.userData.baseY ?? 0;
-
           const dx = wx - entry.pivot.position.x;
           const dz = wz - entry.pivot.position.z;
           if (Math.abs(dx) > 0.0008 || Math.abs(dz) > 0.0008) {
@@ -1076,19 +983,16 @@ function FrogLandCanvas({
             while (delta < -Math.PI) delta += Math.PI * 2;
             entry.pivot.rotation.y += delta * 0.18;
           }
-
           entry.pivot.position.x = wx;
           entry.pivot.position.y = baseY + Math.sin(entry.floatT) * 0.08;
           entry.pivot.position.z = wz;
-
           if (entry.msgSprite) {
             const ALERT_TTL = 6000;
             const alertAt = messageAlertsRef?.current?.get(id);
             const age = alertAt ? now - alertAt : Infinity;
             const active = age < ALERT_TTL;
             const targetOpacity = active ? 0.95 : 0;
-            entry.msgSprite.material.opacity +=
-              (targetOpacity - entry.msgSprite.material.opacity) * 0.15;
+            entry.msgSprite.material.opacity += (targetOpacity - entry.msgSprite.material.opacity) * 0.15;
             if (active) {
               entry.msgBubbleT += 0.12;
               const bob = Math.sin(entry.msgBubbleT) * 0.08;
@@ -1118,107 +1022,41 @@ function FrogLandCanvas({
     return () => {
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", onResize);
-      terrainCancelled = true;
-      lilyCancelled = true;
-      if (frogLandModel) {
-        scene.remove(frogLandModel);
-        frogLandModel.traverse((child) => {
-          if (child.isMesh) {
-            child.geometry?.dispose();
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else {
-              child.material?.dispose();
-            }
-          }
-        });
-      }
-      lilyPads.forEach((pad) => {
-        scene.remove(pad.obj);
-        pad.obj.traverse((child) => {
-          if (child.isMesh) {
-            child.geometry?.dispose();
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else {
-              child.material?.dispose();
-            }
-          }
-        });
-      });
-      treesCancelled = true;
-      frogTrees.forEach((tree) => {
-        scene.remove(tree);
-        tree.traverse((child) => {
-          if (child.isMesh) {
-            child.geometry?.dispose();
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else {
-              child.material?.dispose();
-            }
-          }
-        });
-      });
-      mossPatches.forEach((patch) => {
-        scene.remove(patch);
-        patch.geometry.dispose();
-        patch.material.map?.dispose();
-        patch.material.dispose();
-      });
-      landSpecks.forEach((speck) => {
-        scene.remove(speck);
-        speck.traverse((child) => {
-          if (child.isMesh) {
-            child.geometry?.dispose();
-            child.material?.dispose();
-          }
-        });
-      });
+      grassTex.dispose();
+      groundGeo.dispose();
+      grassTopMat.dispose();
+      rockSideMat.dispose();
+      boulders.forEach((b) => { scene.remove(b); b.geometry.dispose(); b.material.dispose(); });
       skyTex.dispose();
+      waterTex.dispose();
+      shoreMesh.geometry.dispose();
+      shoreMesh.material.dispose();
+      waterMesh.geometry.dispose();
+      waterMat.dispose();
+      dirtTex.dispose();
+      pathMat.dispose();
+      fireflyTex.dispose();
       splashTex.dispose();
       rippleGeo.dispose();
       zzzTex.dispose();
-      zzzSprites.forEach((s) => {
-        scene.remove(s);
-        s.material.dispose();
-      });
-      ripples.forEach((rp) => {
-        scene.remove(rp.mesh);
-        rp.mesh.material.dispose();
-      });
-      droplets.forEach((d) => {
-        scene.remove(d.mesh);
-        d.mesh.material.dispose();
-      });
-      coinsRef.current.forEach((c) => {
-        scene.remove(c.group);
-        c.group.traverse((child) => {
-          child.geometry?.dispose?.();
-          child.material?.dispose?.();
-        });
-      });
-      coinsRef.current = [];
-      tadpolesRef.current.forEach((tp) => {
-        scene.remove(tp.group);
-        tp.group.traverse((child) => {
-          child.geometry?.dispose?.();
-          child.material?.dispose?.();
-        });
-      });
-      tadpolesRef.current = [];
-      otherModelsRef.current.forEach((entry) => {
-        scene.remove(entry.pivot);
-        disposePivot(entry.pivot);
-      });
+      lilyPads.forEach((pad) => { scene.remove(pad); pad.geometry.dispose(); pad.material.dispose(); });
+      fishList.forEach((fish) => { scene.remove(fish); fish.geometry.dispose(); fish.material.dispose(); });
+      mushroomClusters.forEach((cluster) => disposeGroup(scene, cluster));
+      cattailClumps.forEach((clump) => disposeGroup(scene, clump));
+      dragonflies.forEach((d) => { scene.remove(d); d.material.map?.dispose(); d.material.dispose(); });
+      fireflies.forEach((f) => { scene.remove(f); f.material.dispose(); });
+      zzzSprites.forEach((s) => { scene.remove(s); s.material.dispose(); });
+      mossPatches.forEach((patch) => { scene.remove(patch); patch.geometry.dispose(); patch.material.map?.dispose(); patch.material.dispose(); });
+      ripples.forEach((rp) => { scene.remove(rp.mesh); rp.mesh.material.dispose(); });
+      droplets.forEach((d) => { scene.remove(d.mesh); d.mesh.material.dispose(); });
+      otherModelsRef.current.forEach((entry) => { scene.remove(entry.pivot); disposePivot(entry.pivot); });
       otherModelsRef.current.clear();
       renderer.dispose();
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
   }, []);
 
-  // ai-agent companion — matches whichever avatar the player is wearing,
-  // reloads if they change avatars
+  // ai-agent companion
   useEffect(() => {
     if (!sceneRef.current || !avatarId) return;
     let cancelled = false;
