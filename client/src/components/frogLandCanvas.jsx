@@ -606,7 +606,7 @@ function FrogLandCanvas({
       dragonflies.push(sprite);
     }
 
-    // ---- ambient ripples ----
+    // ambient ripples
     const rippleGeo = new THREE.RingGeometry(0.3, 0.4, 24);
     const ripples = [];
     let ambientRippleTimer = 0;
