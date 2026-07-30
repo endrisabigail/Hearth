@@ -427,13 +427,70 @@
 
 /* focus panel  */
 
+.focus-note-wrap {
+  position: relative;
+  transform: rotate(-1.4deg);
+  filter: drop-shadow(0 6px 10px rgba(61, 43, 31, 0.28));
+  margin: 2px 4px 16px;
+}
+
+.focus-note {
+  position: relative;
+  background: repeating-linear-gradient(
+    to bottom,
+    #fffdf6 0px,
+    #fffdf6 20px,
+    #f1ead3 21px
+  );
+  padding: 16px 14px 20px;
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 95%,
+    95% 100%,
+    90% 94%,
+    85% 100%,
+    80% 94%,
+    75% 100%,
+    70% 94%,
+    65% 100%,
+    60% 94%,
+    55% 100%,
+    50% 94%,
+    45% 100%,
+    40% 94%,
+    35% 100%,
+    30% 94%,
+    25% 100%,
+    20% 94%,
+    15% 100%,
+    10% 94%,
+    5% 100%,
+    0% 94%
+  );
+}
+
+/* a scrap of washi tape pinning the note to the wood */
+.focus-note-wrap::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 52px;
+  height: 18px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(229, 172, 91, 0.55);
+  border: 1px solid rgba(139, 105, 20, 0.2);
+  z-index: 1;
+}
+
 .focus-goal-label {
   font-size: 10px;
-  font-weight: 700;
-  color: rgba(139, 105, 20, 0.7);
+  font-weight: 800;
+  color: #b85042;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin: 0 0 3px;
+  letter-spacing: 0.08em;
+  margin: 0 0 5px;
 }
 
 .focus-task {

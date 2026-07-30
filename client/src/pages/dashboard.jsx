@@ -11,11 +11,11 @@ import { io } from "socket.io-client";
 import PlazaCanvas, { MOVEMENT_BOUNDS, normToWorld as grassNormToWorld } from "../components/plazaCanvas.jsx";
 import FrogLandCanvas from "../components/frogLandCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
-import { CATEGORY_ICON } from "../components/questModal.jsx";
 import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
 import NavModal from "../components/navModal.jsx";
 import AgentModal from "../components/agentModal.jsx";
+import { CATEGORY_ICON } from "../components/questModal.jsx";
 import "../pages/styles/dashboard.css";
 import "../pages/styles/questModal.css";
 import "../pages/styles/messageModal.css";
@@ -86,6 +86,14 @@ function Dashboard() {
   const [showControls, setShowControls] = useState(true); // show movement controls hint on first load
   const [agentScreenPos, setAgentScreenPos] = useState(null);
   const [agentPopupOpen, setAgentPopupOpen] = useState(false);
+
+  const focusQuest = useMemo(() => {
+    const active = quests.filter((q) => q.status !== "Completed");
+    const withDueDate = active
+      .filter((q) => q.dueDate)
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    return withDueDate[0] || active[0] || null;
+  }, [quests]);
 
   useEffect(() => {
     const fadeTimer = setTimeout(() => setShowControls("fading"), 8500);
@@ -828,18 +836,25 @@ function Dashboard() {
                 ✕
               </button>
             </div>
-            {quests.length > 0 ? (
-              <>
-                <p className="focus-goal-label">active quest</p>
-                <p className="focus-task">{quests[0].title}</p>
-                <p className="focus-desc">{quests[0].description}</p>
-                {quests[0].assignedTo && (
-                  <p className="focus-assigned">
-                    {AVATAR_MAP[quests[0].assignedTo.avatarId]}{" "}
-                    {quests[0].assignedTo.username}
+            {focusQuest ? (
+              <div className="focus-note-wrap">
+                <div className="focus-note">
+                  <p className="focus-goal-label">
+                    📌{" "}
+                    {focusQuest.dueDate
+                      ? `due ${new Date(focusQuest.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                      : "due soonest"}
                   </p>
-                )}
-              </>
+                  <p className="focus-task">{focusQuest.title}</p>
+                  <p className="focus-desc">{focusQuest.description}</p>
+                  {focusQuest.assignedTo && (
+                    <p className="focus-assigned">
+                      {AVATAR_MAP[focusQuest.assignedTo.avatarId]}{" "}
+                      {focusQuest.assignedTo.username}
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
               <p className="empty-msg">
                 {userData?.isPartyOwner
