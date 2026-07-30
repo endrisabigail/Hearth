@@ -79,7 +79,8 @@ function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQuest, setModalQuest] = useState(null);
   const [msgModalOpen, setMsgModalOpen] = useState(false);
-  const [mailOpen, setMailOpen] = useState(false); // envelope closed vs paper pulled out
+  const [mailPopoverOpen, setMailPopoverOpen] = useState(false);
+  const mailPanelRef = useRef(null);
   const [navModalOpen, setNavModalOpen] = useState(false);
   const [showControls, setShowControls] = useState(true); // show movement controls hint on first load
   const [agentScreenPos, setAgentScreenPos] = useState(null);
@@ -457,6 +458,17 @@ function Dashboard() {
     return () => cancelAnimationFrame(frameId);
   }, [scheduleSave]);
 
+  useEffect(() => {
+    if (!mailPopoverOpen) return;
+    const handleClickOutside = (e) => {
+      if (mailPanelRef.current && !mailPanelRef.current.contains(e.target)) {
+        setMailPopoverOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mailPopoverOpen]);
+
   const togglePanel = (panel) =>
     setOpenPanels((prev) => ({ ...prev, [panel]: !prev[panel] }));
 
@@ -726,32 +738,61 @@ function Dashboard() {
         )}
 
         {openPanels.mail && (
-          <div className="panel mail-panel">
-            {mailOpen ? (
-              <>
-                <div className="panel-header">
+          <div className="panel mail-panel" ref={mailPanelRef}>
+            <div className="panel-header">
+              <span className="panel-title">📬 mail</span>
+              <div className="panel-header-actions">
+                {hasTeammates && (
                   <button
-                    className="mail-envelope-back"
-                    onClick={() => setMailOpen(false)}
-                    title="tuck the letter back in"
+                    className="compose-btn"
+                    onClick={() => setMsgModalOpen(true)}
                   >
-                    ✉️
+                    ✉️ compose
                   </button>
-                  <span className="panel-title">
-                    mail
-                    {unreadCount > 0 && (
-                      <span className="unread-badge">{unreadCount}</span>
-                    )}
+                )}
+                <button
+                  className="panel-close"
+                  onClick={() => togglePanel("mail")}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="mail-envelope-wrap">
+              <button
+                className={`mail-envelope-trigger${mailPopoverOpen ? " mail-open" : ""
+                  }`}
+                onClick={() => setMailPopoverOpen((o) => !o)}
+                title={unreadCount > 0 ? "you've got mail!" : "check mail"}
+              >
+                <span
+                  className={`mail-envelope${unreadCount > 0 ? " mail-envelope--shake" : ""
+                    }`}
+                >
+                  <span className="mail-letter">
+                    <span className="mail-letter-line" />
+                    <span className="mail-letter-line mail-letter-line--short" />
                   </span>
-                  <div className="panel-header-actions">
-                    {hasTeammates && (
-                      <button
-                        className="compose-btn"
-                        onClick={() => setMsgModalOpen(true)}
-                      >
-                        ✉️ compose
-                      </button>
-                    )}
+                  <span className="mail-envelope-flap" />
+                  <span className="mail-envelope-body" />
+                  {unreadCount > 0 && (
+                    <span className="mail-envelope-badge">{unreadCount}</span>
+                  )}
+                </span>
+                <p className="mail-envelope-hint">
+                  {unreadCount > 0
+                    ? `${unreadCount} new mail!`
+                    : notifications.length > 0
+                      ? "tap to reread"
+                      : "no mail yet"}
+                </p>
+              </button>
+
+              {mailPopoverOpen && (
+                <div className="mail-popover">
+                  <div className="mail-popover-header">
+                    <span className="mail-popover-title">all mail</span>
                     {unreadCount > 0 && (
                       <button
                         className="read-all-btn"
@@ -760,15 +801,7 @@ function Dashboard() {
                         mark read
                       </button>
                     )}
-                    <button
-                      className="panel-close"
-                      onClick={() => togglePanel("mail")}
-                    >
-                      ✕
-                    </button>
                   </div>
-                </div>
-                <div className="mail-paper">
                   <div className="mail-list">
                     {notifications.length > 0 ? (
                       notifications.map((n) => (
@@ -791,52 +824,8 @@ function Dashboard() {
                     )}
                   </div>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="panel-header">
-                  <span className="panel-title">📬 mail</span>
-                  <div className="panel-header-actions">
-                    {hasTeammates && (
-                      <button
-                        className="compose-btn"
-                        onClick={() => setMsgModalOpen(true)}
-                      >
-                        ✉️ compose
-                      </button>
-                    )}
-                    <button
-                      className="panel-close"
-                      onClick={() => togglePanel("mail")}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-                <button
-                  className="mail-envelope-scene"
-                  onClick={() => setMailOpen(true)}
-                  title={unreadCount > 0 ? "you've got mail!" : "check mail"}
-                >
-                  <span
-                    className={`mail-envelope${unreadCount > 0 ? " mail-envelope--shake" : ""
-                      }`}
-                  >
-                    <span className="mail-envelope-icon">✉️</span>
-                    {unreadCount > 0 && (
-                      <span className="mail-envelope-badge">{unreadCount}</span>
-                    )}
-                  </span>
-                  <p className="mail-envelope-hint">
-                    {unreadCount > 0
-                      ? `${unreadCount} new mail!`
-                      : notifications.length > 0
-                        ? "tap to reread"
-                        : "no mail yet"}
-                  </p>
-                </button>
-              </>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
