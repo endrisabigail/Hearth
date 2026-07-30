@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import axios from "axios";
@@ -10,6 +10,8 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Signup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get("invite");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +38,6 @@ function Signup() {
     setError("");
 
     try {
-      const pendingInvite = localStorage.getItem("pendingInvite");
-
       // create the account in Firebase (this is the only place the password goes)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken();
@@ -45,12 +45,17 @@ function Signup() {
       // create the matching Mongo profile via your backend
       const response = await axios.post(
         `${API_URL}/api/auth/register`,
-        { username, inviteCode: pendingInvite || undefined },
+        { username, inviteCode: inviteCode || undefined },
         { headers: { Authorization: `Bearer ${idToken}` } },
       );
 
       localStorage.setItem("token", idToken);
-      navigate("/avatarRegister");
+
+      // if they signed up via an invite link, carry the invite through to the
+      // avatar step so it can send them into that party afterward
+      navigate(
+        inviteCode ? `/avatarRegister?invite=${inviteCode}` : "/avatarRegister",
+      );
     } catch (err) {
       console.error(err);
       setError(

@@ -40,10 +40,9 @@ function JoinParty() {
   };
 
   const handleJoin = async () => {
-    // if not logged in, redirect to signup with invite code saved
+    // no account yet, send them to sign up
     if (!token) {
-      localStorage.setItem("pendingInvite", inviteCode);
-      navigate("/signup");
+      navigate(`/signup?invite=${inviteCode}`);
       return;
     }
 
@@ -54,7 +53,7 @@ function JoinParty() {
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      navigate("/dashboard");
+      navigate(`/party/${inviteCode}`);
     } catch (err) {
       setError(err.response?.data?.msg || "Could not join party.");
     } finally {

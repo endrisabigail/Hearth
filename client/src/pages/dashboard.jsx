@@ -22,6 +22,7 @@ import "../pages/styles/messageModal.css";
 import "../pages/styles/agentModal.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const STAR_LAYER_DEPTHS = [6, 4, 2, 0, -2, -4, -6];
 
 const AVATAR_MAP = {
   tomato: "🍅",
@@ -915,14 +916,63 @@ function Dashboard() {
 
       {userData?.isPartyOwner && (
         <button
-          className="floating-add-btn"
+          className="floating-add-btn floating-add-btn--star"
           onClick={() => {
             setModalQuest(null);
             setModalOpen(true);
           }}
           title="add quest"
         >
-          ＋
+          <span className="star-3d-scene">
+            <span className="star-3d-spin">
+              {STAR_LAYER_DEPTHS.map((z, i) => (
+                <span
+                  key={i}
+                  className="star-3d-layer"
+                  style={{
+                    transform: `translateZ(${z}px)`,
+                    filter: `brightness(${1.35 - i * 0.09})`,
+                  }}
+                />
+              ))}
+            </span>
+          </span>
+          <style>{`
+            .floating-add-btn--star {
+              background: transparent;
+              border: none;
+              padding: 0;
+              cursor: pointer;
+            }
+            .star-3d-scene {
+              display: block;
+              width: 44px;
+              height: 44px;
+              perspective: 300px;
+            }
+            .star-3d-spin {
+              display: block;
+              width: 100%;
+              height: 100%;
+              position: relative;
+              transform-style: preserve-3d;
+              animation: star-3d-rotate 6s linear infinite;
+            }
+            .star-3d-layer {
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(135deg, #ffe066, #ffb300 55%, #b8860b);
+              clip-path: polygon(
+                50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+                50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
+              );
+              box-shadow: 0 0 6px rgba(255, 193, 7, 0.6);
+            }
+            @keyframes star-3d-rotate {
+              from { transform: rotateY(0deg) rotateX(8deg); }
+              to { transform: rotateY(360deg) rotateX(8deg); }
+            }
+          `}</style>
         </button>
       )}
 

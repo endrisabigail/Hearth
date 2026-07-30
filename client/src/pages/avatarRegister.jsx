@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -79,6 +79,8 @@ function AvatarRegister() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get("invite");
 
   const token = localStorage.getItem("token");
 
@@ -370,21 +372,9 @@ function AvatarRegister() {
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
-        const pendingInvite = localStorage.getItem("pendingInvite");
-        if (pendingInvite) {
-          localStorage.removeItem("pendingInvite");
-          try {
-            await axios.post(
-              `${API_URL}/api/party/join/${pendingInvite}`,
-              {},
-              { headers: { Authorization: `Bearer ${token}` } },
-            );
-          } catch (err) {
-            console.error("Could not join party:", err);
-          }
-        }
-
-        navigate("/dashboard");
+        // registration already joined the invited party (see /api/auth/register) —
+        // just send them straight there
+        navigate(inviteCode ? `/party/${inviteCode}` : "/dashboard");
       } catch (err) {
         console.error("Couldn't save avatar selection", err);
         setIsConfirmed(false);

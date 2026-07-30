@@ -1,13 +1,12 @@
 import express from "express";
 import User from "../models/user.js";
 import Party from "../models/party.js";
+import Notification from "../models/notification.js";
 import protect from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // POST /api/auth/register
-// called from the frontend right after a successful Firebase signup
-// creates the matching Mongo profile (firebase already handled the credentials)
 router.post("/register", protect, async (req, res) => {
   try {
     const { username, inviteCode } = req.body;
@@ -29,7 +28,33 @@ router.post("/register", protect, async (req, res) => {
 
     await user.save();
 
-    if (!inviteCode) {
+    let invitedParty = null;
+    if (inviteCode) {
+      invitedParty = await Party.findOne({ inviteCode });
+    }
+
+    if (invitedParty) {
+      // join the party they were invited to instead of creating a new one
+      const alreadyMember = invitedParty.members.some(
+        (m) => m.toString() === user._id.toString(),
+      );
+      if (!alreadyMember) {
+        invitedParty.members.push(user._id);
+        await invitedParty.save();
+      }
+
+      user.partyId = invitedParty._id;
+      user.isPartyOwner = false;
+      await user.save();
+
+      await Notification.create({
+        recipient: invitedParty.owner,
+        type: "member_joined",
+        message: `${user.username} joined your Hearth! 🏡`,
+        fromUser: user._id,
+      });
+    } else {
+      // no invite (or an invalid/expired one) — give them their own party
       const party = new Party({
         name: `${username}'s Hearth`,
         owner: user._id,

@@ -33,7 +33,7 @@ const CATEGORY_OPTIONS = [
   "other",
 ];
 
-const CATEGORY_ICON = {
+export export const CATEGORY_ICON = {
   general: "🌿",
   fitness: "💪",
   study: "📚",
