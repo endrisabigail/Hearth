@@ -13,24 +13,24 @@
 }
 
 .am-marker:hover {
-  background: rgba(249, 212, 35, 0.12);
+  background: rgba(110, 160, 90, 0.18);
 }
 
 .am-marker--active {
-  background: rgba(249, 212, 35, 0.16);
+  background: rgba(110, 160, 90, 0.25);
 }
 
 .am-popup {
   position: absolute;
   transform: translate(-50%, calc(-100% - 26px));
-  width: 260px;
-  max-height: 340px;
+  width: 270px;
+  max-height: 350px;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 248, 235, 0.96);
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
-  box-shadow: 0 8px 28px rgba(45, 90, 39, 0.25);
+  background: rgba(247, 249, 244, 0.97);
+  border: 2.5px solid #a4bea0;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(45, 70, 40, 0.22);
   backdrop-filter: blur(8px);
   font-family: "Nunito", sans-serif;
   z-index: 7;
@@ -41,35 +41,34 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(139, 105, 20, 0.12);
+  padding: 10px 14px;
+  border-bottom: 1.5px solid rgba(110, 140, 100, 0.15);
   flex-shrink: 0;
+  background: rgba(225, 238, 222, 0.5);
 }
 
 .am-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: #8b6914;
+  color: #3b5e34;
   margin: 0;
 }
 
 .am-close {
   background: none;
   border: none;
-  font-size: 12px;
-  color: rgba(139, 105, 20, 0.5);
+  font-size: 13px;
+  color: #6a8265;
   cursor: pointer;
-  padding: 2px 5px;
-  border-radius: 4px;
-  transition:
-    color 0.15s,
-    background 0.15s;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
 }
 
 .am-close:hover {
-  color: #8b6914;
-  background: rgba(139, 105, 20, 0.1);
+  color: #2f452c;
+  background: rgba(110, 140, 100, 0.15);
 }
 
 .am-messages {
@@ -90,8 +89,8 @@
 
 .am-empty {
   font-size: 11px;
-  font-weight: 600;
-  color: rgba(139, 105, 20, 0.55);
+  font-weight: 700;
+  color: #789472;
   text-align: center;
   line-height: 1.5;
   margin: auto 0;
@@ -101,8 +100,8 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 1.45;
-  padding: 7px 10px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 14px;
   max-width: 85%;
   white-space: pre-wrap;
   word-break: break-word;
@@ -110,30 +109,30 @@
 
 .am-bubble--user {
   align-self: flex-end;
-  background: #5aaa4a;
+  background: #528047;
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .am-bubble--assistant {
   align-self: flex-start;
-  background: rgba(139, 105, 20, 0.08);
-  color: #3d2b1f;
+  background: #e2ede0;
+  color: #2f452c;
   border-bottom-left-radius: 4px;
+  border: 1px solid #c4d7c0;
 }
 
-/* swirl loader shown in place of an empty assistant bubble while streaming */
 .am-swirl {
   display: inline-block;
   width: 16px;
   height: 16px;
   border-radius: 50%;
   background: conic-gradient(from 0deg,
-      rgba(74, 144, 226, 0) 0deg,
-      rgba(74, 144, 226, 0.35) 90deg,
-      #4a90e2 270deg,
-      #8ec9ff 330deg,
-      rgba(74, 144, 226, 0) 360deg);
+      rgba(82, 128, 71, 0) 0deg,
+      rgba(82, 128, 71, 0.35) 90deg,
+      #528047 270deg,
+      #9bc493 330deg,
+      rgba(82, 128, 71, 0) 360deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
   animation: am-swirl-spin 0.9s linear infinite;
@@ -151,25 +150,26 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border-top: 1px solid rgba(139, 105, 20, 0.12);
+  border-top: 1.5px solid rgba(110, 140, 100, 0.15);
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .am-input {
   flex: 1;
-  border: 1.5px solid rgba(139, 105, 20, 0.18);
+  border: 1.5px solid #a4bea0;
   border-radius: 999px;
   padding: 6px 12px;
   font-family: "Nunito", sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #3d2b1f;
+  color: #2f452c;
   background: #fff;
   outline: none;
 }
 
 .am-input:focus {
-  border-color: #5aaa4a;
+  border-color: #528047;
 }
 
 .am-input:disabled {
@@ -181,21 +181,19 @@
   height: 30px;
   border-radius: 50%;
   border: none;
-  background: #5aaa4a;
+  background: #528047;
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition:
-    background 0.15s,
-    transform 0.1s;
+  transition: background 0.15s, transform 0.1s;
 }
 
 .am-send:hover:not(:disabled) {
-  background: #4a9a3a;
+  background: #426b38;
   transform: scale(1.06);
 }
 
