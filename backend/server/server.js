@@ -6,7 +6,7 @@ import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 import authRoutes from "../routes/auth.js";
 import questRoutes from "../routes/quest.js";
-import partyRoutes from "../routes/party.js";
+import partyRoutes from "../routes/party.js";             
 import dashboardRoutes from "../routes/dashboard.js";
 import initPlazaSocket from "./sockets/plaza.js";
 import initAiSocket from "./sockets/ai.js";
