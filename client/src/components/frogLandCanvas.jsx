@@ -27,7 +27,7 @@ const PALETTE = {
 const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
 
-// world layout 
+// world layout
 const FROG_WORLD_MIN = -21;
 const FROG_WORLD_MAX = 21;
 const FROG_WORLD_SIZE = FROG_WORLD_MAX - FROG_WORLD_MIN; // 42
@@ -41,7 +41,7 @@ const CATTAIL_RING_MIN = 16.6;
 const CATTAIL_RING_MAX = 19.1;
 const CATTAIL_RING_COUNT = 28;
 
-// large lily pads ("trees") 
+// large lily pads ("trees")
 const LILY_TREE_COUNT = 50;
 const MIN_LILY_SPACING = 2.4;
 const LILY_RADIUS_MIN = 0.85;
@@ -80,7 +80,7 @@ function hexBoundaryRadius(theta, R) {
   return apothem / Math.cos(a);
 }
 
-//hexagon shape
+// hexagon
 function buildHexShape(radius, irregularity, rand) {
   const shape = new THREE.Shape();
   const segs = 6;
@@ -160,6 +160,7 @@ function buildDragonflyTexture(hue) {
   return tex;
 }
 
+// fallback flora 
 function buildFallbackLilyPad(rand) {
   const group = new THREE.Group();
   // slight per-pad variation around PALETTE.moss so they're not all identical
@@ -293,6 +294,7 @@ function FrogLandCanvas({
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
+    //lights
     scene.add(new THREE.HemisphereLight(0xbfe3f2, 0x3f6b3a, 0.65));
     scene.add(new THREE.AmbientLight(0xeaf3d0, 0.25));
     const sun = new THREE.DirectionalLight(0xfff0c8, 1.35);
@@ -317,26 +319,31 @@ function FrogLandCanvas({
     collisionBoxesRef.current = [];
 
     // sound
-    const bgMusic = new Audio("/assets/audio/backgroundFrog.mp3");
-    bgMusic.loop = true;
-    bgMusic.volume = 0.35;
-    bgMusicRef.current = bgMusic;
+    let resumeAudioOnGesture = () => { };
+    try {
+      const bgMusic = new Audio("/assets/sounds/backgroundFrog.mp3");
+      bgMusic.loop = true;
+      bgMusic.volume = 0.35;
+      bgMusicRef.current = bgMusic;
 
-    const waterSound = new Audio("/assets/audio/waterMovement.mp3");
-    waterSound.loop = true;
-    waterSound.volume = 0;
-    waterSoundRef.current = waterSound;
+      const waterSound = new Audio("/assets/sounds/waterMovement.mp3");
+      waterSound.loop = true;
+      waterSound.volume = 0;
+      waterSoundRef.current = waterSound;
 
-    // Browsers block audio.play() until the user has interacted w page
-    const tryPlayBgMusic = () => bgMusic.play().catch(() => { });
-    tryPlayBgMusic();
-    const resumeAudioOnGesture = () => {
+      // browsers block audio.play() until user interacts
+      const tryPlayBgMusic = () => bgMusic.play().catch(() => { });
       tryPlayBgMusic();
-      window.removeEventListener("keydown", resumeAudioOnGesture);
-      window.removeEventListener("pointerdown", resumeAudioOnGesture);
-    };
-    window.addEventListener("keydown", resumeAudioOnGesture);
-    window.addEventListener("pointerdown", resumeAudioOnGesture);
+      resumeAudioOnGesture = () => {
+        tryPlayBgMusic();
+        window.removeEventListener("keydown", resumeAudioOnGesture);
+        window.removeEventListener("pointerdown", resumeAudioOnGesture);
+      };
+      window.addEventListener("keydown", resumeAudioOnGesture);
+      window.addEventListener("pointerdown", resumeAudioOnGesture);
+    } catch (err) {
+      console.error("frog plaza audio init failed (continuing without sound):", err);
+    }
 
     // pond/water
     const shapeRand = seededRandom(211);
@@ -353,6 +360,7 @@ function FrogLandCanvas({
     waterMesh.position.set(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     waterMesh.receiveShadow = true;
     scene.add(waterMesh);
+
 
     const deepShapeRand = seededRandom(212);
     const deepRingCount = 3;
@@ -380,7 +388,7 @@ function FrogLandCanvas({
     const lilyLoader = new GLTFLoader();
     let lilyCancelled = false;
 
-    // scatter logic
+    //scatter logic
     function populateLilyPads(makePad, baseRadius, baseMinY) {
       let attempts = 0;
       let placed = 0;
@@ -762,10 +770,7 @@ function FrogLandCanvas({
           spawnRipple(wx, wz, 0.7);
         }
 
-        // water-movement sound fades in while hopping, fades back out at rest
-        // (rather than snapping on/off, which pops every time a key is
-        // tapped) and only pauses once it's fully faded, so a quick
-        // start/stop doesn't restart the sample from zero each time.
+        // water-movement sound
         const waterSound = waterSoundRef.current;
         if (waterSound) {
           const targetVolume = isMoving ? 0.5 : 0;
@@ -931,11 +936,11 @@ function FrogLandCanvas({
       window.removeEventListener("keydown", resumeAudioOnGesture);
       window.removeEventListener("pointerdown", resumeAudioOnGesture);
 
-      bgMusic.pause();
-      bgMusic.src = "";
+      bgMusicRef.current?.pause();
+      if (bgMusicRef.current) bgMusicRef.current.src = "";
       bgMusicRef.current = null;
-      waterSound.pause();
-      waterSound.src = "";
+      waterSoundRef.current?.pause();
+      if (waterSoundRef.current) waterSoundRef.current.src = "";
       waterSoundRef.current = null;
 
       delete posRef.current.clampToBounds;
