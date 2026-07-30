@@ -33,7 +33,7 @@ const AVATAR_MAP = {
 
 const MOVE_SPEED = 0.0004; // units per ms; multiplied by dt in the game loop
 const SAVE_DEBOUNCE = 1500;
-const PANELS = ["members", "mail", "focus"];
+const PANELS = ["members", "focus"];
 
 // how close the character needs to be to a chest to trigger on walk-in
 const PROXIMITY_THRESHOLD = 0.06;
@@ -79,8 +79,8 @@ function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQuest, setModalQuest] = useState(null);
   const [msgModalOpen, setMsgModalOpen] = useState(false);
-  const [mailPopoverOpen, setMailPopoverOpen] = useState(false);
-  const mailPanelRef = useRef(null);
+  const [bellPopoverOpen, setBellPopoverOpen] = useState(false);
+  const bellPanelRef = useRef(null);
   const [navModalOpen, setNavModalOpen] = useState(false);
   const [showControls, setShowControls] = useState(true); // show movement controls hint on first load
   const [agentScreenPos, setAgentScreenPos] = useState(null);
@@ -108,7 +108,6 @@ function Dashboard() {
   });
   const [openPanels, setOpenPanels] = useState({
     members: true,
-    mail: true,
     focus: true,
   });
 
@@ -459,15 +458,15 @@ function Dashboard() {
   }, [scheduleSave]);
 
   useEffect(() => {
-    if (!mailPopoverOpen) return;
+    if (!bellPopoverOpen) return;
     const handleClickOutside = (e) => {
-      if (mailPanelRef.current && !mailPanelRef.current.contains(e.target)) {
-        setMailPopoverOpen(false);
+      if (bellPanelRef.current && !bellPanelRef.current.contains(e.target)) {
+        setBellPopoverOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [mailPopoverOpen]);
+  }, [bellPopoverOpen]);
 
   const togglePanel = (panel) =>
     setOpenPanels((prev) => ({ ...prev, [panel]: !prev[panel] }));
@@ -522,7 +521,7 @@ function Dashboard() {
   const habitat = party?.habitatId || party?.owner?.avatarId || userData?.avatarId;
   const isFrogLand = habitat === "frog";
 
-  const mailIcon = (n) => {
+  const notifIcon = (n) => {
     if (n.type === "quest_complete") return "⚔️";
     if (n.type === "badge_earned") return "🏅";
     if (n.type === "member_joined") return "🏡";
@@ -530,9 +529,11 @@ function Dashboard() {
     if (n.type === "streak_milestone") return "🔥";
     if (n.type === "neighbor_request") return "🤝";
     if (n.type === "neighbor_accepted") return "🌿";
-    if (n.message?.startsWith("✉️")) return "💬";
-    return "✉️";
+    return "🔔";
   };
+
+  // new-message notifications live on the envelope; everything else rings the bell
+  const isMailNotification = (n) => n.message?.startsWith("✉️");
 
   if (loading) {
     return (
@@ -547,11 +548,12 @@ function Dashboard() {
     );
   }
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const bellNotifications = notifications.filter((n) => !isMailNotification(n));
+  const unreadMailCount = notifications.filter(
+    (n) => !n.read && isMailNotification(n),
+  ).length;
+  const unreadBellCount = bellNotifications.filter((n) => !n.read).length;
   const minimizedPanels = PANELS.filter((p) => !openPanels[p]);
-  const hasTeammates = partyMembers.some(
-    (m) => m._id?.toString() !== userData?.id?.toString(),
-  );
 
   return (
     <div className="dashboard">
@@ -567,6 +569,79 @@ function Dashboard() {
           opacity: 0.9,
         }}
       />
+      <div className="hud-icon-cluster">
+        <div className="bell-wrap" ref={bellPanelRef}>
+          <button
+            className={`bell-trigger${unreadBellCount > 0 ? " bell-trigger--ring" : ""}`}
+            onClick={() => setBellPopoverOpen((o) => !o)}
+            title={
+              unreadBellCount > 0
+                ? `${unreadBellCount} new notifications`
+                : "notifications"
+            }
+          >
+            <span className="bell-icon">🔔</span>
+            {unreadBellCount > 0 && (
+              <span className="bell-badge">{unreadBellCount}</span>
+            )}
+          </button>
+
+          {bellPopoverOpen && (
+            <div className="bell-popover">
+              <div className="bell-popover-header">
+                <span className="bell-popover-title">notifications</span>
+                {unreadBellCount > 0 && (
+                  <button className="read-all-btn" onClick={markNotificationsRead}>
+                    mark read
+                  </button>
+                )}
+              </div>
+              <div className="mail-list">
+                {bellNotifications.length > 0 ? (
+                  bellNotifications.map((n) => (
+                    <div
+                      key={n._id}
+                      className={`mail-row ${n.read ? "read" : "unread"}`}
+                    >
+                      <span className="mail-icon">{notifIcon(n)}</span>
+                      <div className="mail-content">
+                        <p className="mail-message">{n.message}</p>
+                        <p className="mail-time">
+                          {new Date(n.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {!n.read && <div className="unread-dot" />}
+                    </div>
+                  ))
+                ) : (
+                  <p className="empty-msg">no notifications yet!</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          className="mail-envelope-trigger"
+          onClick={() => setMsgModalOpen(true)}
+          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
+        >
+          <span
+            className={`mail-envelope${unreadMailCount > 0 ? " mail-envelope--shake" : ""}`}
+          >
+            <span className="mail-letter">
+              <span className="mail-letter-line" />
+              <span className="mail-letter-line mail-letter-line--short" />
+            </span>
+            <span className="mail-envelope-flap" />
+            <span className="mail-envelope-body" />
+            {unreadMailCount > 0 && (
+              <span className="mail-envelope-badge">{unreadMailCount}</span>
+            )}
+          </span>
+        </button>
+      </div>
+
       <div className="scene-bg" ref={mapAreaRef}>
         {userData?.avatarId && (isFrogLand ? (
           <FrogLandCanvas
@@ -737,97 +812,6 @@ function Dashboard() {
           </div>
         )}
 
-        {openPanels.mail && (
-          <div className="panel mail-panel" ref={mailPanelRef}>
-            <div className="panel-header">
-              <span className="panel-title">📬 mail</span>
-              <div className="panel-header-actions">
-                {hasTeammates && (
-                  <button
-                    className="compose-btn"
-                    onClick={() => setMsgModalOpen(true)}
-                  >
-                    ✉️ compose
-                  </button>
-                )}
-                <button
-                  className="panel-close"
-                  onClick={() => togglePanel("mail")}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="mail-envelope-wrap">
-              <button
-                className={`mail-envelope-trigger${mailPopoverOpen ? " mail-open" : ""
-                  }`}
-                onClick={() => setMailPopoverOpen((o) => !o)}
-                title={unreadCount > 0 ? "you've got mail!" : "check mail"}
-              >
-                <span
-                  className={`mail-envelope${unreadCount > 0 ? " mail-envelope--shake" : ""
-                    }`}
-                >
-                  <span className="mail-letter">
-                    <span className="mail-letter-line" />
-                    <span className="mail-letter-line mail-letter-line--short" />
-                  </span>
-                  <span className="mail-envelope-flap" />
-                  <span className="mail-envelope-body" />
-                  {unreadCount > 0 && (
-                    <span className="mail-envelope-badge">{unreadCount}</span>
-                  )}
-                </span>
-                <p className="mail-envelope-hint">
-                  {unreadCount > 0
-                    ? `${unreadCount} new mail!`
-                    : notifications.length > 0
-                      ? "tap to reread"
-                      : "no mail yet"}
-                </p>
-              </button>
-
-              {mailPopoverOpen && (
-                <div className="mail-popover">
-                  <div className="mail-popover-header">
-                    <span className="mail-popover-title">all mail</span>
-                    {unreadCount > 0 && (
-                      <button
-                        className="read-all-btn"
-                        onClick={markNotificationsRead}
-                      >
-                        mark read
-                      </button>
-                    )}
-                  </div>
-                  <div className="mail-list">
-                    {notifications.length > 0 ? (
-                      notifications.map((n) => (
-                        <div
-                          key={n._id}
-                          className={`mail-row ${n.read ? "read" : "unread"}`}
-                        >
-                          <span className="mail-icon">{mailIcon(n)}</span>
-                          <div className="mail-content">
-                            <p className="mail-message">{n.message}</p>
-                            <p className="mail-time">
-                              {new Date(n.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {!n.read && <div className="unread-dot" />}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="empty-msg">no mail yet! 📭</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* right column */}
@@ -890,11 +874,7 @@ function Dashboard() {
               className="footer-pill"
               onClick={() => togglePanel(panel)}
             >
-              {panel === "members"
-                ? "👥 members"
-                : panel === "mail"
-                  ? `📬 mail${unreadCount > 0 ? ` (${unreadCount})` : ""}`
-                  : "🎯 focus"}
+              {panel === "members" ? "👥 members" : "🎯 focus"}
             </button>
           ))}
         </div>

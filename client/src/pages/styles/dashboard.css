@@ -519,25 +519,29 @@
   object-fit: cover;
 }
 
-/* mail envelope */
+/* standalone hud icons: envelope (messages) + bell (general notifications) */
 
-.mail-envelope-wrap {
-  position: relative;
+.hud-icon-cluster {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 15;
   display: flex;
-  justify-content: center;
-  padding: 14px 0 10px;
+  align-items: flex-start;
+  gap: 14px;
 }
 
+/* mail envelope */
+
 .mail-envelope-trigger {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
   background: none;
   border: none;
   cursor: pointer;
   font-family: "Nunito", sans-serif;
   perspective: 240px;
+  padding: 0;
 }
 
 .mail-envelope {
@@ -654,14 +658,12 @@
 }
 
 .mail-envelope-trigger:hover .mail-letter,
-.mail-envelope-trigger:focus-visible .mail-letter,
-.mail-envelope-trigger.mail-open .mail-letter {
+.mail-envelope-trigger:focus-visible .mail-letter {
   transform: translate(-50%, -16px);
 }
 
 .mail-envelope-trigger:hover .mail-envelope-flap,
-.mail-envelope-trigger:focus-visible .mail-envelope-flap,
-.mail-envelope-trigger.mail-open .mail-envelope-flap {
+.mail-envelope-trigger:focus-visible .mail-envelope-flap {
   transform: rotateX(150deg);
 }
 
@@ -697,20 +699,105 @@
   }
 }
 
-.mail-envelope-hint {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  color: rgba(139, 105, 20, 0.7);
-  text-align: center;
+/* bell — separate icon for general notifications (everything that isn't a new message) */
+
+.bell-wrap {
+  position: relative;
 }
 
-/* popover shown on click, with everything in the mailbox */
+.bell-trigger {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #fffaf0 0%, #f3e6c8 100%);
+  border: 2px solid rgba(139, 105, 20, 0.35);
+  box-shadow: 0 4px 10px rgba(139, 105, 20, 0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: transform 0.15s;
+}
 
-.mail-popover {
+.bell-trigger:hover,
+.bell-trigger:focus-visible {
+  transform: scale(1.08);
+}
+
+.bell-icon {
+  display: block;
+  transform-origin: 50% 15%;
+}
+
+.bell-trigger--ring .bell-icon {
+  animation: bell-ring 2.2s ease-in-out infinite;
+}
+
+@keyframes bell-ring {
+
+  0%,
+  8%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  1% {
+    transform: rotate(-14deg);
+  }
+
+  2% {
+    transform: rotate(12deg);
+  }
+
+  3% {
+    transform: rotate(-10deg);
+  }
+
+  4% {
+    transform: rotate(8deg);
+  }
+
+  5% {
+    transform: rotate(-5deg);
+  }
+
+  6% {
+    transform: rotate(3deg);
+  }
+
+  7% {
+    transform: rotate(-1deg);
+  }
+}
+
+.bell-badge {
   position: absolute;
-  top: 8px;
-  left: calc(100% + 10px);
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e07020;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fffaf0;
+  z-index: 4;
+  animation: mail-badge-pop 1.6s ease-in-out infinite;
+}
+
+/* popover shown on click, with all general notifications */
+
+.bell-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
   width: 230px;
   max-height: 320px;
   display: flex;
@@ -721,23 +808,23 @@
   box-shadow: 0 10px 28px rgba(40, 60, 40, 0.24);
   z-index: 20;
   overflow: hidden;
-  transform-origin: 0% 30%;
+  transform-origin: 90% 0%;
   animation: mail-popover-in 0.2s ease-out;
 }
 
 @keyframes mail-popover-in {
   0% {
     opacity: 0;
-    transform: scale(0.9) translateX(-6px);
+    transform: scale(0.9) translateY(-6px);
   }
 
   100% {
     opacity: 1;
-    transform: scale(1) translateX(0);
+    transform: scale(1) translateY(0);
   }
 }
 
-.mail-popover-header {
+.bell-popover-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -746,7 +833,7 @@
   flex-shrink: 0;
 }
 
-.mail-popover-title {
+.bell-popover-title {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -754,7 +841,7 @@
   text-transform: uppercase;
 }
 
-.mail-popover .mail-list {
+.bell-popover .mail-list {
   max-height: 270px;
   overflow-y: auto;
   padding: 4px 0;
