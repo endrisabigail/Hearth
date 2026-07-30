@@ -1,7 +1,9 @@
 .mm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 45, 30, 0.55);
+  background:
+    radial-gradient(circle at 70% 15%, rgba(150, 190, 130, 0.12), transparent 55%),
+    rgba(28, 42, 26, 0.58);
   z-index: 1100;
   display: flex;
   align-items: center;
@@ -12,11 +14,13 @@
 .mm-card {
   background: linear-gradient(160deg, #f7f9f4 0%, #e8f2e6 100%);
   border: 3px solid #8fa888;
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 24px 28px;
   width: 360px;
   max-width: 92vw;
-  box-shadow: 0 20px 50px rgba(40, 60, 40, 0.3);
+  box-shadow:
+    0 20px 44px rgba(40, 60, 40, 0.26),
+    0 2px 0 rgba(255, 255, 255, 0.6) inset;
   font-family: "Nunito", sans-serif;
   position: relative;
 }
@@ -27,6 +31,7 @@
   height: 520px;
   padding: 0;
   overflow: hidden;
+  border-radius: 24px;
 }
 
 .mm-header {
@@ -101,7 +106,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #dfece0;
+  background: linear-gradient(135deg, #e2ede0, #b5ccb0);
   border: 1.5px solid #a4bea0;
   display: flex;
   align-items: center;
@@ -158,6 +163,19 @@
   border-radius: 50%;
   background: #528047;
   margin-left: 4px;
+  animation: mm-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes mm-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(82, 128, 71, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgba(82, 128, 71, 0);
+  }
 }
 
 .mm-history {
@@ -215,7 +233,7 @@
   background: #e2ede0;
   color: #2f452c;
   border: 1px solid #c4d7c0;
-  border-radius: 16px 16px 16px 4px;
+  border-radius: 17px 17px 17px 5px;
   padding: 9px 13px;
   font-size: 13.5px;
   line-height: 1.45;
@@ -224,10 +242,10 @@
 }
 
 .mm-bubble--mine {
-  background: #528047;
+  background: linear-gradient(135deg, #629655, #426b38);
   color: #fff;
   border: none;
-  border-radius: 16px 16px 4px 16px;
+  border-radius: 17px 17px 5px 17px;
 }
 
 .mm-bubble--pending {
@@ -301,7 +319,7 @@
 
 .mm-send-btn:hover:not(:disabled) {
   background: #426b38;
-  transform: scale(1.05);
+  transform: scale(1.08) rotate(-8deg);
 }
 
 .mm-send-btn:disabled {

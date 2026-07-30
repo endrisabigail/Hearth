@@ -1,7 +1,9 @@
 .nm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(25, 40, 25, 0.55);
+  background:
+    radial-gradient(circle at 50% 10%, rgba(150, 190, 130, 0.14), transparent 55%),
+    rgba(24, 38, 24, 0.58);
   backdrop-filter: blur(4px);
   z-index: 999;
   display: flex;
@@ -22,9 +24,9 @@
 
 .nm-card {
   background: #f7f9f4;
-  border-radius: 20px;
+  border-radius: 24px;
   border: 3px solid #8fa888;
-  box-shadow: 0 12px 40px rgba(40, 60, 40, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 40px rgba(40, 60, 40, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   width: min(700px, 95vw);
   max-height: 90vh;
   overflow: hidden;
@@ -137,12 +139,24 @@
 .nm-profile-card {
   background: linear-gradient(135deg, #ffffff, #edf5eb);
   border: 2px solid #b5ccb0;
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.nm-profile-card::after {
+  content: "🌿";
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  font-size: 26px;
+  opacity: 0.35;
+  transform: rotate(12deg);
 }
 
 .nm-avatar-bubble {
@@ -185,8 +199,8 @@
 .nm-chip-btn {
   background: #dfece0;
   border: 2px solid #a4bea0;
-  border-radius: 8px;
-  padding: 4px 10px;
+  border-radius: 999px;
+  padding: 4px 12px;
   font-family: "Nunito", sans-serif;
   font-size: 11px;
   font-weight: 800;
@@ -196,9 +210,25 @@
   transition: all 0.15s;
 }
 
+@keyframes nm-wiggle {
+
+  0%,
+  100% {
+    transform: translateY(-1px) rotate(0deg);
+  }
+
+  30% {
+    transform: translateY(-2px) rotate(-3deg);
+  }
+
+  65% {
+    transform: translateY(-2px) rotate(3deg);
+  }
+}
+
 .nm-chip-btn:hover {
   background: #cfdecf;
-  transform: translateY(-1px);
+  animation: nm-wiggle 0.4s ease;
 }
 
 /* Section heading */
@@ -244,16 +274,20 @@
   border: none;
   cursor: pointer;
   position: relative;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.15s;
   flex-shrink: 0;
 }
 
+.nm-toggle:hover {
+  transform: scale(1.05);
+}
+
 .nm-toggle.on {
-  background: #528047;
+  background: linear-gradient(135deg, #629655, #426b38);
 }
 
 .nm-toggle.off {
-  background: #b5ccb0;
+  background: #c9bfa6;
 }
 
 .nm-toggle::after {
@@ -266,9 +300,15 @@
   top: 3px;
   transition: left 0.2s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .nm-toggle.on::after {
+  content: "🍃";
   left: 21px;
 }
 
@@ -308,8 +348,14 @@
   padding: 8px 10px;
   background: #ffffff;
   border: 2px solid #b5ccb0;
-  border-radius: 10px;
+  border-radius: 14px;
   margin-bottom: 6px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.nm-member-row:hover {
+  border-color: #8fa888;
+  transform: translateX(2px);
 }
 
 .nm-member-emoji {
@@ -347,9 +393,9 @@
 /* Invite btn */
 .nm-invite-btn {
   width: 100%;
-  background: linear-gradient(135deg, #528047, #3b5e34);
+  background: linear-gradient(135deg, #629655, #3b5e34);
   border: 2px solid #2f452c;
-  border-radius: 10px;
+  border-radius: 999px;
   color: #fff;
   font-family: "Nunito", sans-serif;
   font-size: 12px;
@@ -371,7 +417,7 @@
   width: 100%;
   background: linear-gradient(135deg, #d9776c, #b85042);
   border: 2px solid #913a2f;
-  border-radius: 10px;
+  border-radius: 999px;
   color: #fff;
   font-family: "Nunito", sans-serif;
   font-size: 12px;
@@ -396,7 +442,7 @@
   padding: 9px 12px;
   background: #ffffff;
   border: 2px solid #b5ccb0;
-  border-radius: 10px;
+  border-radius: 14px;
   margin-bottom: 6px;
   cursor: pointer;
   transition: all 0.15s;

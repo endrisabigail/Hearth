@@ -1,7 +1,9 @@
 .qm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 45, 30, 0.55);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(150, 190, 130, 0.12), transparent 55%),
+    rgba(28, 42, 26, 0.58);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -12,15 +14,52 @@
 .qm-card {
   background: linear-gradient(160deg, #f7f9f4 0%, #e8f2e6 100%);
   border: 3px solid #8fa888;
-  border-radius: 20px;
-  padding: 28px 32px;
+  border-radius: 26px;
+  padding: 30px 32px 28px;
   max-width: 480px;
   width: 90%;
-  box-shadow: 0 20px 60px rgba(40, 60, 40, 0.25);
+  box-shadow:
+    0 20px 44px rgba(40, 60, 40, 0.22),
+    0 2px 0 rgba(255, 255, 255, 0.6) inset;
   font-family: "Nunito", sans-serif;
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+/* a little leaf charm peeking off the top of the card, like a wax seal */
+.qm-card::before {
+  content: "🍃";
+  position: absolute;
+  top: -16px;
+  left: 26px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f7f9f4;
+  border: 2px solid #8fa888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  transform: rotate(-10deg);
+  box-shadow: 0 3px 8px rgba(40, 60, 40, 0.18);
+}
+
+@keyframes qm-wiggle {
+
+  0%,
+  100% {
+    transform: translateY(-1px) rotate(0deg);
+  }
+
+  30% {
+    transform: translateY(-2px) rotate(-2deg);
+  }
+
+  65% {
+    transform: translateY(-2px) rotate(2deg);
+  }
 }
 
 .qm-close {
@@ -53,6 +92,20 @@
 
 .qm-locked-icon {
   font-size: 48px;
+  display: inline-block;
+  animation: qm-sway 2.6s ease-in-out infinite;
+}
+
+@keyframes qm-sway {
+
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+
+  50% {
+    transform: rotate(6deg);
+  }
 }
 
 .qm-locked h2 {
@@ -93,7 +146,7 @@
 .qm-textarea {
   width: 100%;
   padding: 9px 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1.5px solid #a4bea0;
   background: #fff;
   font-family: "Nunito", sans-serif;
@@ -120,7 +173,7 @@
 }
 
 .qm-error {
-  color: #c95d4e;
+  color: #d9776c;
   font-size: 13px;
   margin-top: 8px;
   font-weight: 700;
@@ -144,7 +197,7 @@
 
 .qm-btn-primary:hover:not(:disabled) {
   filter: brightness(1.05);
-  transform: translateY(-1px);
+  animation: qm-wiggle 0.4s ease;
 }
 
 .qm-btn-primary:disabled {
@@ -156,10 +209,14 @@
   background: linear-gradient(135deg, #57a059 0%, #356b37 100%);
 }
 
+.qm-btn-primary--complete:hover:not(:disabled) {
+  box-shadow: 0 4px 18px rgba(245, 166, 35, 0.35);
+}
+
 .qm-btn-secondary {
   width: 100%;
   padding: 9px;
-  border-radius: 10px;
+  border-radius: 14px;
   border: 1.5px solid #629655;
   background: transparent;
   color: #528047;
@@ -182,7 +239,7 @@
 .qm-btn-delete {
   width: 100%;
   padding: 9px;
-  border-radius: 10px;
+  border-radius: 14px;
   border: 1.5px solid #d9776c;
   background: transparent;
   color: #c95d4e;
@@ -237,7 +294,7 @@
 .qm-section-box {
   background: rgba(255, 255, 255, 0.75);
   border: 1.5px solid #b5ccb0;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 12px 14px;
   margin-bottom: 14px;
 }
@@ -266,6 +323,10 @@
   padding: 10px 0;
   color: #48824b;
   font-weight: 800;
+}
+
+.qm-completed-msg::before {
+  content: "🌟 ";
 }
 
 .qm-completed-by {

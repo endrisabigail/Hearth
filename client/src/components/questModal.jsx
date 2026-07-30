@@ -15,6 +15,12 @@ const STATUS_COLOR = {
   Completed: "#4caf50",
 };
 
+const STATUS_ICON = {
+  "Not Started": "🌱",
+  "In Progress": "🌿",
+  Completed: "🌳",
+};
+
 const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed"];
 const CATEGORY_OPTIONS = [
   "general",
@@ -25,6 +31,16 @@ const CATEGORY_OPTIONS = [
   "social",
   "other",
 ];
+
+const CATEGORY_ICON = {
+  general: "🌟",
+  fitness: "🏃",
+  study: "📚",
+  chores: "🧹",
+  creative: "🎨",
+  social: "🤝",
+  other: "🍂",
+};
 
 function FieldGroup({ label, children }) {
   return (
@@ -141,7 +157,7 @@ function QuestModal({
 
         {isLocked && (
           <div className="qm-locked">
-            <div className="qm-locked-icon">🔒</div>
+            <div className="qm-locked-icon">🌰</div>
             <h2>quest locked</h2>
             <p>this quest slot hasn't been filled yet.</p>
           </div>
@@ -149,7 +165,7 @@ function QuestModal({
 
         {isNew && isOwner && (
           <>
-            <h2 className="qm-create-title">✦ create new quest</h2>
+            <h2 className="qm-create-title">🌟 plant a new quest</h2>
             <FieldGroup label="title">
               <input
                 className="qm-input"
@@ -182,7 +198,7 @@ function QuestModal({
               >
                 {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {CATEGORY_ICON[c] || "🌿"} {c}
                   </option>
                 ))}
               </select>
@@ -242,11 +258,12 @@ function QuestModal({
                 className="qm-status-badge"
                 style={{ background: STATUS_COLOR[quest.status] || "#aaa" }}
               >
-                {quest.status}
+                {STATUS_ICON[quest.status] || "✦"} {quest.status}
               </span>
               <h2 className="qm-quest-title">{quest.title}</h2>
               <p className="qm-quest-meta">
-                📁 {quest.category} · ⭐ {quest.points} pts
+                {CATEGORY_ICON[quest.category] || "🌿"} {quest.category} · ⭐{" "}
+                {quest.points} pts
               </p>
             </div>
             <div className="qm-section-box">
@@ -282,7 +299,7 @@ function QuestModal({
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {STATUS_ICON[s]} {s}
                     </option>
                   ))}
                 </select>

@@ -91,13 +91,13 @@ function NavModal({ userData, party, api, onClose }) {
               </div>
 
               {/* Notifications */}
-              <div className="nm-section-heading">Notification Pings</div>
+              <div className="nm-section-heading">🔔 Notification Pings</div>
               <ToggleRow label="New Quest Popup" defaultOn={true} />
               <ToggleRow label="Chat Mentions" defaultOn={false} />
               <ToggleRow label="Daily Summary" defaultOn={true} />
 
               {/* Sounds */}
-              <div className="nm-section-heading">Sounds & Music</div>
+              <div className="nm-section-heading">🎵 Sounds & Music</div>
               <div className="nm-slider-row">
                 <span className="nm-slider-label">BGM</span>
                 <input
@@ -129,7 +129,7 @@ function NavModal({ userData, party, api, onClose }) {
 
           {activeTab === "guild" && (
             <div className="nm-section">
-              <div className="nm-section-heading">Neighbor List</div>
+              <div className="nm-section-heading">🏡 Neighbor List</div>
               {partyMembers.length > 0 ? (
                 partyMembers.map((m) => (
                   <div key={m._id} className="nm-member-row">
@@ -168,7 +168,7 @@ function NavModal({ userData, party, api, onClose }) {
               )}
 
               <div className="nm-section-heading" style={{ marginTop: 16 }}>
-                Webhooks & Integrations
+                🔌 Webhooks & Integrations
               </div>
               <ToggleRow label="GitHub Push → Grow Tree" defaultOn={true} />
               <ToggleRow label="Discord Notifications" defaultOn={false} />
@@ -177,7 +177,7 @@ function NavModal({ userData, party, api, onClose }) {
 
           {activeTab === "navigate" && (
             <div className="nm-section">
-              <div className="nm-section-heading">Pages</div>
+              <div className="nm-section-heading">🗺️ Pages</div>
               {[
                 {
                   icon: "🗺️",
@@ -213,7 +213,7 @@ function NavModal({ userData, party, api, onClose }) {
               ))}
 
               <div className="nm-section-heading" style={{ marginTop: 16 }}>
-                Account
+                🌰 Account
               </div>
               <button className="nm-logout-btn" onClick={handleLogout}>
                 🚪 Log Out
