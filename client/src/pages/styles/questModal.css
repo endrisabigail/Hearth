@@ -334,3 +334,359 @@
   font-weight: 600;
   margin-left: 6px;
 }
+
+/* ---- edit mode ---- */
+
+.qm-edit-toggle {
+  float: right;
+  border: 1.5px solid #a4bea0;
+  background: #fff;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #528047;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.qm-edit-toggle:hover {
+  background: rgba(98, 150, 85, 0.12);
+  transform: scale(1.03);
+}
+
+.qm-edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.qm-edit-actions .qm-btn-secondary,
+.qm-edit-actions .qm-btn-primary {
+  margin-bottom: 0;
+}
+
+/* ---- attachments ---- */
+
+.qm-attachments {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+.qm-attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed #b5ccb0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b4d38;
+}
+
+.qm-attachment-item:last-child {
+  border-bottom: none;
+}
+
+.qm-attachment-item a {
+  color: #3b4d38;
+  text-decoration: none;
+}
+
+.qm-attachment-item a:hover {
+  color: #2f452c;
+  text-decoration: underline;
+}
+
+.qm-attachment-remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #c95d4e;
+  font-size: 15px;
+  opacity: 0.65;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.qm-attachment-remove:hover {
+  opacity: 1;
+}
+
+.qm-attachment-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qm-file-input {
+  flex: 1;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  color: #587a50;
+}
+
+.qm-btn-secondary--sm {
+  width: auto;
+  padding: 7px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ---- edit history ---- */
+
+.qm-history-toggle {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #587a50;
+  padding: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.qm-history-toggle:hover {
+  color: #2f452c;
+}
+
+.qm-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+}
+
+.qm-history-item {
+  font-size: 12.5px;
+  color: #6a8265;
+  font-weight: 600;
+  padding: 6px 0;
+  border-top: 1px dashed #b5ccb0;
+  line-height: 1.5;
+}
+
+.qm-history-item:first-child {
+  border-top: none;
+}
+
+.qm-history-who {
+  color: #3b4d38;
+  font-weight: 800;
+}
+
+.qm-history-item em {
+  color: #2f452c;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.qm-history-time {
+  color: #93a98d;
+}
+
+/* ---- comments ---- */
+
+.qm-comments {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+.qm-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px dashed #b5ccb0;
+}
+
+.qm-comment:first-child {
+  border-top: none;
+}
+
+.qm-comment-avatar {
+  font-size: 20px;
+  line-height: 1;
+  background: #eef4ec;
+  border: 1.5px solid #a4bea0;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qm-comment-body {
+  flex: 1;
+}
+
+.qm-comment-meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.qm-comment-author {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #2f452c;
+}
+
+.qm-comment-time {
+  font-size: 11px;
+  color: #93a98d;
+  font-weight: 600;
+}
+
+.qm-comment-text {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3b4d38;
+  line-height: 1.5;
+}
+
+.qm-comment-remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #c95d4e;
+  font-size: 15px;
+  opacity: 0.55;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.qm-comment-remove:hover {
+  opacity: 1;
+}
+
+.qm-comment-empty {
+  font-size: 13px;
+  color: #93a98d;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.qm-comment-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.qm-comment-input-row .qm-input {
+  margin-bottom: 0;
+}
+
+/* ---- completion celebration ---- */
+
+.qm-celebrate-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(150, 190, 130, 0.18), transparent 60%),
+    rgba(28, 42, 26, 0.62);
+  border-radius: 26px;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.qm-celebrate-card {
+  background: linear-gradient(160deg, #f7f9f4 0%, #e8f2e6 100%);
+  border: 3px solid #8fa888;
+  border-radius: 22px;
+  padding: 32px 40px;
+  text-align: center;
+  box-shadow:
+    0 20px 44px rgba(40, 60, 40, 0.3),
+    0 2px 0 rgba(255, 255, 255, 0.6) inset;
+  position: relative;
+  z-index: 2;
+  animation: qm-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.qm-celebrate-card .qm-btn-primary {
+  margin-bottom: 0;
+}
+
+.qm-celebrate-icon {
+  font-size: 46px;
+  animation: qm-bounce 1s ease-in-out infinite;
+}
+
+.qm-celebrate-title {
+  margin: 8px 0 4px;
+  color: #2f452c;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.qm-celebrate-points {
+  margin: 0 0 18px;
+  color: #f5a623;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.qm-confetti-bit {
+  position: absolute;
+  top: -30px;
+  font-size: 22px;
+  animation-name: qm-confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+  z-index: 1;
+}
+
+@keyframes qm-confetti-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(var(--drift), 420px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes qm-pop-in {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes qm-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .qm-confetti-bit,
+  .qm-celebrate-icon,
+  .qm-celebrate-card {
+    animation: none !important;
+  }
+}
