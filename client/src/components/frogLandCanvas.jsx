@@ -27,33 +27,33 @@ const PALETTE = {
 const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
 
-// world layout
-const FROG_WORLD_MIN = -18;
-const FROG_WORLD_MAX = 18;
-const FROG_WORLD_SIZE = FROG_WORLD_MAX - FROG_WORLD_MIN; // 36
+// world layout 
+const FROG_WORLD_MIN = -21;
+const FROG_WORLD_MAX = 21;
+const FROG_WORLD_SIZE = FROG_WORLD_MAX - FROG_WORLD_MIN; // 42
 const FROG_WORLD_CENTER = (FROG_WORLD_MIN + FROG_WORLD_MAX) / 2; // 0
 
-const HEX_RADIUS = 17; // edge of pond
-const FIELD_RADIUS = 13.5; // scatter of assets
-const SPAWN_CLEAR_RADIUS = 3.2; // kept free so the character never spawns on an obstacle
+const HEX_RADIUS = 19.8; // outer misty edge of the pond
+const FIELD_RADIUS = 15.75; // where lily pads / cattails may be scattered
+const SPAWN_CLEAR_RADIUS = 3.75; // kept free so the character never spawns on an obstacle
 
-const CATTAIL_RING_MIN = 14.2;
-const CATTAIL_RING_MAX = 16.4;
-const CATTAIL_RING_COUNT = 24;
+const CATTAIL_RING_MIN = 16.6;
+const CATTAIL_RING_MAX = 19.1;
+const CATTAIL_RING_COUNT = 28;
 
-// large lily pads ("trees")
-const LILY_TREE_COUNT = 40;
+// large lily pads ("trees") 
+const LILY_TREE_COUNT = 50;
 const MIN_LILY_SPACING = 2.4;
 const LILY_RADIUS_MIN = 0.85;
 const LILY_RADIUS_MAX = 1.6;
 
 // cattail clumps ("bushes")
-const CATTAIL_BUSH_COUNT = 60;
+const CATTAIL_BUSH_COUNT = 75;
 const MIN_CATTAIL_BUSH_SPACING = 1.2;
 const CATTAIL_BUSH_HEIGHT_MIN = 1.0;
 const CATTAIL_BUSH_HEIGHT_MAX = 1.8;
 
-const FIREFLY_COUNT = 14;
+const FIREFLY_COUNT = 16;
 const DRAGONFLY_COUNT = 6;
 
 function frogNormToWorld(n) {
@@ -109,73 +109,6 @@ function inClearing(x, z) {
 }
 
 // textures
-function buildFrogWaterTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext("2d");
-
-  const grad = ctx.createLinearGradient(0, 0, 128, 128);
-  grad.addColorStop(0, "#6fc2d6");
-  grad.addColorStop(0.45, "#3f9bb0");
-  grad.addColorStop(0.8, "#1f6e78");
-  grad.addColorStop(1, "#134a52");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 128, 128);
-
-  for (let i = 0; i < 14; i++) {
-    const x = (i * 53) % 128;
-    const y = (i * 41 + i * i * 7) % 128;
-    const r = 10 + (i % 5) * 4;
-    const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
-    grd.addColorStop(0, i % 2 === 0 ? "rgba(20,89,60,0.25)" : "rgba(120,200,190,0.18)");
-    grd.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.strokeStyle = "rgba(15,64,40,0.4)";
-  ctx.lineWidth = 2.4;
-  ctx.lineCap = "round";
-  for (let i = 0; i < 6; i++) {
-    const y0 = (i * 23) % 128;
-    ctx.beginPath();
-    ctx.moveTo(-10, y0);
-    for (let x = 0; x <= 140; x += 12) {
-      const yy = y0 + Math.sin((x + i * 31) * 0.08) * 11;
-      ctx.lineTo(x, yy);
-    }
-    ctx.stroke();
-  }
-
-  // sun-glits
-  ctx.strokeStyle = "rgba(255,240,180,0.6)";
-  ctx.lineWidth = 1.3;
-  for (let i = 0; i < 5; i++) {
-    const y0 = (i * 27 + 14) % 128;
-    ctx.beginPath();
-    ctx.moveTo(-10, y0);
-    for (let x = 0; x <= 140; x += 10) {
-      const yy = y0 + Math.sin((x + i * 47) * 0.11) * 7;
-      ctx.lineTo(x, yy);
-    }
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  for (let i = 0; i < 10; i++) {
-    ctx.fillRect((i * 37) % 128, (i * 53) % 128, 2.5, 2.5);
-  }
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(5, 5);
-  return tex;
-}
-
 function buildFrogSkyTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 8;
@@ -196,6 +129,7 @@ function buildDragonflyTexture(hue) {
   canvas.width = 64;
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 64, 64);
   ctx.translate(32, 32);
 
   ctx.strokeStyle = `hsla(${hue}, 60%, 78%, 0.75)`;
@@ -219,16 +153,19 @@ function buildDragonflyTexture(hue) {
   ctx.arc(0, -19, 3, 0, Math.PI * 2);
   ctx.fill();
 
-  return new THREE.CanvasTexture(canvas);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
 }
 
-// fallback flora 
 function buildFallbackLilyPad(rand) {
   const group = new THREE.Group();
-  const hue = 95 + rand() * 25;
-  const padMat = new THREE.MeshLambertMaterial({
-    color: new THREE.Color(`hsl(${hue}, 45%, 34%)`),
-  });
+  // slight per-pad variation around PALETTE.moss so they're not all identical
+  const mossColor = new THREE.Color(PALETTE.moss);
+  const padColor = mossColor.clone().offsetHSL(0, 0, (rand() - 0.5) * 0.12 - 0.08);
+  const padMat = new THREE.MeshLambertMaterial({ color: padColor });
   const notch = rand() * 0.5 + 0.15;
   const shape = new THREE.Shape();
   const segs = 28;
@@ -244,7 +181,7 @@ function buildFallbackLilyPad(rand) {
   // occasional small lotus-style bloom
   if (rand() > 0.6) {
     const bloomMat = new THREE.MeshLambertMaterial({
-      color: rand() > 0.5 ? 0xf6c9d8 : 0xfdf1c4,
+      color: rand() > 0.5 ? 0xf6c9d8 : PALETTE.reed,
     });
     for (let i = 0; i < 5; i++) {
       const petal = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 6), bloomMat);
@@ -259,8 +196,8 @@ function buildFallbackLilyPad(rand) {
 
 function buildFallbackCattail(rand) {
   const group = new THREE.Group();
-  const stalkMat = new THREE.MeshLambertMaterial({ color: 0x4c7a3d });
-  const headMat = new THREE.MeshLambertMaterial({ color: 0x6b4a30 });
+  const stalkMat = new THREE.MeshLambertMaterial({ color: PALETTE.moss });
+  const headMat = new THREE.MeshLambertMaterial({ color: PALETTE.deep });
   const bladeCount = 2 + Math.floor(rand() * 2);
   for (let i = 0; i < bladeCount; i++) {
     const h = 0.85 + rand() * 0.3;
@@ -311,6 +248,11 @@ function FrogLandCanvas({
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
+  // sound
+  const bgMusicRef = useRef(null);
+  const waterSoundRef = useRef(null);
+  const wasMovingRef = useRef(false);
+
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
   }, [hasActiveQuest]);
@@ -335,7 +277,7 @@ function FrogLandCanvas({
 
     // Camera
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(FROG_WORLD_CENTER, 11, FROG_WORLD_CENTER + 9);
+    camera.position.set(FROG_WORLD_CENTER, 12, FROG_WORLD_CENTER + 10);
     camera.lookAt(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     cameraRef.current = camera;
 
@@ -344,7 +286,6 @@ function FrogLandCanvas({
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputEncoding = THREE.sRGBEncoding;
-
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
@@ -352,7 +293,6 @@ function FrogLandCanvas({
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // lights
     scene.add(new THREE.HemisphereLight(0xbfe3f2, 0x3f6b3a, 0.65));
     scene.add(new THREE.AmbientLight(0xeaf3d0, 0.25));
     const sun = new THREE.DirectionalLight(0xfff0c8, 1.35);
@@ -360,12 +300,12 @@ function FrogLandCanvas({
     sun.target.position.set(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -20;
-    sun.shadow.camera.right = 20;
-    sun.shadow.camera.top = 20;
-    sun.shadow.camera.bottom = -20;
+    sun.shadow.camera.left = -23;
+    sun.shadow.camera.right = 23;
+    sun.shadow.camera.top = 23;
+    sun.shadow.camera.bottom = -23;
     sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 40;
+    sun.shadow.camera.far = 46;
     sun.shadow.bias = -0.0015;
     sun.shadow.radius = 3;
     scene.add(sun);
@@ -376,17 +316,37 @@ function FrogLandCanvas({
 
     collisionBoxesRef.current = [];
 
+    // sound
+    const bgMusic = new Audio("/assets/audio/backgroundFrog.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.35;
+    bgMusicRef.current = bgMusic;
+
+    const waterSound = new Audio("/assets/audio/waterMovement.mp3");
+    waterSound.loop = true;
+    waterSound.volume = 0;
+    waterSoundRef.current = waterSound;
+
+    // Browsers block audio.play() until the user has interacted w page
+    const tryPlayBgMusic = () => bgMusic.play().catch(() => { });
+    tryPlayBgMusic();
+    const resumeAudioOnGesture = () => {
+      tryPlayBgMusic();
+      window.removeEventListener("keydown", resumeAudioOnGesture);
+      window.removeEventListener("pointerdown", resumeAudioOnGesture);
+    };
+    window.addEventListener("keydown", resumeAudioOnGesture);
+    window.addEventListener("pointerdown", resumeAudioOnGesture);
+
     // pond/water
     const shapeRand = seededRandom(211);
     const hexShape = buildHexShape(HEX_RADIUS, 0.05, shapeRand);
-    const waterTex = buildFrogWaterTexture();
-
     const waterMat = new THREE.MeshPhongMaterial({
-      map: waterTex,
+      color: PALETTE.sky,
       transparent: true,
-      opacity: 0.96,
-      shininess: 90,
-      specular: 0xdff3ff,
+      opacity: 0.94,
+      shininess: 70,
+      specular: 0xffffff,
     });
     const waterMesh = new THREE.Mesh(new THREE.ShapeGeometry(hexShape), waterMat);
     waterMesh.rotation.x = -Math.PI / 2;
@@ -420,6 +380,7 @@ function FrogLandCanvas({
     const lilyLoader = new GLTFLoader();
     let lilyCancelled = false;
 
+    // scatter logic
     function populateLilyPads(makePad, baseRadius, baseMinY) {
       let attempts = 0;
       let placed = 0;
@@ -614,9 +575,14 @@ function FrogLandCanvas({
     for (let i = 0; i < DRAGONFLY_COUNT; i++) {
       const hue = 190 + dragonflyRand() * 30;
       const tex = buildDragonflyTexture(hue);
-      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const mat = new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+        alphaTest: 0.05,
+      });
       const sprite = new THREE.Sprite(mat);
-      const baseScale = 0.5 + dragonflyRand() * 0.25;
+      const baseScale = 0.24 + dragonflyRand() * 0.14;
       sprite.scale.set(baseScale, baseScale, 1);
       sprite.userData = {
         centerX: FROG_WORLD_CENTER + (dragonflyRand() - 0.5) * FIELD_RADIUS * 1.5,
@@ -673,9 +639,6 @@ function FrogLandCanvas({
       const model = modelRef.current;
       const now = performance.now();
       const t = now * 0.001;
-
-      waterTex.offset.x += 0.0005;
-      waterTex.offset.y += 0.00025;
 
       lilyTrees.forEach((pad) => {
         pad.mesh.position.y = pad.baseY + Math.sin(t * 0.8 + pad.bobSeed) * 0.02;
@@ -799,6 +762,23 @@ function FrogLandCanvas({
           spawnRipple(wx, wz, 0.7);
         }
 
+        // water-movement sound fades in while hopping, fades back out at rest
+        // (rather than snapping on/off, which pops every time a key is
+        // tapped) and only pauses once it's fully faded, so a quick
+        // start/stop doesn't restart the sample from zero each time.
+        const waterSound = waterSoundRef.current;
+        if (waterSound) {
+          const targetVolume = isMoving ? 0.5 : 0;
+          waterSound.volume += (targetVolume - waterSound.volume) * 0.12;
+          if (isMoving && !wasMovingRef.current && waterSound.paused) {
+            waterSound.currentTime = 0;
+            waterSound.play().catch(() => { });
+          } else if (!isMoving && waterSound.volume < 0.02 && !waterSound.paused) {
+            waterSound.pause();
+          }
+          wasMovingRef.current = isMoving;
+        }
+
         if (isMoving) {
           idleTimeRef.current = 0;
         } else {
@@ -806,8 +786,8 @@ function FrogLandCanvas({
         }
 
         camera.position.x += (wx - camera.position.x) * 0.1;
-        camera.position.z += (wz + 9 - camera.position.z) * 0.1;
-        camera.position.y = 11;
+        camera.position.z += (wz + 10 - camera.position.z) * 0.1;
+        camera.position.y = 12;
         camera.lookAt(wx, 0, wz);
 
         if (manualInput) {
@@ -948,11 +928,19 @@ function FrogLandCanvas({
       cattailsCancelled = true;
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("keydown", resumeAudioOnGesture);
+      window.removeEventListener("pointerdown", resumeAudioOnGesture);
+
+      bgMusic.pause();
+      bgMusic.src = "";
+      bgMusicRef.current = null;
+      waterSound.pause();
+      waterSound.src = "";
+      waterSoundRef.current = null;
 
       delete posRef.current.clampToBounds;
 
       skyTex.dispose();
-      waterTex.dispose();
       waterMesh.geometry.dispose();
       waterMat.dispose();
       deepRings.forEach((ringMesh) => {
