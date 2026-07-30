@@ -33,8 +33,8 @@ const FROG_WORLD_MAX = 18;
 const FROG_WORLD_SIZE = FROG_WORLD_MAX - FROG_WORLD_MIN; // 36
 const FROG_WORLD_CENTER = (FROG_WORLD_MIN + FROG_WORLD_MAX) / 2; // 0
 
-const HEX_RADIUS = 17; // outer misty edge of the pond
-const FIELD_RADIUS = 13.5; // where lily pads / cattails may be scattered
+const HEX_RADIUS = 17; // edge of pond
+const FIELD_RADIUS = 13.5; // scatter of assets
 const SPAWN_CLEAR_RADIUS = 3.2; // kept free so the character never spawns on an obstacle
 
 const CATTAIL_RING_MIN = 14.2;
@@ -80,7 +80,7 @@ function hexBoundaryRadius(theta, R) {
   return apothem / Math.cos(a);
 }
 
-// mostly-regular hexagon shape with a touch of hand-painted irregularity
+//hexagon shape
 function buildHexShape(radius, irregularity, rand) {
   const shape = new THREE.Shape();
   const segs = 6;
@@ -116,14 +116,27 @@ function buildFrogWaterTexture() {
   const ctx = canvas.getContext("2d");
 
   const grad = ctx.createLinearGradient(0, 0, 128, 128);
-  grad.addColorStop(0, "#bfe0f4");
-  grad.addColorStop(0.55, "#8fc3e6");
-  grad.addColorStop(1, "#4d7a8c");
+  grad.addColorStop(0, "#6fc2d6");
+  grad.addColorStop(0.45, "#3f9bb0");
+  grad.addColorStop(0.8, "#1f6e78");
+  grad.addColorStop(1, "#134a52");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
 
-  // deep mossy-green undertone swirls
-  ctx.strokeStyle = "rgba(20,89,29,0.35)";
+  for (let i = 0; i < 14; i++) {
+    const x = (i * 53) % 128;
+    const y = (i * 41 + i * i * 7) % 128;
+    const r = 10 + (i % 5) * 4;
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, i % 2 === 0 ? "rgba(20,89,60,0.25)" : "rgba(120,200,190,0.18)");
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "rgba(15,64,40,0.4)";
   ctx.lineWidth = 2.4;
   ctx.lineCap = "round";
   for (let i = 0; i < 6; i++) {
@@ -137,8 +150,8 @@ function buildFrogWaterTexture() {
     ctx.stroke();
   }
 
-  // pale gold sun-glints on the surface
-  ctx.strokeStyle = "rgba(225,226,137,0.5)";
+  // sun-glits
+  ctx.strokeStyle = "rgba(255,240,180,0.6)";
   ctx.lineWidth = 1.3;
   for (let i = 0; i < 5; i++) {
     const y0 = (i * 27 + 14) % 128;
@@ -151,7 +164,7 @@ function buildFrogWaterTexture() {
     ctx.stroke();
   }
 
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
   for (let i = 0; i < 10; i++) {
     ctx.fillRect((i * 37) % 128, (i * 53) % 128, 2.5, 2.5);
   }
@@ -207,6 +220,62 @@ function buildDragonflyTexture(hue) {
   ctx.fill();
 
   return new THREE.CanvasTexture(canvas);
+}
+
+// fallback flora 
+function buildFallbackLilyPad(rand) {
+  const group = new THREE.Group();
+  const hue = 95 + rand() * 25;
+  const padMat = new THREE.MeshLambertMaterial({
+    color: new THREE.Color(`hsl(${hue}, 45%, 34%)`),
+  });
+  const notch = rand() * 0.5 + 0.15;
+  const shape = new THREE.Shape();
+  const segs = 28;
+  for (let i = 0; i <= segs; i++) {
+    const a = (i / segs) * Math.PI * 2 * (1 - 0.06) + notch;
+    if (i === 0) shape.moveTo(Math.cos(a), Math.sin(a));
+    else shape.lineTo(Math.cos(a), Math.sin(a));
+  }
+  shape.lineTo(0, 0);
+  const pad = new THREE.Mesh(new THREE.ShapeGeometry(shape), padMat);
+  pad.rotation.x = -Math.PI / 2;
+  group.add(pad);
+  // occasional small lotus-style bloom
+  if (rand() > 0.6) {
+    const bloomMat = new THREE.MeshLambertMaterial({
+      color: rand() > 0.5 ? 0xf6c9d8 : 0xfdf1c4,
+    });
+    for (let i = 0; i < 5; i++) {
+      const petal = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 6), bloomMat);
+      const a = (i / 5) * Math.PI * 2;
+      petal.position.set(Math.cos(a) * 0.08, 0.15, Math.sin(a) * 0.08);
+      petal.rotation.x = Math.PI;
+      group.add(petal);
+    }
+  }
+  return group;
+}
+
+function buildFallbackCattail(rand) {
+  const group = new THREE.Group();
+  const stalkMat = new THREE.MeshLambertMaterial({ color: 0x4c7a3d });
+  const headMat = new THREE.MeshLambertMaterial({ color: 0x6b4a30 });
+  const bladeCount = 2 + Math.floor(rand() * 2);
+  for (let i = 0; i < bladeCount; i++) {
+    const h = 0.85 + rand() * 0.3;
+    const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, h, 5), stalkMat);
+    blade.position.set((rand() - 0.5) * 0.12, h / 2, (rand() - 0.5) * 0.12);
+    blade.rotation.z = (rand() - 0.5) * 0.25;
+    group.add(blade);
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 8), headMat);
+    head.position.set(blade.position.x, h - 0.05, blade.position.z);
+    group.add(head);
+    const headCap = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), headMat);
+    headCap.position.set(blade.position.x, h + 0.06, blade.position.z);
+    group.add(headCap);
+  }
+  return group;
 }
 
 //component
@@ -275,15 +344,18 @@ function FrogLandCanvas({
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.NoToneMapping;
+
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lights 
-    scene.add(new THREE.AmbientLight(0xeaf3d0, 1.9));
-    const sun = new THREE.DirectionalLight(0xfff3d0, 1.0);
+    // lights
+    scene.add(new THREE.HemisphereLight(0xbfe3f2, 0x3f6b3a, 0.65));
+    scene.add(new THREE.AmbientLight(0xeaf3d0, 0.25));
+    const sun = new THREE.DirectionalLight(0xfff0c8, 1.35);
     sun.position.set(FROG_WORLD_CENTER + 5, 10, FROG_WORLD_CENTER + 6);
     sun.target.position.set(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     sun.castShadow = true;
@@ -298,7 +370,7 @@ function FrogLandCanvas({
     sun.shadow.radius = 3;
     scene.add(sun);
     scene.add(sun.target);
-    const fill = new THREE.DirectionalLight(0xcfe8d8, 0.45);
+    const fill = new THREE.DirectionalLight(0xcfe8d8, 0.3);
     fill.position.set(-4, 3, -3);
     scene.add(fill);
 
@@ -308,10 +380,13 @@ function FrogLandCanvas({
     const shapeRand = seededRandom(211);
     const hexShape = buildHexShape(HEX_RADIUS, 0.05, shapeRand);
     const waterTex = buildFrogWaterTexture();
-    const waterMat = new THREE.MeshLambertMaterial({
+
+    const waterMat = new THREE.MeshPhongMaterial({
       map: waterTex,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.96,
+      shininess: 90,
+      specular: 0xdff3ff,
     });
     const waterMesh = new THREE.Mesh(new THREE.ShapeGeometry(hexShape), waterMat);
     waterMesh.rotation.x = -Math.PI / 2;
@@ -320,17 +395,23 @@ function FrogLandCanvas({
     scene.add(waterMesh);
 
     const deepShapeRand = seededRandom(212);
-    const deepShape = buildHexShape(HEX_RADIUS * 1.22, 0.08, deepShapeRand);
-    const deepMat = new THREE.MeshBasicMaterial({
-      color: PALETTE.deep,
-      transparent: true,
-      opacity: 0.55,
-      depthWrite: false,
-    });
-    const deepMesh = new THREE.Mesh(new THREE.ShapeGeometry(deepShape), deepMat);
-    deepMesh.rotation.x = -Math.PI / 2;
-    deepMesh.position.set(FROG_WORLD_CENTER, -0.18, FROG_WORLD_CENTER);
-    scene.add(deepMesh);
+    const deepRingCount = 3;
+    const deepRings = [];
+    for (let i = 0; i < deepRingCount; i++) {
+      const t = (i + 1) / deepRingCount;
+      const ringShape = buildHexShape(HEX_RADIUS * (1.02 + t * 0.24), 0.08, deepShapeRand);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: PALETTE.deep,
+        transparent: true,
+        opacity: 0.22 * t,
+        depthWrite: false,
+      });
+      const ringMesh = new THREE.Mesh(new THREE.ShapeGeometry(ringShape), ringMat);
+      ringMesh.rotation.x = -Math.PI / 2;
+      ringMesh.position.set(FROG_WORLD_CENTER, -0.12 - i * 0.03, FROG_WORLD_CENTER);
+      scene.add(ringMesh);
+      deepRings.push(ringMesh);
+    }
 
     //lilypads scattered
     const lilyRand = seededRandom(53);
@@ -338,6 +419,53 @@ function FrogLandCanvas({
     const lilyPositions = [];
     const lilyLoader = new GLTFLoader();
     let lilyCancelled = false;
+
+    function populateLilyPads(makePad, baseRadius, baseMinY) {
+      let attempts = 0;
+      let placed = 0;
+      while (placed < LILY_TREE_COUNT && attempts < LILY_TREE_COUNT * 20) {
+        attempts++;
+        const lx = (lilyRand() - 0.5) * 2 * FIELD_RADIUS;
+        const lz = (lilyRand() - 0.5) * 2 * FIELD_RADIUS;
+        if (Math.hypot(lx, lz) > FIELD_RADIUS) continue;
+        if (inClearing(lx, lz)) continue;
+        if (tooCloseTo(lilyPositions, lx, lz, MIN_LILY_SPACING)) continue;
+
+        const targetRadius =
+          LILY_RADIUS_MIN + lilyRand() * (LILY_RADIUS_MAX - LILY_RADIUS_MIN);
+        const scale = targetRadius / baseRadius;
+        const pad = makePad();
+        pad.scale.setScalar(scale);
+        const lift = -baseMinY * scale + 0.03;
+        const worldX = FROG_WORLD_CENTER + lx;
+        const worldZ = FROG_WORLD_CENTER + lz;
+        pad.position.set(worldX, lift, worldZ);
+        pad.rotation.y = lilyRand() * Math.PI * 2;
+        pad.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        scene.add(pad);
+
+        lilyPositions.push({ x: lx, z: lz });
+        lilyTrees.push({
+          mesh: pad,
+          baseY: lift,
+          bobSeed: placed * 0.71,
+        });
+        placed++;
+
+        collisionBoxesRef.current.push({
+          cx: frogWorldToNorm(worldX),
+          cy: frogWorldToNorm(worldZ),
+          hw: (targetRadius + 0.25) / FROG_WORLD_SIZE,
+          hh: (targetRadius + 0.25) / FROG_WORLD_SIZE,
+        });
+      }
+    }
+
     lilyLoader.load(
       "/assets/models/largeLilypad.glb",
       (gltf) => {
@@ -347,53 +475,17 @@ function FrogLandCanvas({
         const baseSize = baseBox.getSize(new THREE.Vector3());
         const baseRadius = Math.max(baseSize.x, baseSize.z) / 2 || 1;
         const baseMinY = baseBox.min.y;
-
-        let attempts = 0;
-        let placed = 0;
-        while (placed < LILY_TREE_COUNT && attempts < LILY_TREE_COUNT * 20) {
-          attempts++;
-          const lx = (lilyRand() - 0.5) * 2 * FIELD_RADIUS;
-          const lz = (lilyRand() - 0.5) * 2 * FIELD_RADIUS;
-          if (Math.hypot(lx, lz) > FIELD_RADIUS) continue;
-          if (inClearing(lx, lz)) continue;
-          if (tooCloseTo(lilyPositions, lx, lz, MIN_LILY_SPACING)) continue;
-
-          const targetRadius =
-            LILY_RADIUS_MIN + lilyRand() * (LILY_RADIUS_MAX - LILY_RADIUS_MIN);
-          const scale = targetRadius / baseRadius;
-          const pad = template.clone(true);
-          pad.scale.setScalar(scale);
-          const lift = -baseMinY * scale + 0.03;
-          const worldX = FROG_WORLD_CENTER + lx;
-          const worldZ = FROG_WORLD_CENTER + lz;
-          pad.position.set(worldX, lift, worldZ);
-          pad.rotation.y = lilyRand() * Math.PI * 2;
-          pad.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          scene.add(pad);
-
-          lilyPositions.push({ x: lx, z: lz });
-          lilyTrees.push({
-            mesh: pad,
-            baseY: lift,
-            bobSeed: placed * 0.71,
-          });
-          placed++;
-
-          collisionBoxesRef.current.push({
-            cx: frogWorldToNorm(worldX),
-            cy: frogWorldToNorm(worldZ),
-            hw: (targetRadius + 0.25) / FROG_WORLD_SIZE,
-            hh: (targetRadius + 0.25) / FROG_WORLD_SIZE,
-          });
-        }
+        populateLilyPads(() => template.clone(true), baseRadius, baseMinY);
       },
       undefined,
-      (err) => console.error("largeLilypad load error:", err),
+      (err) => {
+        console.error(
+          "largeLilypad load error (falling back to procedural lily pads — check that /assets/models/largeLilypad.glb actually exists on the server):",
+          err,
+        );
+        if (lilyCancelled) return;
+        populateLilyPads(() => buildFallbackLilyPad(lilyRand), 1, 0);
+      },
     );
 
     // cattails scattered
@@ -401,6 +493,73 @@ function FrogLandCanvas({
     let cattailsCancelled = false;
     const cattailBushes = []; // { mesh, swaySeed }
     const ringCattails = [];
+    const bushRand = seededRandom(313);
+    const ringRand = seededRandom(311);
+
+    function populateCattails(makeStalk, baseHeight, baseMinY) {
+      const bushPositions = [];
+      let attempts = 0;
+      let placed = 0;
+      while (placed < CATTAIL_BUSH_COUNT && attempts < CATTAIL_BUSH_COUNT * 20) {
+        attempts++;
+        const bx = (bushRand() - 0.5) * 2 * FIELD_RADIUS;
+        const bz = (bushRand() - 0.5) * 2 * FIELD_RADIUS;
+        if (Math.hypot(bx, bz) > FIELD_RADIUS) continue;
+        if (inClearing(bx, bz)) continue;
+        if (tooCloseTo(lilyPositions, bx, bz, 1.3)) continue;
+        if (tooCloseTo(bushPositions, bx, bz, MIN_CATTAIL_BUSH_SPACING)) continue;
+
+        const targetHeight =
+          CATTAIL_BUSH_HEIGHT_MIN +
+          bushRand() * (CATTAIL_BUSH_HEIGHT_MAX - CATTAIL_BUSH_HEIGHT_MIN);
+        const scale = targetHeight / baseHeight;
+        const stalk = makeStalk();
+        stalk.scale.setScalar(scale);
+        const worldX = FROG_WORLD_CENTER + bx;
+        const worldZ = FROG_WORLD_CENTER + bz;
+        stalk.position.set(worldX, -baseMinY * scale, worldZ);
+        stalk.rotation.y = bushRand() * Math.PI * 2;
+        stalk.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        scene.add(stalk);
+
+        bushPositions.push({ x: bx, z: bz });
+        cattailBushes.push({ mesh: stalk, swaySeed: bushRand() * Math.PI * 2 });
+        placed++;
+
+        collisionBoxesRef.current.push({
+          cx: frogWorldToNorm(worldX),
+          cy: frogWorldToNorm(worldZ),
+          hw: 0.35 / FROG_WORLD_SIZE,
+          hh: 0.35 / FROG_WORLD_SIZE,
+        });
+      }
+      for (let i = 0; i < CATTAIL_RING_COUNT; i++) {
+        const a = (i / CATTAIL_RING_COUNT) * Math.PI * 2 + ringRand() * 0.3;
+        const r = CATTAIL_RING_MIN + ringRand() * (CATTAIL_RING_MAX - CATTAIL_RING_MIN);
+        const targetHeight = 1.6 + ringRand() * 1.2;
+        const scale = targetHeight / baseHeight;
+        const stalk = makeStalk();
+        stalk.scale.setScalar(scale);
+        const x = FROG_WORLD_CENTER + Math.cos(a) * r;
+        const z = FROG_WORLD_CENTER + Math.sin(a) * r;
+        stalk.position.set(x, -baseMinY * scale, z);
+        stalk.rotation.y = ringRand() * Math.PI * 2;
+        stalk.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        scene.add(stalk);
+        ringCattails.push({ mesh: stalk, swaySeed: ringRand() * Math.PI * 2 });
+      }
+    }
+
     cattailLoader.load(
       "/assets/models/cattail.glb",
       (gltf) => {
@@ -410,73 +569,17 @@ function FrogLandCanvas({
         const baseSize = baseBox.getSize(new THREE.Vector3());
         const baseHeight = baseSize.y || 1;
         const baseMinY = baseBox.min.y;
-
-        const bushRand = seededRandom(313);
-        const bushPositions = [];
-        let attempts = 0;
-        let placed = 0;
-        while (placed < CATTAIL_BUSH_COUNT && attempts < CATTAIL_BUSH_COUNT * 20) {
-          attempts++;
-          const bx = (bushRand() - 0.5) * 2 * FIELD_RADIUS;
-          const bz = (bushRand() - 0.5) * 2 * FIELD_RADIUS;
-          if (Math.hypot(bx, bz) > FIELD_RADIUS) continue;
-          if (inClearing(bx, bz)) continue;
-          if (tooCloseTo(lilyPositions, bx, bz, 1.3)) continue;
-          if (tooCloseTo(bushPositions, bx, bz, MIN_CATTAIL_BUSH_SPACING)) continue;
-
-          const targetHeight =
-            CATTAIL_BUSH_HEIGHT_MIN +
-            bushRand() * (CATTAIL_BUSH_HEIGHT_MAX - CATTAIL_BUSH_HEIGHT_MIN);
-          const scale = targetHeight / baseHeight;
-          const stalk = template.clone(true);
-          stalk.scale.setScalar(scale);
-          const worldX = FROG_WORLD_CENTER + bx;
-          const worldZ = FROG_WORLD_CENTER + bz;
-          stalk.position.set(worldX, -baseMinY * scale, worldZ);
-          stalk.rotation.y = bushRand() * Math.PI * 2;
-          stalk.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          scene.add(stalk);
-
-          bushPositions.push({ x: bx, z: bz });
-          cattailBushes.push({ mesh: stalk, swaySeed: bushRand() * Math.PI * 2 });
-          placed++;
-
-          collisionBoxesRef.current.push({
-            cx: frogWorldToNorm(worldX),
-            cy: frogWorldToNorm(worldZ),
-            hw: 0.35 / FROG_WORLD_SIZE,
-            hh: 0.35 / FROG_WORLD_SIZE,
-          });
-        }
-        const ringRand = seededRandom(311);
-        for (let i = 0; i < CATTAIL_RING_COUNT; i++) {
-          const a = (i / CATTAIL_RING_COUNT) * Math.PI * 2 + ringRand() * 0.3;
-          const r = CATTAIL_RING_MIN + ringRand() * (CATTAIL_RING_MAX - CATTAIL_RING_MIN);
-          const targetHeight = 1.6 + ringRand() * 1.2;
-          const scale = targetHeight / baseHeight;
-          const stalk = template.clone(true);
-          stalk.scale.setScalar(scale);
-          const x = FROG_WORLD_CENTER + Math.cos(a) * r;
-          const z = FROG_WORLD_CENTER + Math.sin(a) * r;
-          stalk.position.set(x, -baseMinY * scale, z);
-          stalk.rotation.y = ringRand() * Math.PI * 2;
-          stalk.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          scene.add(stalk);
-          ringCattails.push({ mesh: stalk, swaySeed: ringRand() * Math.PI * 2 });
-        }
+        populateCattails(() => template.clone(true), baseHeight, baseMinY);
       },
       undefined,
-      (err) => console.error("cattail load error:", err),
+      (err) => {
+        console.error(
+          "cattail load error (falling back to procedural cattails — check that /assets/models/cattail.glb actually exists on the server):",
+          err,
+        );
+        if (cattailsCancelled) return;
+        populateCattails(() => buildFallbackCattail(bushRand), 1, 0);
+      },
     );
 
     //fireflies and dragonflies
@@ -852,8 +955,11 @@ function FrogLandCanvas({
       waterTex.dispose();
       waterMesh.geometry.dispose();
       waterMat.dispose();
-      deepMesh.geometry.dispose();
-      deepMat.dispose();
+      deepRings.forEach((ringMesh) => {
+        scene.remove(ringMesh);
+        ringMesh.geometry.dispose();
+        ringMesh.material.dispose();
+      });
 
       lilyTrees.forEach((pad) => {
         scene.remove(pad.mesh);
