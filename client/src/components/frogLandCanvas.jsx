@@ -833,34 +833,8 @@ function FrogLandCanvas({
         const targetZ =
           model.position.z + Math.cos(trailAngle) * AGENT_FOLLOW_DISTANCE;
 
-        const agentDx = targetX - agent.position.x;
-        const agentDz = targetZ - agent.position.z;
-        const agentDist = Math.sqrt(agentDx * agentDx + agentDz * agentDz);
-
-        // scale the catch-up speed with how far behind the agent has fallen
-        // so it doesn't lag noticeably behind fast avatar movement
-        const catchUpLerp = Math.min(
-          0.95,
-          AGENT_FOLLOW_LERP * 2.2 + agentDist * 0.6,
-        );
-
-        agent.position.x += agentDx * catchUpLerp;
-        agent.position.z += agentDz * catchUpLerp;
-
-        // face the direction it's actually traveling toward; once it's
-        // basically caught up, settle to match the avatar's own facing
-        if (agentDist > 0.01) {
-          const agentFacing = Math.atan2(agentDx, agentDz);
-          let facingDelta = agentFacing - agent.rotation.y;
-          while (facingDelta > Math.PI) facingDelta -= Math.PI * 2;
-          while (facingDelta < -Math.PI) facingDelta += Math.PI * 2;
-          agent.rotation.y += facingDelta * 0.2;
-        } else {
-          let facingDelta = model.rotation.y - agent.rotation.y;
-          while (facingDelta > Math.PI) facingDelta -= Math.PI * 2;
-          while (facingDelta < -Math.PI) facingDelta += Math.PI * 2;
-          agent.rotation.y += facingDelta * 0.1;
-        }
+        agent.position.x += (targetX - agent.position.x) * AGENT_FOLLOW_LERP;
+        agent.position.z += (targetZ - agent.position.z) * AGENT_FOLLOW_LERP;
 
         const agentBaseY = agent.userData.baseY ?? 0.3;
         agent.position.y =
