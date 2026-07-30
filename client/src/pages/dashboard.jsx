@@ -79,6 +79,7 @@ function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQuest, setModalQuest] = useState(null);
   const [msgModalOpen, setMsgModalOpen] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false); // envelope closed vs paper pulled out
   const [navModalOpen, setNavModalOpen] = useState(false);
   const [showControls, setShowControls] = useState(true); // show movement controls hint on first load
   const [agentScreenPos, setAgentScreenPos] = useState(null);
@@ -726,59 +727,116 @@ function Dashboard() {
 
         {openPanels.mail && (
           <div className="panel mail-panel">
-            <div className="panel-header">
-              <span className="panel-title">
-                📬 mail
-                {unreadCount > 0 && (
-                  <span className="unread-badge">{unreadCount}</span>
-                )}
-              </span>
-              <div className="panel-header-actions">
-                {hasTeammates && (
+            {mailOpen ? (
+              <>
+                <div className="panel-header">
                   <button
-                    className="compose-btn"
-                    onClick={() => setMsgModalOpen(true)}
+                    className="mail-envelope-back"
+                    onClick={() => setMailOpen(false)}
+                    title="tuck the letter back in"
                   >
-                    ✉️ compose
+                    ✉️
                   </button>
-                )}
-                {unreadCount > 0 && (
-                  <button
-                    className="read-all-btn"
-                    onClick={markNotificationsRead}
-                  >
-                    mark read
-                  </button>
-                )}
-                <button
-                  className="panel-close"
-                  onClick={() => togglePanel("mail")}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="mail-list">
-              {notifications.length > 0 ? (
-                notifications.map((n) => (
-                  <div
-                    key={n._id}
-                    className={`mail-row ${n.read ? "read" : "unread"}`}
-                  >
-                    <span className="mail-icon">{mailIcon(n)}</span>
-                    <div className="mail-content">
-                      <p className="mail-message">{n.message}</p>
-                      <p className="mail-time">
-                        {new Date(n.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {!n.read && <div className="unread-dot" />}
+                  <span className="panel-title">
+                    mail
+                    {unreadCount > 0 && (
+                      <span className="unread-badge">{unreadCount}</span>
+                    )}
+                  </span>
+                  <div className="panel-header-actions">
+                    {hasTeammates && (
+                      <button
+                        className="compose-btn"
+                        onClick={() => setMsgModalOpen(true)}
+                      >
+                        ✉️ compose
+                      </button>
+                    )}
+                    {unreadCount > 0 && (
+                      <button
+                        className="read-all-btn"
+                        onClick={markNotificationsRead}
+                      >
+                        mark read
+                      </button>
+                    )}
+                    <button
+                      className="panel-close"
+                      onClick={() => togglePanel("mail")}
+                    >
+                      ✕
+                    </button>
                   </div>
-                ))
-              ) : (
-                <p className="empty-msg">no mail yet! 📭</p>
-              )}
-            </div>
+                </div>
+                <div className="mail-paper">
+                  <div className="mail-list">
+                    {notifications.length > 0 ? (
+                      notifications.map((n) => (
+                        <div
+                          key={n._id}
+                          className={`mail-row ${n.read ? "read" : "unread"}`}
+                        >
+                          <span className="mail-icon">{mailIcon(n)}</span>
+                          <div className="mail-content">
+                            <p className="mail-message">{n.message}</p>
+                            <p className="mail-time">
+                              {new Date(n.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {!n.read && <div className="unread-dot" />}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="empty-msg">no mail yet! 📭</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="panel-header">
+                  <span className="panel-title">📬 mail</span>
+                  <div className="panel-header-actions">
+                    {hasTeammates && (
+                      <button
+                        className="compose-btn"
+                        onClick={() => setMsgModalOpen(true)}
+                      >
+                        ✉️ compose
+                      </button>
+                    )}
+                    <button
+                      className="panel-close"
+                      onClick={() => togglePanel("mail")}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <button
+                  className="mail-envelope-scene"
+                  onClick={() => setMailOpen(true)}
+                  title={unreadCount > 0 ? "you've got mail!" : "check mail"}
+                >
+                  <span
+                    className={`mail-envelope${unreadCount > 0 ? " mail-envelope--shake" : ""
+                      }`}
+                  >
+                    <span className="mail-envelope-icon">✉️</span>
+                    {unreadCount > 0 && (
+                      <span className="mail-envelope-badge">{unreadCount}</span>
+                    )}
+                  </span>
+                  <p className="mail-envelope-hint">
+                    {unreadCount > 0
+                      ? `${unreadCount} new mail!`
+                      : notifications.length > 0
+                        ? "tap to reread"
+                        : "no mail yet"}
+                  </p>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

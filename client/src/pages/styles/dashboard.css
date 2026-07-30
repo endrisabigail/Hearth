@@ -519,6 +519,167 @@
   object-fit: cover;
 }
 
+/* mail envelope (closed state) */
+
+.mail-envelope-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 18px 0 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
+}
+
+.mail-envelope {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #fffaf0 0%, #f3e6c8 100%);
+  border: 2px solid rgba(139, 105, 20, 0.35);
+  box-shadow: 0 4px 10px rgba(139, 105, 20, 0.18);
+  transform-origin: 50% 85%;
+  transition: transform 0.15s;
+}
+
+.mail-envelope-scene:hover .mail-envelope {
+  transform: scale(1.06);
+}
+
+.mail-envelope-icon {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.mail-envelope--shake {
+  animation: mail-shake 2.2s ease-in-out infinite;
+}
+
+@keyframes mail-shake {
+  0%,
+  8%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  1% {
+    transform: rotate(-9deg);
+  }
+
+  2% {
+    transform: rotate(8deg);
+  }
+
+  3% {
+    transform: rotate(-7deg);
+  }
+
+  4% {
+    transform: rotate(6deg);
+  }
+
+  5% {
+    transform: rotate(-4deg);
+  }
+
+  6% {
+    transform: rotate(3deg);
+  }
+
+  7% {
+    transform: rotate(-1deg);
+  }
+}
+
+.mail-envelope-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e07020;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fffaf0;
+  animation: mail-badge-pop 1.6s ease-in-out infinite;
+}
+
+@keyframes mail-badge-pop {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+.mail-envelope-hint {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(139, 105, 20, 0.7);
+  text-align: center;
+}
+
+.mail-envelope-back {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  color: #8b6914;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.mail-envelope-back:hover {
+  background: rgba(139, 105, 20, 0.1);
+}
+
+/* mail paper (pulled out of the envelope) */
+
+.mail-paper {
+  background: #fffdf7;
+  border-radius: 0 0 12px 12px;
+  box-shadow: inset 0 1px 0 rgba(139, 105, 20, 0.08);
+  transform-origin: 50% 0%;
+  animation: mail-paper-pull 0.32s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+
+@keyframes mail-paper-pull {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) scaleY(0.85);
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
 /* footer */
 
 .hud-footer {

@@ -32,15 +32,6 @@ const CATEGORY_OPTIONS = [
   "other",
 ];
 
-const CATEGORY_ICON = {
-  general: "🌟",
-  fitness: "🏃",
-  study: "📚",
-  chores: "🧹",
-  creative: "🎨",
-  social: "🤝",
-  other: "🍂",
-};
 
 function FieldGroup({ label, children }) {
   return (
@@ -165,7 +156,7 @@ function QuestModal({
 
         {isNew && isOwner && (
           <>
-            <h2 className="qm-create-title">🌟 plant a new quest</h2>
+            <h2 className="qm-create-title">Add a new Quest</h2>
             <FieldGroup label="title">
               <input
                 className="qm-input"
