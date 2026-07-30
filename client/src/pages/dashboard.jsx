@@ -385,11 +385,6 @@ function Dashboard() {
         nx = Math.max(b.minX, Math.min(b.maxX, nx));
         ny = Math.max(b.minY, Math.min(b.maxY, ny));
 
-        // habitats like frog land (all water except lily pads) restrict
-        // where the character is allowed to stand. A step that's only
-        // slightly off the lane gets snapped back onto it (so grazing
-        // an edge doesn't read as "that direction is broken"); only a
-        // step that's genuinely headed into open water gets rejected.
         const walkable = posRef.current.isWalkable;
         if (walkable && !walkable(nx, ny)) {
           const nearest = posRef.current.nearestWalkable;
@@ -407,10 +402,6 @@ function Dashboard() {
             ny = y;
           }
         }
-
-        // some habitats define an exact (non-rectangular) play area —
-        // e.g. frog land's hexagonal plane — via a clamp function that
-        // pulls an out-of-bounds step back to the nearest edge point
         const clampToBounds = posRef.current.clampToBounds;
         if (clampToBounds) {
           const clamped = clampToBounds(nx, ny);
@@ -450,8 +441,6 @@ function Dashboard() {
       posRef.current._smoothX = smoothPos.x;
       posRef.current._smoothY = smoothPos.y;
 
-      // broadcast our position to everyone else in the plaza
-      // (arrow key) movement and click-to-travel since both write to posRef.
       if (socketRef.current?.connected && now - lastEmitRef.current > 80) {
         const ex = Number(posRef.current.x.toFixed(4));
         const ey = Number(posRef.current.y.toFixed(4));
@@ -516,11 +505,7 @@ function Dashboard() {
     [party],
   );
 
-  // TODO(backend): this assumes the party document has a `habitatId` field
-  // set when the owner picks their habitat, defaulting to the owner's own
-  // avatar for parties created before that field existed. Every member
-  // renders THIS habitat regardless of their own avatarId/avatar model —
-  // only which .glb loads for each person's own character differs.
+
   const habitat = party?.habitatId || party?.owner?.avatarId || userData?.avatarId;
   const isFrogLand = habitat === "frog";
 
@@ -652,7 +637,7 @@ function Dashboard() {
       <div className="fireflies fireflies-3" />
       <div className="fireflies fireflies-4" />
 
-      <nav className="navbar">
+      <nav className="navbar wood-surface">
         {[
           { id: "map", icon: "🗺️", label: "Plaza Map" },
           { id: "board", icon: "📋", label: "Board", path: "/board" },
@@ -801,7 +786,7 @@ function Dashboard() {
       {/* right column */}
       <div className="right-col">
         {openPanels.focus && (
-          <div className="panel focus-panel">
+          <div className="panel focus-panel wood-surface">
             <div className="panel-header">
               <span className="panel-title">focus of the day</span>
               <button
@@ -894,7 +879,7 @@ function Dashboard() {
           }}
           title="add quest"
         >
-          🪡
+          ＋
         </button>
       )}
 
