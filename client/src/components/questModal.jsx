@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import "./questModal.css";
+import "../pages/styles/agentModal.css";
 
 const AVATAR_MAP = {
   tomato: "🍅",
@@ -32,6 +32,7 @@ const CATEGORY_OPTIONS = [
   "social",
   "other",
 ];
+
 
 export const CATEGORY_ICON = {
   general: "🌿",
