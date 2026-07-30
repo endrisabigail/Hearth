@@ -278,7 +278,7 @@ function FrogLandCanvas({
 
     // Camera
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(FROG_WORLD_CENTER, 12, FROG_WORLD_CENTER + 10);
+    camera.position.set(FROG_WORLD_CENTER, 9, FROG_WORLD_CENTER + 7.5);
     camera.lookAt(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     cameraRef.current = camera;
 
