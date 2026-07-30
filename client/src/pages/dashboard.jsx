@@ -15,6 +15,7 @@ import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
 import NavModal from "../components/navModal.jsx";
 import AgentModal from "../components/agentModal.jsx";
+import { CATEGORY_ICON } from "./questModal";
 import "../pages/styles/dashboard.css";
 import "../pages/styles/questModal.css";
 import "../pages/styles/messageModal.css";

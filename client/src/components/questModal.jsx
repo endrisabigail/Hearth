@@ -33,8 +33,6 @@ const CATEGORY_OPTIONS = [
   "other",
 ];
 
-// was referenced throughout the original file but never defined — filled
-// in with icons that match the existing category list.
 const CATEGORY_ICON = {
   general: "🌿",
   fitness: "💪",
@@ -45,7 +43,6 @@ const CATEGORY_ICON = {
   other: "🌰",
 };
 
-// Adjust this if complete.mp3 lives somewhere else in your public/ dir.
 const COMPLETE_SOUND_SRC = "/sounds/complete.mp3";
 
 const CONFETTI_EMOJI = ["✦", "⭐", "🌟", "✨", "🍀", "🎉"];
