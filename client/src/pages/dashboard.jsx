@@ -20,6 +20,7 @@ import "../pages/styles/dashboard.css";
 import "../pages/styles/questModal.css";
 import "../pages/styles/messageModal.css";
 import "../pages/styles/agentModal.css";
+import FrogLandCanvas, { frogNormToWorld } from "../components/frogLandCanvas.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const STAR_LAYER_DEPTHS = [6, 4, 2, 0, -2, -4, -6];
@@ -735,8 +736,8 @@ function Dashboard() {
             renderer={threeCtx.renderer}
             quests={quests}
             onNodeClick={handleNodeClick}
-            normToWorld={grassNormToWorld}
-          />
+            normToWorld={isFrogLand ? frogNormToWorld : grassNormToWorld}          
+            />
         )}
         {showControls && (
           <div

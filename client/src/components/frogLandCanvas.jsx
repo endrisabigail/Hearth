@@ -59,7 +59,7 @@ const CATTAIL_BUSH_HEIGHT_MAX = 1.8;
 const FIREFLY_COUNT = 16;
 const DRAGONFLY_COUNT = 6;
 
-function frogNormToWorld(n) {
+export function frogNormToWorld(n) {
   return FROG_WORLD_MIN + n * FROG_WORLD_SIZE;
 }
 function frogWorldToNorm(w) {
