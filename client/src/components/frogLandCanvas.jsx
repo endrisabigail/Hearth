@@ -250,6 +250,7 @@ function FrogLandCanvas({
 
   const agentRef = useRef(null);
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
+  const agentPrevPlayerPosRef = useRef({ x: null, z: null });
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
   // sound
@@ -613,18 +614,24 @@ function FrogLandCanvas({
     const rippleGeo = new THREE.RingGeometry(0.3, 0.4, 24);
     const ripples = [];
     let ambientRippleTimer = 0;
-    function spawnRipple(x, z, life = 1.8) {
+    function spawnRipple(x, z, life = 1.8, opacity = 0.5, maxScale = 4) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.5,
+        opacity,
         depthWrite: false,
       });
       const mesh = new THREE.Mesh(rippleGeo, mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(x, 0.03, z);
       scene.add(mesh);
-      ripples.push({ mesh, born: performance.now(), life: life * 1000 });
+      ripples.push({
+        mesh,
+        born: performance.now(),
+        life: life * 1000,
+        baseOpacity: opacity,
+        maxScale,
+      });
     }
 
     function clampToBounds(nx, ny) {
@@ -702,9 +709,9 @@ function FrogLandCanvas({
           ripples.splice(i, 1);
           continue;
         }
-        const scale = 0.5 + progress * 4;
+        const scale = 0.5 + progress * (rp.maxScale ?? 4);
         rp.mesh.scale.set(scale, scale, scale);
-        rp.mesh.material.opacity = 0.5 * (1 - progress);
+        rp.mesh.material.opacity = (rp.baseOpacity ?? 0.5) * (1 - progress);
       }
 
       const manualInput =
@@ -762,15 +769,13 @@ function FrogLandCanvas({
         model.position.y = baseY + hopPhase * hopHeight + idleBreath;
         model.position.z = wz;
 
-        const squashT = isMoving ? Math.cos(hopTRef.current) : 0;
-        const scaleY = 1 + squashT * 0.08;
-        const scaleXZ = 1 - squashT * 0.05;
-        model.scale.set(scaleXZ, scaleY, scaleXZ);
-
         // little splash ring right as each hop lands
         if (isMoving && hopPhase < 0.06 && now - (model.userData.lastLandTime || 0) > 220) {
           model.userData.lastLandTime = now;
-          spawnRipple(wx, wz, 0.7);
+          // a bright tight ring plus a softer, wider one right behind it,
+          // so each hop reads as a real splash rather than a faint blip
+          spawnRipple(wx, wz, 0.85, 0.9, 5.5);
+          spawnRipple(wx, wz, 1.15, 0.55, 8);
         }
 
         // water-movement sound
@@ -830,6 +835,27 @@ function FrogLandCanvas({
       const agent = agentRef.current;
       if (agent && model) {
         agentFloatTRef.current += 0.045;
+
+        const prevPlayer = agentPrevPlayerPosRef.current;
+        const moveDX = prevPlayer.x === null ? 0 : model.position.x - prevPlayer.x;
+        const moveDZ = prevPlayer.z === null ? 0 : model.position.z - prevPlayer.z;
+
+        if (prevPlayer.x !== null) {
+          agent.position.x += moveDX;
+          agent.position.z += moveDZ;
+        }
+        prevPlayer.x = model.position.x;
+        prevPlayer.z = model.position.z;
+
+        // face whichever way she's actually moving
+        if (Math.abs(moveDX) > 0.0004 || Math.abs(moveDZ) > 0.0004) {
+          const targetAgentAngle = Math.atan2(moveDX, moveDZ);
+          let agentDelta = targetAgentAngle - agent.rotation.y;
+          while (agentDelta > Math.PI) agentDelta -= Math.PI * 2;
+          while (agentDelta < -Math.PI) agentDelta += Math.PI * 2;
+          agent.rotation.y += agentDelta * 0.18;
+        }
+
         const trailAngle = model.rotation.y + Math.PI * 0.78;
         const targetX =
           model.position.x + Math.sin(trailAngle) * AGENT_FOLLOW_DISTANCE;
@@ -1010,6 +1036,7 @@ function FrogLandCanvas({
       disposePivot(agentRef.current);
       agentRef.current = null;
     }
+    agentPrevPlayerPosRef.current = { x: null, z: null };
 
     agentLoader.load(
       agentModelFor(avatarId),

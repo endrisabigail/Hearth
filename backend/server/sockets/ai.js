@@ -98,7 +98,7 @@ export default function initAiSocket(io) {
         socket.emit("ai:done", { conversationId: convoId });
       } catch (err) {
         console.error("AI stream error:", err.message);
-        socket.emit("ai:error", { msg: "AI response failed. Is Ollama running?" });
+        socket.emit("ai:error", { msg: "AI response failed." });
       } finally {
         generating = false;
       }

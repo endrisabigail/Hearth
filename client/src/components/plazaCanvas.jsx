@@ -667,6 +667,7 @@ function PlazaCanvas({
   // right on top of it
   const agentRef = useRef(null);
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
+  const agentPrevPlayerPosRef = useRef({ x: null, z: null });
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
   useEffect(() => {
@@ -1405,12 +1406,38 @@ function PlazaCanvas({
       const agent = agentRef.current;
       if (agent && model) {
         agentFloatTRef.current += 0.045;
+
+        const prevPlayer = agentPrevPlayerPosRef.current;
+        const moveDX = prevPlayer.x === null ? 0 : model.position.x - prevPlayer.x;
+        const moveDZ = prevPlayer.z === null ? 0 : model.position.z - prevPlayer.z;
+
+        // carry the agent by the exact same amount the character moved this
+        // frame, so it keeps pace with her instead of trailing farther and
+        // farther behind while she's actively running
+        if (prevPlayer.x !== null) {
+          agent.position.x += moveDX;
+          agent.position.z += moveDZ;
+        }
+        prevPlayer.x = model.position.x;
+        prevPlayer.z = model.position.z;
+
+        // face whichever way she's actually moving
+        if (Math.abs(moveDX) > 0.0004 || Math.abs(moveDZ) > 0.0004) {
+          const targetAgentAngle = Math.atan2(moveDX, moveDZ);
+          let agentDelta = targetAgentAngle - agent.rotation.y;
+          while (agentDelta > Math.PI) agentDelta -= Math.PI * 2;
+          while (agentDelta < -Math.PI) agentDelta += Math.PI * 2;
+          agent.rotation.y += agentDelta * 0.18;
+        }
+
         const trailAngle = model.rotation.y + Math.PI * 0.78;
         const targetX =
           model.position.x + Math.sin(trailAngle) * AGENT_FOLLOW_DISTANCE;
         const targetZ =
           model.position.z + Math.cos(trailAngle) * AGENT_FOLLOW_DISTANCE;
 
+        // gentle corrective pull to keep it near its proper trailing spot
+        // (fixes spawn offset / drift) without being the main speed driver
         agent.position.x += (targetX - agent.position.x) * AGENT_FOLLOW_LERP;
         agent.position.z += (targetZ - agent.position.z) * AGENT_FOLLOW_LERP;
 
@@ -1591,6 +1618,7 @@ function PlazaCanvas({
       disposePivot(agentRef.current);
       agentRef.current = null;
     }
+    agentPrevPlayerPosRef.current = { x: null, z: null };
 
     agentLoader.load(
       agentModelFor(avatarId),

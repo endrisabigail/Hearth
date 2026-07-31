@@ -827,7 +827,7 @@ function Dashboard() {
       {/* right column */}
       <div className="right-col">
         {openPanels.focus && (
-          <div className="panel focus-panel wood-surface">
+          <div className="panel focus-panel focus-panel--paper">
             <div className="panel-header">
               <span className="panel-title">focus of the day</span>
               <button
@@ -840,6 +840,7 @@ function Dashboard() {
             {focusQuest ? (
               <div className="focus-note-wrap">
                 <div className="focus-note">
+                  <span className="focus-note-tape" />
                   <p className="focus-goal-label">
                     📌{" "}
                     {focusQuest.dueDate
@@ -878,6 +879,59 @@ function Dashboard() {
                 {userData?.streak?.current !== 1 ? "s" : ""}
               </p>
             </div>
+            <style>{`
+              .focus-panel--paper {
+                background: transparent;
+                box-shadow: none;
+                border: none;
+                padding: 0;
+              }
+              .focus-panel--paper .panel-header {
+                background: transparent;
+                padding: 2px 6px 4px;
+              }
+              .focus-note-wrap {
+                display: flex;
+                justify-content: center;
+                padding: 10px 12px 18px;
+              }
+              .focus-note {
+                position: relative;
+                width: 100%;
+                max-width: 260px;
+                background: #fdf6e3;
+                background-image: repeating-linear-gradient(
+                  #fdf6e3,
+                  #fdf6e3 26px,
+                  #ecdfb8 27px
+                );
+                padding: 28px 20px 18px;
+                border-radius: 2px;
+                transform: rotate(-1.6deg);
+                box-shadow:
+                  0 10px 18px rgba(0, 0, 0, 0.3),
+                  0 1px 0 rgba(255, 255, 255, 0.4) inset;
+              }
+              .focus-note-tape {
+                position: absolute;
+                top: -13px;
+                left: 50%;
+                width: 74px;
+                height: 26px;
+                margin-left: -37px;
+                transform: rotate(-3deg);
+                background: rgba(255, 255, 255, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.65);
+                box-shadow: 0 2px 3px rgba(0, 0, 0, 0.18);
+              }
+              .focus-note .focus-goal-label,
+              .focus-note .focus-task,
+              .focus-note .focus-desc,
+              .focus-note .focus-assigned {
+                position: relative;
+                z-index: 1;
+              }
+            `}</style>
           </div>
         )}
       </div>
@@ -916,61 +970,141 @@ function Dashboard() {
 
       {userData?.isPartyOwner && (
         <button
-          className="floating-add-btn floating-add-btn--star"
+          className="floating-add-btn floating-add-btn--sprout"
           onClick={() => {
             setModalQuest(null);
             setModalOpen(true);
           }}
           title="add quest"
         >
-          <span className="star-3d-scene">
-            <span className="star-3d-spin">
-              {STAR_LAYER_DEPTHS.map((z, i) => (
-                <span
-                  key={i}
-                  className="star-3d-layer"
-                  style={{
-                    transform: `translateZ(${z}px)`,
-                    filter: `brightness(${1.35 - i * 0.09})`,
-                  }}
-                />
-              ))}
-            </span>
+          <span className="sprout-scene">
+            <span className="sprout-sparkle sprout-sparkle--1">✦</span>
+            <span className="sprout-sparkle sprout-sparkle--2">✦</span>
+            <span className="sprout-bud" />
+            <span className="sprout-leaf sprout-leaf--left" />
+            <span className="sprout-leaf sprout-leaf--right" />
+            <span className="sprout-stem" />
+            <span className="sprout-pot" />
+            <span className="sprout-plus">+</span>
           </span>
           <style>{`
-            .floating-add-btn--star {
+            .floating-add-btn--sprout {
               background: transparent;
               border: none;
               padding: 0;
               cursor: pointer;
             }
-            .star-3d-scene {
-              display: block;
-              width: 44px;
-              height: 44px;
-              perspective: 300px;
+            .floating-add-btn--sprout:hover .sprout-scene {
+              transform: scale(1.08);
             }
-            .star-3d-spin {
-              display: block;
-              width: 100%;
-              height: 100%;
+            .sprout-scene {
               position: relative;
-              transform-style: preserve-3d;
-              animation: star-3d-rotate 6s linear infinite;
+              display: block;
+              width: 52px;
+              height: 52px;
+              transition: transform 0.2s ease;
             }
-            .star-3d-layer {
+            .sprout-pot {
               position: absolute;
-              inset: 0;
-              background: linear-gradient(135deg, #ffe066, #ffb300 55%, #b8860b);
-              clip-path: polygon(
-                50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
-                50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
-              );
-              box-shadow: 0 0 6px rgba(255, 193, 7, 0.6);
+              bottom: 2px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 28px;
+              height: 18px;
+              background: linear-gradient(160deg, #c8860a, #8b6914);
+              border-radius: 4px 4px 12px 12px;
+              box-shadow: 0 3px 6px rgba(0, 0, 0, 0.28);
             }
-            @keyframes star-3d-rotate {
-              from { transform: rotateY(0deg) rotateX(8deg); }
-              to { transform: rotateY(360deg) rotateX(8deg); }
+            .sprout-stem {
+              position: absolute;
+              bottom: 17px;
+              left: 50%;
+              width: 4px;
+              height: 15px;
+              margin-left: -2px;
+              background: #4a8f3c;
+              border-radius: 2px;
+              transform-origin: bottom center;
+              animation: sprout-sway 3s ease-in-out infinite;
+            }
+            .sprout-leaf {
+              position: absolute;
+              bottom: 24px;
+              width: 15px;
+              height: 10px;
+              background: linear-gradient(135deg, #86cf60, #4a8f3c);
+              border-radius: 60% 60% 60% 5%;
+              animation: sprout-sway 3s ease-in-out infinite;
+            }
+            .sprout-leaf--left {
+              left: 9px;
+              transform-origin: bottom right;
+              animation-delay: -0.3s;
+            }
+            .sprout-leaf--right {
+              right: 9px;
+              transform: scaleX(-1);
+              transform-origin: bottom left;
+              animation-delay: -0.6s;
+            }
+            .sprout-bud {
+              position: absolute;
+              top: 5px;
+              left: 50%;
+              margin-left: -6px;
+              width: 12px;
+              height: 12px;
+              background: radial-gradient(circle at 35% 30%, #ffe066, #ffb300);
+              border-radius: 50%;
+              box-shadow: 0 0 6px rgba(255, 193, 7, 0.6);
+              animation: sprout-bob 3s ease-in-out infinite;
+            }
+            .sprout-plus {
+              position: absolute;
+              top: -3px;
+              right: -3px;
+              width: 18px;
+              height: 18px;
+              background: #fff8ec;
+              color: #b8860b;
+              border: 2px solid #ffb300;
+              border-radius: 50%;
+              font-size: 12px;
+              font-weight: 800;
+              line-height: 1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+            }
+            .sprout-sparkle {
+              position: absolute;
+              font-size: 9px;
+              color: #ffe066;
+              opacity: 0;
+              animation: sprout-twinkle 2.4s ease-in-out infinite;
+            }
+            .sprout-sparkle--1 {
+              top: 0px;
+              left: -3px;
+              animation-delay: 0.4s;
+            }
+            .sprout-sparkle--2 {
+              top: 10px;
+              right: -7px;
+              animation-delay: 1.4s;
+            }
+            @keyframes sprout-sway {
+              0%, 100% { transform: rotate(-6deg); }
+              50% { transform: rotate(6deg); }
+            }
+            @keyframes sprout-bob {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-3px); }
+            }
+            @keyframes sprout-twinkle {
+              0%, 100% { opacity: 0; transform: scale(0.6); }
+              50% { opacity: 1; transform: scale(1); }
             }
           `}</style>
         </button>

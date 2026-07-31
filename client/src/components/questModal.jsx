@@ -506,13 +506,141 @@ function QuestModal({
               </select>
             </FieldGroup>
             {error && <p className="qm-error">{error}</p>}
+
+            <svg width="0" height="0" style={{ position: "absolute" }}>
+              <filter id="quest-goo">
+                <feGaussianBlur
+                  in="SourceGraphic"
+                  stdDeviation="10"
+                  result="blur"
+                />
+                <feColorMatrix
+                  in="blur"
+                  mode="matrix"
+                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
+                  result="goo"
+                />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+              </filter>
+            </svg>
             <button
-              className="qm-btn-primary"
+              className="qm-blob-btn"
               onClick={handleCreate}
               disabled={saving}
             >
+              <span className="qm-blob-btn__inner">
+                <span className="qm-blob-btn__blobs">
+                  <span className="qm-blob-btn__blob" />
+                  <span className="qm-blob-btn__blob" />
+                  <span className="qm-blob-btn__blob" />
+                  <span className="qm-blob-btn__blob" />
+                </span>
+              </span>
               {saving ? "creating... ✦" : "create quest ✦"}
             </button>
+            <style>{`
+              .qm-blob-btn {
+                z-index: 1;
+                position: relative;
+                display: block;
+                width: 100%;
+                margin-top: 6px;
+                padding: 16px 20px;
+                text-align: center;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                color: #b8860b;
+                font-size: 15px;
+                font-weight: 700;
+                font-family: inherit;
+                background-color: transparent;
+                outline: none;
+                border: none;
+                border-radius: 30px;
+                transition: color 0.5s;
+                cursor: pointer;
+              }
+              .qm-blob-btn:disabled {
+                cursor: default;
+                opacity: 0.7;
+              }
+              .qm-blob-btn:before {
+                content: "";
+                z-index: 1;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                border: 2px solid #b8860b;
+                border-radius: 30px;
+              }
+              .qm-blob-btn:after {
+                content: "";
+                z-index: -2;
+                position: absolute;
+                left: 3px;
+                top: 3px;
+                width: 100%;
+                height: 100%;
+                transition: all 0.3s 0.2s;
+                border-radius: 30px;
+              }
+              .qm-blob-btn:hover {
+                color: #fff8ec;
+              }
+              .qm-blob-btn:hover:after {
+                transition: all 0.3s;
+                left: 0;
+                top: 0;
+              }
+              .qm-blob-btn__inner {
+                z-index: -1;
+                overflow: hidden;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                border-radius: 30px;
+                background: #fff8ec;
+              }
+              .qm-blob-btn__blobs {
+                position: relative;
+                display: block;
+                height: 100%;
+                filter: url(#quest-goo);
+              }
+              .qm-blob-btn__blob {
+                position: absolute;
+                top: 2px;
+                width: 25%;
+                height: 100%;
+                background: #b8860b;
+                border-radius: 100%;
+                transform: translate3d(0, 150%, 0) scale(1.4);
+                transition: transform 0.45s;
+              }
+              .qm-blob-btn:hover .qm-blob-btn__blob {
+                transform: translateZ(0) scale(1.4);
+              }
+              .qm-blob-btn__blob:nth-child(1) {
+                left: 0%;
+                transition-delay: 0s;
+              }
+              .qm-blob-btn__blob:nth-child(2) {
+                left: 30%;
+                transition-delay: 0.08s;
+              }
+              .qm-blob-btn__blob:nth-child(3) {
+                left: 60%;
+                transition-delay: 0.16s;
+              }
+              .qm-blob-btn__blob:nth-child(4) {
+                left: 90%;
+                transition-delay: 0.24s;
+              }
+            `}</style>
           </>
         )}
 
