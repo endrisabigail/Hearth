@@ -165,6 +165,10 @@
   margin-bottom: 10px;
 }
 
+.panel-header--titleless {
+  justify-content: flex-end;
+}
+
 .panel-header-actions {
   display: flex;
   align-items: center;
@@ -292,6 +296,83 @@
   font-weight: 700;
   color: #e07020;
   flex-shrink: 0;
+}
+
+/* members panel — icon grid */
+
+.member-icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 4px 2px 6px;
+}
+
+.member-icon {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 56px;
+}
+
+.member-icon-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(212, 165, 116, 0.3);
+  border: 2px solid rgba(139, 105, 20, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: transform 0.15s;
+}
+
+.member-icon:hover .member-icon-avatar {
+  transform: scale(1.08);
+}
+
+.member-icon-avatar--owner {
+  border-color: #5aaa4a;
+  background: rgba(90, 170, 74, 0.15);
+}
+
+.member-icon-status {
+  position: absolute;
+  top: 28px;
+  right: 4px;
+  font-size: 12px;
+  line-height: 1;
+  background: #fffaf0;
+  border-radius: 50%;
+  padding: 1px;
+}
+
+.member-icon-status.is-live {
+  animation: member-live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes member-live-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+.member-icon-crown {
+  position: absolute;
+  top: -8px;
+  font-size: 12px;
+}
+
+.member-icon-name {
+  font-size: 9px;
+  font-weight: 800;
+  color: #3d2b1f;
+  margin: 4px 0 0;
+  max-width: 56px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 
 /* invite section */
@@ -581,11 +662,18 @@
 .hud-icon-cluster {
   position: absolute;
   top: 14px;
-  right: 18px;
   z-index: 15;
   display: flex;
   align-items: flex-start;
   gap: 14px;
+}
+
+.hud-icon-cluster--left {
+  left: 66px;
+}
+
+.hud-icon-cluster--right {
+  right: 18px;
 }
 
 /* mail envelope */

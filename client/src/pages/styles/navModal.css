@@ -434,6 +434,32 @@
   box-shadow: 0 4px 12px rgba(184, 80, 66, 0.3);
 }
 
+/* Delete account btn */
+.nm-delete-btn {
+  width: 100%;
+  background: #fff;
+  border: 2px solid #b85042;
+  border-radius: 999px;
+  color: #b85042;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 9px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  transition: all 0.15s;
+}
+
+.nm-delete-btn:hover:not(:disabled) {
+  background: rgba(184, 80, 66, 0.08);
+}
+
+.nm-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Nav links */
 .nm-nav-link {
   display: flex;

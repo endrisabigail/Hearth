@@ -37,6 +37,27 @@ const MOVE_SPEED = 0.0004; // units per ms; multiplied by dt in the game loop
 const SAVE_DEBOUNCE = 1500;
 const PANELS = ["members", "focus"];
 
+const SOUND_FILES = {
+  mail: "/sounds/mail.mp3",
+  notify: "/sounds/notify.mp3",
+  newMember: "/sounds/new.mp3",
+  click: "/sounds/click.mp3",
+};
+
+function playSound(name, volume = 1) {
+  try {
+    const src = SOUND_FILES[name];
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.volume = Math.max(0, Math.min(1, volume));
+    audio.play().catch(() => {
+      /* browser blocked autoplay until a user gesture happens; safe to ignore */
+    });
+  } catch (err) {
+    console.error("sound playback failed:", err);
+  }
+}
+
 // how close the character needs to be to a chest to trigger on walk-in
 const PROXIMITY_THRESHOLD = 0.06;
 
@@ -77,7 +98,6 @@ function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState("map");
-  const [copied, setCopied] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQuest, setModalQuest] = useState(null);
   const [msgModalOpen, setMsgModalOpen] = useState(false);
@@ -260,6 +280,7 @@ function Dashboard() {
         username: member.username,
       });
       setPlayersVersion((v) => v + 1);
+      playSound("newMember");
     });
 
     socket.on("plaza:userMoved", ({ userId, x, y }) => {
@@ -280,6 +301,7 @@ function Dashboard() {
     socket.on("plaza:messageReceived", ({ fromUserId }) => {
       if (!fromUserId) return;
       messageAlertsRef.current.set(fromUserId, Date.now());
+      playSound("mail");
     });
 
     socket.on("connect_error", (err) => {
@@ -478,17 +500,27 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [bellPopoverOpen]);
 
+  // click.mp3 on literally any click anywhere on the dashboard
+  useEffect(() => {
+    const handleAnyClick = () => playSound("click", 0.5);
+    document.addEventListener("click", handleAnyClick);
+    return () => document.removeEventListener("click", handleAnyClick);
+  }, []);
+
+  // notify.mp3 once whenever the unread bell-notification count goes up
+  const prevUnreadBellRef = useRef(0);
+  useEffect(() => {
+    const unread = notifications.filter(
+      (n) => !n.read && !n.message?.startsWith("✉️"),
+    ).length;
+    if (unread > prevUnreadBellRef.current) {
+      playSound("notify");
+    }
+    prevUnreadBellRef.current = unread;
+  }, [notifications]);
+
   const togglePanel = (panel) =>
     setOpenPanels((prev) => ({ ...prev, [panel]: !prev[panel] }));
-
-  const copyInviteLink = () => {
-    if (!party?.inviteCode) return;
-    navigator.clipboard.writeText(
-      `${window.location.origin}/join/${party.inviteCode}`,
-    );
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const markNotificationsRead = async () => {
     try {
@@ -579,7 +611,29 @@ function Dashboard() {
           opacity: 0.9,
         }}
       />
-      <div className="hud-icon-cluster">
+      <div className="hud-icon-cluster hud-icon-cluster--left">
+        <button
+          className="mail-envelope-trigger"
+          onClick={() => setMsgModalOpen(true)}
+          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
+        >
+          <span
+            className={`mail-envelope${unreadMailCount > 0 ? " mail-envelope--shake" : ""}`}
+          >
+            <span className="mail-letter">
+              <span className="mail-letter-line" />
+              <span className="mail-letter-line mail-letter-line--short" />
+            </span>
+            <span className="mail-envelope-flap" />
+            <span className="mail-envelope-body" />
+            {unreadMailCount > 0 && (
+              <span className="mail-envelope-badge">{unreadMailCount}</span>
+            )}
+          </span>
+        </button>
+      </div>
+
+      <div className="hud-icon-cluster hud-icon-cluster--right">
         <div className="bell-wrap" ref={bellPanelRef}>
           <button
             className={`bell-trigger${unreadBellCount > 0 ? " bell-trigger--ring" : ""}`}
@@ -630,26 +684,6 @@ function Dashboard() {
             </div>
           )}
         </div>
-
-        <button
-          className="mail-envelope-trigger"
-          onClick={() => setMsgModalOpen(true)}
-          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
-        >
-          <span
-            className={`mail-envelope${unreadMailCount > 0 ? " mail-envelope--shake" : ""}`}
-          >
-            <span className="mail-letter">
-              <span className="mail-letter-line" />
-              <span className="mail-letter-line mail-letter-line--short" />
-            </span>
-            <span className="mail-envelope-flap" />
-            <span className="mail-envelope-body" />
-            {unreadMailCount > 0 && (
-              <span className="mail-envelope-badge">{unreadMailCount}</span>
-            )}
-          </span>
-        </button>
       </div>
 
       <div className="scene-bg" ref={mapAreaRef}>
@@ -774,51 +808,33 @@ function Dashboard() {
                 ✕
               </button>
             </div>
-            <div className="member-list">
+            <div className="member-icon-grid">
               {party?.owner && (
-                <div className="member-row owner-row">
-                  <div className="member-avatar">
-                    {AVATAR_MAP[party.owner.avatarId] || "🐾"}
-                  </div>
-                  <div className="member-info">
-                    <p className="member-name">
-                      {party.owner.username}
-                      <span className="lead-badge"> 👑 lead</span>
-                    </p>
-                    <p className="member-status">{party.owner.rank}</p>
-                  </div>
-                  <div className="member-streak">
-                    🔥 {party.owner.streak?.current || 0}
-                  </div>
-                </div>
+                <MemberIcon
+                  key={party.owner._id}
+                  member={party.owner}
+                  isOwner
+                  isLive={
+                    party.owner._id?.toString() === userData?.id?.toString() ||
+                    otherPlayersRef.current.has(party.owner._id)
+                  }
+                />
               )}
-              {party?.members?.length > 0 ? (
-                party.members.map((member) => (
-                  <div key={member._id} className="member-row">
-                    <div className="member-avatar">
-                      {AVATAR_MAP[member.avatarId] || "🐾"}
-                    </div>
-                    <div className="member-info">
-                      <p className="member-name">{member.username}</p>
-                      <p className="member-status">{member.rank}</p>
-                    </div>
-                    <div className="member-streak">
-                      🔥 {member.streak?.current || 0}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="empty-msg">no members yet! share your link ✦</p>
-              )}
+              {party?.members?.length > 0
+                ? party.members.map((member) => (
+                    <MemberIcon
+                      key={member._id}
+                      member={member}
+                      isLive={
+                        member._id?.toString() === userData?.id?.toString() ||
+                        otherPlayersRef.current.has(member._id)
+                      }
+                    />
+                  ))
+                : !party?.owner && (
+                    <p className="empty-msg">no members yet! share your link ✦</p>
+                  )}
             </div>
-            {userData?.isPartyOwner && party?.inviteCode && (
-              <div className="invite-section">
-                <p className="invite-label">invite link</p>
-                <button className="invite-btn" onClick={copyInviteLink}>
-                  {copied ? "✓ copied!" : "🔗 copy invite link"}
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -828,8 +844,8 @@ function Dashboard() {
       <div className="right-col">
         {openPanels.focus && (
           <div className="panel focus-panel focus-panel--paper">
-            <div className="panel-header">
-              <span className="panel-title">focus of the day</span>
+            <div className="panel-header panel-header--titleless">
+              <span className="panel-title" />
               <button
                 className="panel-close"
                 onClick={() => togglePanel("focus")}
@@ -864,21 +880,6 @@ function Dashboard() {
                   : "no active quests! wait for your lead to get started!"}
               </p>
             )}
-            <div className="streak-section">
-              <div className="streak-label">🔥 weekly streak</div>
-              <div className="streak-bar-bg">
-                <div
-                  className="streak-bar-fill"
-                  style={{
-                    width: `${Math.min(((userData?.streak?.current || 0) / 7) * 100, 100)}%`,
-                  }}
-                />
-              </div>
-              <p className="streak-days">
-                {userData?.streak?.current || 0} day
-                {userData?.streak?.current !== 1 ? "s" : ""}
-              </p>
-            </div>
             <style>{`
               .focus-panel--paper {
                 background: transparent;
@@ -1136,6 +1137,24 @@ function Dashboard() {
           onClose={() => setNavModalOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+function MemberIcon({ member, isOwner, isLive }) {
+  return (
+    <div
+      className="member-icon"
+      title={`${member.username}${isOwner ? " · lead" : ""} · ${isLive ? "live" : "away"}`}
+    >
+      <div className={`member-icon-avatar${isOwner ? " member-icon-avatar--owner" : ""}`}>
+        {AVATAR_MAP[member.avatarId] || "🐾"}
+      </div>
+      <span className={`member-icon-status ${isLive ? "is-live" : "is-away"}`}>
+        {isLive ? "🟢" : "🌙"}
+      </span>
+      {isOwner && <span className="member-icon-crown">👑</span>}
+      <p className="member-icon-name">{member.username}</p>
     </div>
   );
 }

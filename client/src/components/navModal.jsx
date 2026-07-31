@@ -14,6 +14,8 @@ const AVATAR_MAP = {
 function NavModal({ userData, party, api, onClose }) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("personal");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const partyMembers = [
     ...(party?.owner ? [{ ...party.owner, isOwner: true }] : []),
@@ -23,6 +25,23 @@ function NavModal({ userData, party, api, onClose }) {
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete("/dashboard/account");
+      localStorage.removeItem("token");
+      navigate("/login");
+    } catch (err) {
+      console.error("account deletion failed:", err);
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
   };
 
   return (
@@ -118,11 +137,27 @@ function NavModal({ userData, party, api, onClose }) {
                   max={100}
                 />
               </div>
-              <ToggleRow label="🎣 Fishing Mode" defaultOn={false} />
+              <ToggleRow label="🔊 Notification Sounds" defaultOn={true} />
 
-              {/* Logout */}
+              {/* Live presence */}
+              <div className="nm-section-heading">🟢 Live Status</div>
+              <ToggleRow label="Show Me As Live In Plaza" defaultOn={true} />
+
+              {/* Account */}
+              <div className="nm-section-heading">🌰 Account</div>
               <button className="nm-logout-btn" onClick={handleLogout}>
                 🚪 Log Out
+              </button>
+              <button
+                className="nm-delete-btn"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting
+                  ? "deleting..."
+                  : confirmingDelete
+                    ? "⚠️ click again to confirm"
+                    : "🗑️ Delete Account"}
               </button>
             </div>
           )}
