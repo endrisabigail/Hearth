@@ -27,25 +27,6 @@
   overflow-y: auto;
 }
 
-/* a little leaf charm peeking off the top of the card, like a wax seal */
-.qm-card::before {
-  content: "🍃";
-  position: absolute;
-  top: -16px;
-  left: 26px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #f7f9f4;
-  border: 2px solid #8fa888;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  transform: rotate(-10deg);
-  box-shadow: 0 3px 8px rgba(40, 60, 40, 0.18);
-}
-
 @keyframes qm-wiggle {
 
   0%,
@@ -262,6 +243,105 @@
 
 .qm-quest-header {
   margin-bottom: 18px;
+}
+
+ 
+.qm-ai-help-bubble {
+  float: right;
+  margin-left: 8px;
+  border: 1.5px solid #f5a623;
+  background: #fff6e6;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #a86d0c;
+  cursor: pointer;
+  animation: qm-help-pulse 2.2s ease-in-out infinite;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.qm-ai-help-bubble:hover {
+  background: #ffecc4;
+  transform: scale(1.03);
+}
+
+@keyframes qm-help-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.35);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 166, 35, 0);
+  }
+}
+
+.qm-ai-box {
+  border-color: #f0c987;
+  background: rgba(255, 246, 230, 0.75);
+}
+
+.qm-ai-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.qm-ai-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #a86d0c;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.6;
+  padding: 0 2px;
+}
+
+.qm-ai-close:hover {
+  opacity: 1;
+}
+
+.qm-ai-text {
+  white-space: pre-line;
+}
+
+.qm-ai-swirl {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 4px;
+  border: 2px solid #f0c987;
+  border-top-color: #a86d0c;
+  border-radius: 50%;
+  animation: qm-ai-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes qm-ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.qm-ai-regen {
+  margin-top: 8px;
+  border-color: #f5a623;
+  color: #a86d0c;
+}
+
+.qm-ai-regen:hover:not(:disabled) {
+  background: rgba(245, 166, 35, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qm-ai-help-bubble {
+    animation: none !important;
+  }
 }
 
 .qm-status-badge {

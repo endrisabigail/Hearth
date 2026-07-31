@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
 import "../pages/styles/agentModal.css";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const AVATAR_MAP = {
   tomato: "🍅",
@@ -104,6 +107,9 @@ function QuestModal({
   const [localQuest, setLocalQuest] = useState(quest);
   useEffect(() => {
     setLocalQuest(quest);
+    setAiOpen(false);
+    setAiText(quest?.aiBreakdown || "");
+    setAiError("");
   }, [quest?._id]);
 
   const applyUpdate = (updated) => {
@@ -345,6 +351,68 @@ function QuestModal({
   const [showHistory, setShowHistory] = useState(false);
   const editHistory = localQuest?.editHistory || [];
 
+  // ---- "I can help!!" quest breakdown -----------------------------------
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiText, setAiText] = useState(localQuest?.aiBreakdown || "");
+  const [aiStreaming, setAiStreaming] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const aiSocketRef = useRef(null);
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // only real, already-created quests get a companion socket — nothing to
+  // break down for a locked slot or the "create quest" form
+  const canUseAi = Boolean(quest?._id) && !isNew && !isLocked;
+
+  useEffect(() => {
+    if (!canUseAi || !token) return;
+
+    const socket = io(`${API_URL}/ai`, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+    aiSocketRef.current = socket;
+
+    socket.on("ai:breakdown:start", ({ questId }) => {
+      if (questId !== quest._id) return;
+      setAiStreaming(true);
+      setAiError("");
+      setAiText("");
+    });
+
+    socket.on("ai:breakdown:chunk", ({ questId, chunk }) => {
+      if (questId !== quest._id) return;
+      setAiText((prev) => prev + chunk);
+    });
+
+    socket.on("ai:breakdown:done", ({ questId }) => {
+      if (questId !== quest._id) return;
+      setAiStreaming(false);
+    });
+
+    socket.on("ai:breakdown:error", ({ questId, msg }) => {
+      if (questId && questId !== quest._id) return;
+      setAiStreaming(false);
+      setAiError(msg || "couldn't get steps together.");
+    });
+
+    return () => {
+      socket.disconnect();
+      aiSocketRef.current = null;
+    };
+  }, [canUseAi, token, quest?._id]);
+
+  const handleAskForHelp = (regenerate = false) => {
+    setAiOpen(true);
+    if (aiStreaming || !aiSocketRef.current) return;
+    // don't refire if we already have a cached breakdown showing — the
+    // toggle button just opens the panel in that case
+    if (!regenerate && aiText) return;
+    aiSocketRef.current.emit("ai:breakdown", {
+      questId: quest._id,
+      regenerate,
+    });
+  };
+
   return (
     <div className="qm-overlay" onClick={onClose}>
       <div className="qm-card" onClick={(e) => e.stopPropagation()}>
@@ -550,6 +618,15 @@ function QuestModal({
                   ✏️ edit
                 </button>
               )}
+              {canUseAi && localQuest.status !== "Completed" && (
+                <button
+                  className="qm-ai-help-bubble"
+                  onClick={() => handleAskForHelp(false)}
+                  title="get help starting this quest"
+                >
+                  💬 i can help!!
+                </button>
+              )}
               <h2 className="qm-quest-title">{localQuest.title}</h2>
               <p className="qm-quest-meta">
                 {CATEGORY_ICON[localQuest.category] || "🌿"}{" "}
@@ -560,6 +637,38 @@ function QuestModal({
               <label className="qm-label">description</label>
               <p className="qm-section-text">{localQuest.description}</p>
             </div>
+
+            {aiOpen && (
+              <div className="qm-section-box qm-ai-box">
+                <div className="qm-ai-box-header">
+                  <label className="qm-label">🌱 how to get started</label>
+                  <button
+                    className="qm-ai-close"
+                    onClick={() => setAiOpen(false)}
+                    title="close"
+                  >
+                    ×
+                  </button>
+                </div>
+                {aiError ? (
+                  <p className="qm-error">{aiError}</p>
+                ) : (
+                  <p className="qm-section-text qm-ai-text">
+                    {aiText}
+                    {aiStreaming && <span className="qm-ai-swirl" />}
+                  </p>
+                )}
+                {!aiStreaming && (
+                  <button
+                    className="qm-btn-secondary qm-btn-secondary--sm qm-ai-regen"
+                    onClick={() => handleAskForHelp(true)}
+                  >
+                    🔄 regenerate
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="qm-two-col">
               <div className="qm-section-box">
                 <label className="qm-label">due date</label>

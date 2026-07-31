@@ -28,7 +28,7 @@ const ARRIVAL_THRESHOLD = 0.018;
 // world layout
 const WORLD_MIN = -32; // left/up extent  
 const WORLD_MAX = 48; // right/down extent  
-const WORLD_SIZE = WORLD_MAX - WORLD_MIN; // 80
+export const WORLD_SIZE = WORLD_MAX - WORLD_MIN; // 80
 const WORLD_CENTER = (WORLD_MIN + WORLD_MAX) / 2; // 8
 
 const TILE_SIZE = 2;

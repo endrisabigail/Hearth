@@ -55,6 +55,10 @@ const QuestSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    aiBreakdown: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );
