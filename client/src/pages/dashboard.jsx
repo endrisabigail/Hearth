@@ -44,6 +44,45 @@ const SOUND_FILES = {
   click: "/sounds/click.mp3",
 };
 
+const NAV_ICONS = {
+  map: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="9 3 3 5 3 19 9 17 15 19 21 17 21 3 15 5 9 3" />
+      <line x1="9" y1="3" x2="9" y2="17" />
+      <line x1="15" y1="5" x2="15" y2="19" />
+    </svg>
+  ),
+  board: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="4" width="14" height="17" rx="2" />
+      <path d="M9 2h6v3H9z" />
+      <line x1="8" y1="10.5" x2="16" y2="10.5" />
+      <line x1="8" y1="14.5" x2="16" y2="14.5" />
+      <line x1="8" y1="18.5" x2="13" y2="18.5" />
+    </svg>
+  ),
+  passport: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <circle cx="12" cy="10" r="2.4" />
+      <path d="M8.5 16c0-2 1.5-3 3.5-3s3.5 1 3.5 3" />
+    </svg>
+  ),
+  pocket: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 8a5 5 0 0 1 10 0v3" />
+      <rect x="4" y="8" width="16" height="13" rx="3" />
+      <line x1="9" y1="12.5" x2="15" y2="12.5" />
+    </svg>
+  ),
+  settings: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M19.3 13.8a7.6 7.6 0 0 0 0-3.6l1.9-1.4-2-3.4-2.2.8a7.6 7.6 0 0 0-3.1-1.8L13.5 2h-3l-.4 2.4a7.6 7.6 0 0 0-3.1 1.8l-2.2-.8-2 3.4L4.7 10.2a7.6 7.6 0 0 0 0 3.6l-1.9 1.4 2 3.4 2.2-.8a7.6 7.6 0 0 0 3.1 1.8L10.5 22h3l.4-2.4a7.6 7.6 0 0 0 3.1-1.8l2.2.8 2-3.4z" />
+    </svg>
+  ),
+};
+
 function getSfxVolume() {
   const saved = localStorage.getItem("hearth_sfxVolume");
   return saved !== null ? Number(saved) / 100 : 0.5;
@@ -626,28 +665,6 @@ function Dashboard() {
           opacity: 0.9,
         }}
       />
-      <div className="hud-icon-cluster hud-icon-cluster--left">
-        <button
-          className="mail-envelope-trigger"
-          onClick={() => setMsgModalOpen(true)}
-          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
-        >
-          <span
-            className={`mail-envelope${unreadMailCount > 0 ? " mail-envelope--shake" : ""}`}
-          >
-            <span className="mail-letter">
-              <span className="mail-letter-line" />
-              <span className="mail-letter-line mail-letter-line--short" />
-            </span>
-            <span className="mail-envelope-flap" />
-            <span className="mail-envelope-body" />
-            {unreadMailCount > 0 && (
-              <span className="mail-envelope-badge">{unreadMailCount}</span>
-            )}
-          </span>
-        </button>
-      </div>
-
       <div className="hud-icon-cluster hud-icon-cluster--right">
         <div className="bell-wrap" ref={bellPanelRef}>
           <button
@@ -784,17 +801,18 @@ function Dashboard() {
       <div className="fireflies fireflies-3" />
       <div className="fireflies fireflies-4" />
 
-      <nav className="navbar wood-surface">
+      <nav className="navbar">
         {[
-          { id: "map", icon: "🗺️", label: "Plaza Map" },
-          { id: "board", icon: "📋", label: "Board", path: "/board" },
-          { id: "passport", icon: "📖", label: "Passport", path: "/passport" },
-          { id: "pocket", icon: "🎒", label: "Pocket", path: "/pocket" },
-          { id: "settings", icon: "⚙️", label: "Settings" },
+          { id: "map", label: "Plaza Map" },
+          { id: "board", label: "Board", path: "/board" },
+          { id: "passport", label: "Passport", path: "/passport" },
+          { id: "pocket", label: "Pocket", path: "/pocket" },
+          { id: "settings", label: "Settings" },
         ].map((item) => (
           <div
             key={item.id}
             className={`nav-item ${activeNav === item.id ? "active" : ""}`}
+            title={item.label}
             onClick={() => {
               setActiveNav(item.id);
               if (item.id === "settings") {
@@ -804,8 +822,7 @@ function Dashboard() {
               }
             }}
           >
-            <span className="nav-icon">{item.icon}</span>
-            <span className="nav-label">{item.label}</span>
+            <span className="nav-icon">{NAV_ICONS[item.id]}</span>
           </div>
         ))}
       </nav>
@@ -813,46 +830,54 @@ function Dashboard() {
       {/* left column */}
       <div className="left-col">
         {openPanels.members && (
-          <div className="panel members-panel">
-            <div className="panel-header">
-              <span className="panel-title">{party?.name || "my hearth"}</span>
-              <button
-                className="panel-close"
-                onClick={() => togglePanel("members")}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="member-icon-grid">
-              {party?.owner && (
+          <div className="member-icon-grid member-icon-grid--sidebar">
+            {party?.owner && (
+              <MemberIcon
+                key={party.owner._id}
+                member={party.owner}
+                isOwner
+                isLive={
+                  party.owner._id?.toString() === userData?.id?.toString() ||
+                  otherPlayersRef.current.has(party.owner._id)
+                }
+              />
+            )}
+            {party?.members?.length > 0
+              ? party.members.map((member) => (
                 <MemberIcon
-                  key={party.owner._id}
-                  member={party.owner}
-                  isOwner
+                  key={member._id}
+                  member={member}
                   isLive={
-                    party.owner._id?.toString() === userData?.id?.toString() ||
-                    otherPlayersRef.current.has(party.owner._id)
+                    member._id?.toString() === userData?.id?.toString() ||
+                    otherPlayersRef.current.has(member._id)
                   }
                 />
+              ))
+              : !party?.owner && (
+                <p className="empty-msg">no members yet! share your link ✦</p>
               )}
-              {party?.members?.length > 0
-                ? party.members.map((member) => (
-                  <MemberIcon
-                    key={member._id}
-                    member={member}
-                    isLive={
-                      member._id?.toString() === userData?.id?.toString() ||
-                      otherPlayersRef.current.has(member._id)
-                    }
-                  />
-                ))
-                : !party?.owner && (
-                  <p className="empty-msg">no members yet! share your link ✦</p>
-                )}
-            </div>
           </div>
         )}
 
+        <button
+          className="mail-envelope-trigger mail-envelope-trigger--sidebar"
+          onClick={() => setMsgModalOpen(true)}
+          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
+        >
+          <span
+            className={`mail-envelope${unreadMailCount > 0 ? " mail-envelope--shake" : ""}`}
+          >
+            <span className="mail-letter">
+              <span className="mail-letter-line" />
+              <span className="mail-letter-line mail-letter-line--short" />
+            </span>
+            <span className="mail-envelope-flap" />
+            <span className="mail-envelope-body" />
+            {unreadMailCount > 0 && (
+              <span className="mail-envelope-badge">{unreadMailCount}</span>
+            )}
+          </span>
+        </button>
       </div>
 
       {/* right column */}
@@ -889,11 +914,11 @@ function Dashboard() {
                 </div>
               </div>
             ) : (
-              <p className="empty-msg">
-                {userData?.isPartyOwner
-                  ? "no quests yet! add a quest node to get started 🪡"
-                  : "no active quests! wait for your lead to get started!"}
-              </p>
+              !userData?.isPartyOwner && (
+                <p className="empty-msg">
+                  no active quests! wait for your lead to get started!
+                </p>
+              )
             )}
             <style>{`
               .focus-panel--paper {

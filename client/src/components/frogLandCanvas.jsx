@@ -264,6 +264,12 @@ function FrogLandCanvas({
       return saved !== null ? Number(saved) / 100 : 0.7;
     })(),
   );
+  const sfxVolumeRef = useRef(
+    (() => {
+      const saved = localStorage.getItem("hearth_sfxVolume");
+      return saved !== null ? Number(saved) / 100 : 0.7;
+    })(),
+  );
 
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
@@ -289,7 +295,7 @@ function FrogLandCanvas({
 
     // Camera
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(FROG_WORLD_CENTER, 9, FROG_WORLD_CENTER + 7.5);
+    camera.position.set(FROG_WORLD_CENTER, 15.5, FROG_WORLD_CENTER + 13.5);
     camera.lookAt(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     cameraRef.current = camera;
 
@@ -356,10 +362,13 @@ function FrogLandCanvas({
 
       // settings modal dispatches this live as the Music slider is dragged
       handleMusicVolumeChange = (e) => {
-        if (e.detail?.channel !== "music") return;
-        musicVolumeRef.current = e.detail.value;
-        if (bgMusicRef.current) {
-          bgMusicRef.current.volume = 0.35 * musicVolumeRef.current;
+        if (e.detail?.channel === "music") {
+          musicVolumeRef.current = e.detail.value;
+          if (bgMusicRef.current) {
+            bgMusicRef.current.volume = 0.35 * musicVolumeRef.current;
+          }
+        } else if (e.detail?.channel === "sfx") {
+          sfxVolumeRef.current = e.detail.value;
         }
       };
       window.addEventListener("hearth:volumechange", handleMusicVolumeChange);
@@ -835,7 +844,7 @@ function FrogLandCanvas({
         // water-movement sound
         const waterSound = waterSoundRef.current;
         if (waterSound) {
-          const targetVolume = isMoving ? 0.5 * musicVolumeRef.current : 0;
+          const targetVolume = isMoving ? 0.5 * sfxVolumeRef.current : 0;
           waterSound.volume += (targetVolume - waterSound.volume) * 0.12;
           if (isMoving && !wasMovingRef.current && waterSound.paused) {
             waterSound.currentTime = 0;
@@ -853,8 +862,8 @@ function FrogLandCanvas({
         }
 
         camera.position.x += (wx - camera.position.x) * 0.1;
-        camera.position.z += (wz + 10 - camera.position.z) * 0.1;
-        camera.position.y = 12;
+        camera.position.z += (wz + 13.5 - camera.position.z) * 0.1;
+        camera.position.y = 15.5;
         camera.lookAt(wx, 0, wz);
 
         if (manualInput) {
@@ -964,8 +973,8 @@ function FrogLandCanvas({
           now - (agent.userData.lastLandTime || 0) > 220
         ) {
           agent.userData.lastLandTime = now;
-          spawnRipple(agent.position.x, agent.position.z, 0.8, 0.7, 4.5);
-          spawnRipple(agent.position.x, agent.position.z, 1.1, 0.4, 6.5);
+          spawnRipple(agent.position.x, agent.position.z, 0.45, 0.35, 3.5);
+          spawnRipple(agent.position.x, agent.position.z, 0.6, 0.2, 5);
         }
 
         if (agent.userData.glow) {

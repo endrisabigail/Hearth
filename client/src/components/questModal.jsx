@@ -4,52 +4,32 @@ import "../pages/styles/agentModal.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const AVATAR_MAP = {
-  tomato: "🍅",
-  frog: "🐸",
-  fish: "🐟",
-  mushroom: "🍄",
-  apple: "🍎",
-  snail: "🐌",
-};
-
 const STATUS_COLOR = {
   "Not Started": "#f5a623",
   "In Progress": "#2196f3",
   Completed: "#4caf50",
 };
 
-const STATUS_ICON = {
-  "Not Started": "🌱",
-  "In Progress": "🌿",
-  Completed: "🌳",
-};
-
 const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed"];
-const CATEGORY_OPTIONS = [
-  "general",
-  "fitness",
-  "study",
-  "chores",
-  "creative",
-  "social",
-  "other",
-];
 
-
-export const CATEGORY_ICON = {
-  general: "🌿",
-  fitness: "💪",
-  study: "📚",
-  chores: "🧹",
-  creative: "🎨",
-  social: "🎉",
-  other: "🌰",
+const PRIORITY_OPTIONS = ["low", "medium", "high"];
+const PRIORITY_COLOR = {
+  low: "#8bc34a",
+  medium: "#f5a623",
+  high: "#e53935",
 };
 
 const COMPLETE_SOUND_SRC = "/sounds/complete.mp3";
+const NEW_SOUND_SRC = "/sounds/new.mp3";
 
-const CONFETTI_EMOJI = ["✦", "⭐", "🌟", "✨", "🍀", "🎉"];
+const CONFETTI_COLORS = [
+  "#ffb703",
+  "#fb8500",
+  "#8ecae6",
+  "#219ebc",
+  "#95d5b2",
+  "#ffd166",
+];
 
 function FieldGroup({ label, children }) {
   return (
@@ -82,6 +62,9 @@ function fieldLabel(field) {
     points: "points",
     assignedTo: "assigned to",
     status: "status",
+    tags: "tags",
+    priority: "priority",
+    checklist: "checklist",
   };
   return labels[field] || field;
 }
@@ -124,15 +107,32 @@ function QuestModal({
     dueDate: quest?.dueDate
       ? new Date(quest.dueDate).toISOString().split("T")[0]
       : "",
-    category: quest?.category || "general",
+    category: quest?.category || "",
     points: quest?.points || 5,
     status: quest?.status || "Not Started",
     assignedTo: quest?.assignedTo?._id || "",
+    tags: quest?.tags || [],
+    priority: quest?.priority || "medium",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  // ---- new-category / tag drafting -----------------------------------
+  const [newCategoryDraft, setNewCategoryDraft] = useState("");
+  const [tagDraft, setTagDraft] = useState("");
+
+  const addTagDraft = () => {
+    const v = tagDraft.trim();
+    if (!v || form.tags.includes(v)) {
+      setTagDraft("");
+      return;
+    }
+    set("tags", [...form.tags, v]);
+    setTagDraft("");
+  };
+  const removeTagDraft = (t) => set("tags", form.tags.filter((x) => x !== t));
 
   // ---- edit mode -----------------------------------------------------
   const [editing, setEditing] = useState(false);
@@ -145,9 +145,11 @@ function QuestModal({
       dueDate: localQuest.dueDate
         ? new Date(localQuest.dueDate).toISOString().split("T")[0]
         : "",
-      category: localQuest.category || "general",
+      category: localQuest.category || "",
       points: localQuest.points || 5,
       assignedTo: localQuest.assignedTo?._id || "",
+      tags: localQuest.tags || [],
+      priority: localQuest.priority || "medium",
     }));
     setError("");
     setEditing(true);
@@ -164,6 +166,8 @@ function QuestModal({
         category: form.category,
         points: form.points,
         assignedTo: form.assignedTo || null,
+        tags: form.tags,
+        priority: form.priority,
       });
       applyUpdate(res.data);
       setEditing(false);
@@ -201,8 +205,40 @@ function QuestModal({
         dueDate: form.dueDate,
         category: form.category,
         assignedTo: form.assignedTo || null,
+        tags: form.tags,
+        priority: form.priority,
       });
-      onQuestCreated(res.data);
+      let created = res.data;
+
+      if (pendingFile) {
+        try {
+          const formData = new FormData();
+          formData.append("file", pendingFile);
+          const fileRes = await api.post(
+            `/quests/${created._id}/attachments`,
+            formData,
+          );
+          created = fileRes.data;
+        } catch (e) {
+          // don't let a failed attachment undo the quest that already saved
+          setError(
+            e.response?.data?.msg ||
+            "quest created, but the pdf failed to attach.",
+          );
+        }
+        setPendingFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+
+      try {
+        const audio = new Audio(NEW_SOUND_SRC);
+        audio.volume = 0.8;
+        audio.play().catch(() => { });
+      } catch {
+        // sound is a nice-to-have, never block creation on it
+      }
+
+      onQuestCreated(created);
       onClose();
     } catch (e) {
       setError(e.response?.data?.msg || "failed to create quest.");
@@ -234,8 +270,8 @@ function QuestModal({
       left: Math.round(Math.random() * 100),
       delay: (Math.random() * 0.6).toFixed(2),
       duration: (1.4 + Math.random() * 1.1).toFixed(2),
-      emoji:
-        CONFETTI_EMOJI[Math.floor(Math.random() * CONFETTI_EMOJI.length)],
+      color:
+        CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
       drift: Math.round((Math.random() - 0.5) * 120),
     })),
   ).current;
@@ -252,7 +288,7 @@ function QuestModal({
       try {
         const audio = new Audio(COMPLETE_SOUND_SRC);
         audio.volume = 0.8;
-        audio.play().catch(() => {});
+        audio.play().catch(() => { });
       } catch {
         // sound is a nice-to-have, never block completion on it
       }
@@ -351,6 +387,38 @@ function QuestModal({
   const [showHistory, setShowHistory] = useState(false);
   const editHistory = localQuest?.editHistory || [];
 
+  // ---- checklist ---------------------------------------------------------
+  // Lives alongside comments/attachments: editable any time the quest
+  // already exists, without needing to enter the full "editing" mode.
+  const checklist = localQuest?.checklist || [];
+  const [newChecklistText, setNewChecklistText] = useState("");
+
+  const saveChecklist = async (items) => {
+    try {
+      const res = await api.put(`/quests/${quest._id}/checklist`, { items });
+      applyUpdate(res.data);
+    } catch (e) {
+      setError(e.response?.data?.msg || "failed to update checklist.");
+    }
+  };
+
+  const handleAddChecklistItem = () => {
+    const text = newChecklistText.trim();
+    if (!text) return;
+    saveChecklist([...checklist, { text, done: false }]);
+    setNewChecklistText("");
+  };
+
+  const handleToggleChecklistItem = (item) => {
+    saveChecklist(
+      checklist.map((it) => (it === item ? { ...it, done: !it.done } : it)),
+    );
+  };
+
+  const handleRemoveChecklistItem = (item) => {
+    saveChecklist(checklist.filter((it) => it !== item));
+  };
+
   // ---- "I can help!!" quest breakdown -----------------------------------
   const [aiOpen, setAiOpen] = useState(false);
   const [aiText, setAiText] = useState(localQuest?.aiBreakdown || "");
@@ -413,16 +481,38 @@ function QuestModal({
     });
   };
 
+  // ---- "write with AI" description helper --------------------------------
+  const [aiDescLoading, setAiDescLoading] = useState(false);
+  const handleAiDescription = async () => {
+    if (!form.title.trim()) {
+      setError("add a title first so ai has something to work with.");
+      return;
+    }
+    setAiDescLoading(true);
+    setError("");
+    try {
+      // ASSUMPTION: no backend route for this was provided, so this
+      // points at a plausible endpoint — adjust to match your API.
+      const res = await api.post("/quests/ai-description", {
+        title: form.title,
+      });
+      set("description", res.data?.description || "");
+    } catch (e) {
+      setError(e.response?.data?.msg || "couldn't write a description.");
+    } finally {
+      setAiDescLoading(false);
+    }
+  };
+
   return (
     <div className="qm-overlay" onClick={onClose}>
       <div className="qm-card" onClick={(e) => e.stopPropagation()}>
         <button className="qm-close" onClick={onClose}>
-          ✕
+          ×
         </button>
 
         {isLocked && (
           <div className="qm-locked">
-            <div className="qm-locked-icon">🌰</div>
             <h2>quest locked</h2>
             <p>this quest slot hasn't been filled yet.</p>
           </div>
@@ -440,12 +530,22 @@ function QuestModal({
               />
             </FieldGroup>
             <FieldGroup label="description">
-              <textarea
-                className="qm-textarea"
-                value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-                placeholder="what needs to be done?"
-              />
+              <div className="qm-desc-row">
+                <textarea
+                  className="qm-textarea"
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  placeholder="what needs to be done?"
+                />
+                <button
+                  type="button"
+                  className="qm-btn-secondary qm-btn-secondary--sm"
+                  onClick={handleAiDescription}
+                  disabled={aiDescLoading}
+                >
+                  {aiDescLoading ? "writing..." : "write with ai"}
+                </button>
+              </div>
             </FieldGroup>
             <FieldGroup label="due date">
               <input
@@ -456,26 +556,36 @@ function QuestModal({
               />
             </FieldGroup>
             <FieldGroup label="category">
-              <select
-                className="qm-select"
-                value={form.category}
-                onChange={(e) => set("category", e.target.value)}
-              >
-                {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_ICON[c] || "🌿"} {c}
-                  </option>
-                ))}
-              </select>
+              {customCategories.length > 0 ? (
+                <select
+                  className="qm-select"
+                  value={form.category}
+                  onChange={(e) => set("category", e.target.value)}
+                >
+                  <option value="">no category</option>
+                  {customCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="qm-section-text">
+                  create a category below to use it here.
+                </p>
+              )}
               <div className="qm-custom-cat-row">
                 <input
                   className="qm-input qm-input--sm"
                   placeholder="+ new category"
+                  value={newCategoryDraft}
+                  onChange={(e) => setNewCategoryDraft(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.target.value.trim()) {
-                      onSaveCategory?.(e.target.value);
-                      set("category", e.target.value.trim().toLowerCase());
-                      e.target.value = "";
+                    if (e.key === "Enter" && newCategoryDraft.trim()) {
+                      const v = newCategoryDraft.trim().toLowerCase();
+                      onSaveCategory?.(v);
+                      set("category", v);
+                      setNewCategoryDraft("");
                     }
                   }}
                 />
@@ -491,6 +601,40 @@ function QuestModal({
                 )}
               </div>
             </FieldGroup>
+            <FieldGroup label="tags">
+              {form.tags.length > 0 && (
+                <div className="qm-tag-list">
+                  {form.tags.map((t) => (
+                    <span key={t} className="qm-cat-tag">
+                      {t}
+                      <button onClick={() => removeTagDraft(t)}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                className="qm-input qm-input--sm"
+                placeholder="+ add tag"
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && tagDraft.trim()) addTagDraft();
+                }}
+              />
+            </FieldGroup>
+            <FieldGroup label="priority">
+              <select
+                className="qm-select"
+                value={form.priority}
+                onChange={(e) => set("priority", e.target.value)}
+              >
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </FieldGroup>
             <FieldGroup label="assign to">
               <select
                 className="qm-select"
@@ -500,10 +644,24 @@ function QuestModal({
                 <option value="">— unassigned —</option>
                 {partyMembers.map((m) => (
                   <option key={m._id} value={m._id}>
-                    {AVATAR_MAP[m.avatarId] || "🐾"} {m.username}
+                    {m.username}
                   </option>
                 ))}
               </select>
+            </FieldGroup>
+            <FieldGroup label="attachment (pdf)">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileChange}
+                className="qm-file-input"
+              />
+              {pendingFile && (
+                <p className="qm-section-text">
+                  {pendingFile.name} ready to attach.
+                </p>
+              )}
             </FieldGroup>
             {error && <p className="qm-error">{error}</p>}
 
@@ -536,7 +694,7 @@ function QuestModal({
                   <span className="qm-blob-btn__blob" />
                 </span>
               </span>
-              {saving ? "creating... ✦" : "create quest ✦"}
+              {saving ? "creating..." : "create quest"}
             </button>
             <style>{`
               .qm-blob-btn {
@@ -656,12 +814,22 @@ function QuestModal({
               />
             </FieldGroup>
             <FieldGroup label="description">
-              <textarea
-                className="qm-textarea"
-                value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-                placeholder="what needs to be done?"
-              />
+              <div className="qm-desc-row">
+                <textarea
+                  className="qm-textarea"
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  placeholder="what needs to be done?"
+                />
+                <button
+                  type="button"
+                  className="qm-btn-secondary qm-btn-secondary--sm"
+                  onClick={handleAiDescription}
+                  disabled={aiDescLoading}
+                >
+                  {aiDescLoading ? "writing..." : "write with ai"}
+                </button>
+              </div>
             </FieldGroup>
             <div className="qm-two-col">
               <FieldGroup label="due date">
@@ -683,14 +851,81 @@ function QuestModal({
               </FieldGroup>
             </div>
             <FieldGroup label="category">
+              {customCategories.length > 0 ? (
+                <select
+                  className="qm-select"
+                  value={form.category}
+                  onChange={(e) => set("category", e.target.value)}
+                >
+                  <option value="">no category</option>
+                  {customCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="qm-section-text">
+                  create a category below to use it here.
+                </p>
+              )}
+              <div className="qm-custom-cat-row">
+                <input
+                  className="qm-input qm-input--sm"
+                  placeholder="+ new category"
+                  value={newCategoryDraft}
+                  onChange={(e) => setNewCategoryDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newCategoryDraft.trim()) {
+                      const v = newCategoryDraft.trim().toLowerCase();
+                      onSaveCategory?.(v);
+                      set("category", v);
+                      setNewCategoryDraft("");
+                    }
+                  }}
+                />
+                {customCategories.length > 0 && (
+                  <div className="qm-custom-cat-tags">
+                    {customCategories.map((c) => (
+                      <span key={c} className="qm-cat-tag">
+                        {c}
+                        <button onClick={() => onDeleteCategory?.(c)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </FieldGroup>
+            <FieldGroup label="tags">
+              {form.tags.length > 0 && (
+                <div className="qm-tag-list">
+                  {form.tags.map((t) => (
+                    <span key={t} className="qm-cat-tag">
+                      {t}
+                      <button onClick={() => removeTagDraft(t)}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                className="qm-input qm-input--sm"
+                placeholder="+ add tag"
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && tagDraft.trim()) addTagDraft();
+                }}
+              />
+            </FieldGroup>
+            <FieldGroup label="priority">
               <select
                 className="qm-select"
-                value={form.category}
-                onChange={(e) => set("category", e.target.value)}
+                value={form.priority}
+                onChange={(e) => set("priority", e.target.value)}
               >
-                {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_ICON[c] || "🌿"} {c}
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
                   </option>
                 ))}
               </select>
@@ -704,7 +939,7 @@ function QuestModal({
                 <option value="">— unassigned —</option>
                 {partyMembers.map((m) => (
                   <option key={m._id} value={m._id}>
-                    {AVATAR_MAP[m.avatarId] || "🐾"} {m.username}
+                    {m.username}
                   </option>
                 ))}
               </select>
@@ -739,11 +974,19 @@ function QuestModal({
                 className="qm-status-badge"
                 style={{ background: STATUS_COLOR[localQuest.status] || "#aaa" }}
               >
-                {STATUS_ICON[localQuest.status] || "✦"} {localQuest.status}
+                {localQuest.status}
+              </span>
+              <span
+                className="qm-priority-badge"
+                style={{
+                  background: PRIORITY_COLOR[localQuest.priority] || "#999",
+                }}
+              >
+                {localQuest.priority || "medium"}
               </span>
               {isOwner && localQuest.status !== "Completed" && (
                 <button className="qm-edit-toggle" onClick={startEditing}>
-                  ✏️ edit
+                  edit
                 </button>
               )}
               {canUseAi && localQuest.status !== "Completed" && (
@@ -752,14 +995,22 @@ function QuestModal({
                   onClick={() => handleAskForHelp(false)}
                   title="get help starting this quest"
                 >
-                  💬 i can help!!
+                  i can help!!
                 </button>
               )}
               <h2 className="qm-quest-title">{localQuest.title}</h2>
               <p className="qm-quest-meta">
-                {CATEGORY_ICON[localQuest.category] || "🌿"}{" "}
-                {localQuest.category} · ⭐ {localQuest.points} pts
+                {localQuest.category || "no category"} · {localQuest.points} pts
               </p>
+              {localQuest.tags?.length > 0 && (
+                <div className="qm-tag-list">
+                  {localQuest.tags.map((t) => (
+                    <span key={t} className="qm-cat-tag qm-cat-tag--readonly">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="qm-section-box">
               <label className="qm-label">description</label>
@@ -769,7 +1020,7 @@ function QuestModal({
             {aiOpen && (
               <div className="qm-section-box qm-ai-box">
                 <div className="qm-ai-box-header">
-                  <label className="qm-label">🌱 how to get started</label>
+                  <label className="qm-label">how to get started</label>
                   <button
                     className="qm-ai-close"
                     onClick={() => setAiOpen(false)}
@@ -791,7 +1042,7 @@ function QuestModal({
                     className="qm-btn-secondary qm-btn-secondary--sm qm-ai-regen"
                     onClick={() => handleAskForHelp(true)}
                   >
-                    🔄 regenerate
+                    regenerate
                   </button>
                 )}
               </div>
@@ -801,7 +1052,6 @@ function QuestModal({
               <div className="qm-section-box">
                 <label className="qm-label">due date</label>
                 <p className="qm-section-text">
-                  📅{" "}
                   {localQuest.dueDate
                     ? new Date(localQuest.dueDate).toLocaleDateString()
                     : "—"}
@@ -811,9 +1061,63 @@ function QuestModal({
                 <label className="qm-label">assigned to</label>
                 <p className="qm-section-text">
                   {localQuest.assignedTo
-                    ? `${AVATAR_MAP[localQuest.assignedTo.avatarId] || "🐾"} ${localQuest.assignedTo.username}`
+                    ? localQuest.assignedTo.username
                     : "— unassigned"}
                 </p>
+              </div>
+            </div>
+
+            {/* ---- checklist ---- */}
+            <div className="qm-section-box">
+              <label className="qm-label">checklist</label>
+              {checklist.length > 0 ? (
+                <ul className="qm-checklist">
+                  {checklist.map((item, i) => (
+                    <li key={item._id || i} className="qm-checklist-item">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={!!item.done}
+                          onChange={() => handleToggleChecklistItem(item)}
+                        />
+                        <span
+                          className={item.done ? "qm-checklist-done" : ""}
+                        >
+                          {item.text}
+                        </span>
+                      </label>
+                      {isOwner && (
+                        <button
+                          className="qm-attachment-remove"
+                          onClick={() => handleRemoveChecklistItem(item)}
+                          title="remove item"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="qm-comment-empty">no checklist items yet.</p>
+              )}
+              <div className="qm-comment-input-row">
+                <input
+                  className="qm-input"
+                  placeholder="add a checklist item..."
+                  value={newChecklistText}
+                  onChange={(e) => setNewChecklistText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddChecklistItem();
+                  }}
+                />
+                <button
+                  className="qm-btn-secondary qm-btn-secondary--sm"
+                  onClick={handleAddChecklistItem}
+                  disabled={!newChecklistText.trim()}
+                >
+                  add
+                </button>
               </div>
             </div>
 
@@ -825,7 +1129,7 @@ function QuestModal({
                   {attachments.map((a) => (
                     <li key={a._id} className="qm-attachment-item">
                       <a href={a.url} target="_blank" rel="noreferrer">
-                        📄 {a.filename}
+                        {a.filename}
                       </a>
                       {isOwner && (
                         <button
@@ -868,7 +1172,7 @@ function QuestModal({
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {STATUS_ICON[s]} {s}
+                      {s}
                     </option>
                   ))}
                 </select>
@@ -892,7 +1196,7 @@ function QuestModal({
             )}
             {localQuest.status === "Completed" && !celebrate && (
               <div className="qm-completed-msg">
-                ✓ quest completed!
+                quest completed!
                 {localQuest.completedBy && (
                   <span className="qm-completed-by">
                     by {localQuest.completedBy.username || "a party member"}
@@ -908,8 +1212,7 @@ function QuestModal({
                   className="qm-history-toggle"
                   onClick={() => setShowHistory((v) => !v)}
                 >
-                  📜 edit history ({editHistory.length}){" "}
-                  {showHistory ? "▲" : "▼"}
+                  edit history ({editHistory.length}) {showHistory ? "▲" : "▼"}
                 </button>
                 {showHistory && (
                   <ul className="qm-history-list">
@@ -942,9 +1245,6 @@ function QuestModal({
                 <ul className="qm-comments">
                   {comments.map((c) => (
                     <li key={c._id} className="qm-comment">
-                      <span className="qm-comment-avatar">
-                        {AVATAR_MAP[c.author?.avatarId] || "🐾"}
-                      </span>
                       <div className="qm-comment-body">
                         <div className="qm-comment-meta">
                           <span className="qm-comment-author">
@@ -997,7 +1297,7 @@ function QuestModal({
                 onClick={handleDelete}
                 disabled={saving}
               >
-                🗑 delete quest
+                delete quest
               </button>
             )}
             {error && <p className="qm-error">{error}</p>}
@@ -1014,17 +1314,18 @@ function QuestModal({
                   left: `${b.left}%`,
                   animationDelay: `${b.delay}s`,
                   animationDuration: `${b.duration}s`,
+                  backgroundColor: b.color,
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
                   "--drift": `${b.drift}px`,
                 }}
-              >
-                {b.emoji}
-              </span>
+              />
             ))}
             <div className="qm-celebrate-card">
-              <div className="qm-celebrate-icon">🏆</div>
               <h2 className="qm-celebrate-title">quest complete!</h2>
               <p className="qm-celebrate-points">
-                +{localQuest?.points ?? quest?.points ?? 0} pts ✦
+                +{localQuest?.points ?? quest?.points ?? 0} pts
               </p>
               <button
                 className="qm-btn-primary"
@@ -1033,7 +1334,7 @@ function QuestModal({
                   onClose();
                 }}
               >
-                nice! ✦
+                nice!
               </button>
             </div>
           </div>

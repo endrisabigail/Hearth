@@ -72,48 +72,53 @@
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-  padding: 6px 10px;
   display: flex;
-  gap: 4px;
+  gap: 10px;
   z-index: 10;
 }
 
 .nav-item {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #fffaf0 0%, #f3e6c8 100%);
+  border: 2px solid rgba(139, 105, 20, 0.3);
+  box-shadow: 0 4px 10px rgba(139, 105, 20, 0.18);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 16px;
-  border-radius: 999px;
+  justify-content: center;
   cursor: pointer;
-  transition: background 0.15s;
-  font-size: 10px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.nav-item.active {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  color: #8b6914;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 6px 14px rgba(139, 105, 20, 0.26);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, #629655, #3b5e34);
+  border-color: #2f452c;
   color: #fff;
+  box-shadow: 0 4px 14px rgba(60, 100, 60, 0.35);
 }
 
 .nav-icon {
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
 }
 
-.nav-label {
-  font-size: 9px;
+.nav-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* columns */
@@ -307,6 +312,15 @@
   padding: 4px 2px 6px;
 }
 
+.member-icon-grid--sidebar {
+  padding: 2px 4px 6px;
+}
+
+.mail-envelope-trigger--sidebar {
+  justify-content: center;
+  margin: 2px auto 0;
+}
+
 .member-icon {
   position: relative;
   display: flex;
@@ -353,8 +367,15 @@
 }
 
 @keyframes member-live-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.18); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
 }
 
 .member-icon-crown {
@@ -517,38 +538,34 @@
 
 .focus-note {
   position: relative;
-  background: repeating-linear-gradient(
-    to bottom,
-    #fffdf6 0px,
-    #fffdf6 20px,
-    #f1ead3 21px
-  );
+  background: repeating-linear-gradient(to bottom,
+      #fffdf6 0px,
+      #fffdf6 20px,
+      #f1ead3 21px);
   padding: 16px 14px 20px;
-  clip-path: polygon(
-    0% 0%,
-    100% 0%,
-    100% 95%,
-    95% 100%,
-    90% 94%,
-    85% 100%,
-    80% 94%,
-    75% 100%,
-    70% 94%,
-    65% 100%,
-    60% 94%,
-    55% 100%,
-    50% 94%,
-    45% 100%,
-    40% 94%,
-    35% 100%,
-    30% 94%,
-    25% 100%,
-    20% 94%,
-    15% 100%,
-    10% 94%,
-    5% 100%,
-    0% 94%
-  );
+  clip-path: polygon(0% 0%,
+      100% 0%,
+      100% 95%,
+      95% 100%,
+      90% 94%,
+      85% 100%,
+      80% 94%,
+      75% 100%,
+      70% 94%,
+      65% 100%,
+      60% 94%,
+      55% 100%,
+      50% 94%,
+      45% 100%,
+      40% 94%,
+      35% 100%,
+      30% 94%,
+      25% 100%,
+      20% 94%,
+      15% 100%,
+      10% 94%,
+      5% 100%,
+      0% 94%);
 }
 
 /* a scrap of washi tape pinning the note to the wood */
@@ -668,12 +685,8 @@
   gap: 14px;
 }
 
-.hud-icon-cluster--left {
-  left: 66px;
-}
-
 .hud-icon-cluster--right {
-  right: 18px;
+  right: 6px;
 }
 
 /* mail envelope */
@@ -844,7 +857,7 @@
   }
 }
 
-/* bell — separate icon for general notifications (everything that isn't a new message) */
+/* bell  */
 
 .bell-wrap {
   position: relative;
@@ -1256,6 +1269,7 @@
     transform: translate(-50%, -100px) scale(1);
   }
 }
+
 .plaza-canvas-mount {
   width: 100%;
   height: 100%;
