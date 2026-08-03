@@ -45,12 +45,25 @@ const SOUND_FILES = {
   click: "/sounds/click.mp3",
 };
 
-function playSound(name, volume = 1) {
+function getSfxVolume() {
+  const saved = localStorage.getItem("hearth_sfxVolume");
+  return saved !== null ? Number(saved) / 100 : 0.5;
+}
+
+let currentSfxVolume = getSfxVolume();
+if (typeof window !== "undefined") {
+  window.addEventListener("hearth:volumechange", (e) => {
+    if (e.detail?.channel === "sfx") currentSfxVolume = e.detail.value;
+  });
+}
+
+function playSound(name, volume) {
   try {
     const src = SOUND_FILES[name];
     if (!src) return;
     const audio = new Audio(src);
-    audio.volume = Math.max(0, Math.min(1, volume));
+    const effectiveVolume = volume !== undefined ? volume : currentSfxVolume;
+    audio.volume = Math.max(0, Math.min(1, effectiveVolume));
     audio.play().catch(() => {
       /* browser blocked autoplay until a user gesture happens; safe to ignore */
     });
@@ -502,10 +515,12 @@ function Dashboard() {
   }, [bellPopoverOpen]);
 
   // click.mp3 on literally any click anywhere on the dashboard
+  // (capture phase so modals that call e.stopPropagation(), like NavModal's
+  // card, don't silently swallow the click before it reaches document)
   useEffect(() => {
-    const handleAnyClick = () => playSound("click", 0.5);
-    document.addEventListener("click", handleAnyClick);
-    return () => document.removeEventListener("click", handleAnyClick);
+    const handleAnyClick = () => playSound("click");
+    document.addEventListener("click", handleAnyClick, true);
+    return () => document.removeEventListener("click", handleAnyClick, true);
   }, []);
 
   // notify.mp3 once whenever the unread bell-notification count goes up
@@ -736,8 +751,8 @@ function Dashboard() {
             renderer={threeCtx.renderer}
             quests={quests}
             onNodeClick={handleNodeClick}
-            normToWorld={isFrogLand ? frogNormToWorld : grassNormToWorld}          
-            />
+            normToWorld={isFrogLand ? frogNormToWorld : grassNormToWorld}
+          />
         )}
         {showControls && (
           <div
@@ -823,18 +838,18 @@ function Dashboard() {
               )}
               {party?.members?.length > 0
                 ? party.members.map((member) => (
-                    <MemberIcon
-                      key={member._id}
-                      member={member}
-                      isLive={
-                        member._id?.toString() === userData?.id?.toString() ||
-                        otherPlayersRef.current.has(member._id)
-                      }
-                    />
-                  ))
+                  <MemberIcon
+                    key={member._id}
+                    member={member}
+                    isLive={
+                      member._id?.toString() === userData?.id?.toString() ||
+                      otherPlayersRef.current.has(member._id)
+                    }
+                  />
+                ))
                 : !party?.owner && (
-                    <p className="empty-msg">no members yet! share your link ✦</p>
-                  )}
+                  <p className="empty-msg">no members yet! share your link ✦</p>
+                )}
             </div>
           </div>
         )}

@@ -250,6 +250,7 @@ function FrogLandCanvas({
 
   const agentRef = useRef(null);
   const agentFloatTRef = useRef(Math.random() * Math.PI * 2);
+  const agentHopTRef = useRef(0);
   const agentPrevPlayerPosRef = useRef({ x: null, z: null });
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
@@ -257,6 +258,12 @@ function FrogLandCanvas({
   const bgMusicRef = useRef(null);
   const waterSoundRef = useRef(null);
   const wasMovingRef = useRef(false);
+  const musicVolumeRef = useRef(
+    (() => {
+      const saved = localStorage.getItem("hearth_musicVolume");
+      return saved !== null ? Number(saved) / 100 : 0.7;
+    })(),
+  );
 
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
@@ -324,10 +331,11 @@ function FrogLandCanvas({
 
     // sound
     let resumeAudioOnGesture = () => { };
+    let handleMusicVolumeChange = () => { };
     try {
       const bgMusic = new Audio("/assets/sounds/backgroundFrog.mp3");
       bgMusic.loop = true;
-      bgMusic.volume = 0.35;
+      bgMusic.volume = 0.35 * musicVolumeRef.current;
       bgMusicRef.current = bgMusic;
 
       const waterSound = new Audio("/assets/sounds/waterMovement.mp3");
@@ -345,6 +353,16 @@ function FrogLandCanvas({
       };
       window.addEventListener("keydown", resumeAudioOnGesture);
       window.addEventListener("pointerdown", resumeAudioOnGesture);
+
+      // settings modal dispatches this live as the Music slider is dragged
+      handleMusicVolumeChange = (e) => {
+        if (e.detail?.channel !== "music") return;
+        musicVolumeRef.current = e.detail.value;
+        if (bgMusicRef.current) {
+          bgMusicRef.current.volume = 0.35 * musicVolumeRef.current;
+        }
+      };
+      window.addEventListener("hearth:volumechange", handleMusicVolumeChange);
     } catch (err) {
       console.error("frog plaza audio init failed (continuing without sound):", err);
     }
@@ -817,7 +835,7 @@ function FrogLandCanvas({
         // water-movement sound
         const waterSound = waterSoundRef.current;
         if (waterSound) {
-          const targetVolume = isMoving ? 0.5 : 0;
+          const targetVolume = isMoving ? 0.5 * musicVolumeRef.current : 0;
           waterSound.volume += (targetVolume - waterSound.volume) * 0.12;
           if (isMoving && !wasMovingRef.current && waterSound.paused) {
             waterSound.currentTime = 0;
@@ -883,8 +901,11 @@ function FrogLandCanvas({
         prevPlayer.x = model.position.x;
         prevPlayer.z = model.position.z;
 
+        const agentIsMoving =
+          Math.abs(moveDX) > 0.0004 || Math.abs(moveDZ) > 0.0004;
+
         // face whichever way she's actually moving
-        if (Math.abs(moveDX) > 0.0004 || Math.abs(moveDZ) > 0.0004) {
+        if (agentIsMoving) {
           const targetAgentAngle = Math.atan2(moveDX, moveDZ);
           let agentDelta = targetAgentAngle - agent.rotation.y;
           while (agentDelta > Math.PI) agentDelta -= Math.PI * 2;
@@ -901,12 +922,52 @@ function FrogLandCanvas({
         agent.position.x += (targetX - agent.position.x) * AGENT_FOLLOW_LERP;
         agent.position.z += (targetZ - agent.position.z) * AGENT_FOLLOW_LERP;
 
+        // froggy hop while moving, gentle hover-bob while idle
+        if (agentIsMoving) {
+          agentHopTRef.current += 0.22;
+        } else {
+          agentHopTRef.current = 0;
+        }
+        const agentHopPhase = agentIsMoving
+          ? Math.abs(Math.sin(agentHopTRef.current))
+          : 0;
+        const agentHopHeight = agentIsMoving ? 0.24 : 0;
+        const agentIdleBob = agentIsMoving
+          ? 0
+          : Math.sin(agentFloatTRef.current * 1.6) * 0.09;
+
         const agentBaseY = agent.userData.baseY ?? 0.3;
         agent.position.y =
           (model.userData.baseY ?? 0) +
           AGENT_HOVER_HEIGHT +
           agentBaseY +
-          Math.sin(agentFloatTRef.current * 1.6) * 0.09;
+          agentHopPhase * agentHopHeight +
+          agentIdleBob;
+
+        // squash on takeoff/landing, stretch at the peak of the hop
+        if (!agent.userData.baseScale) {
+          agent.userData.baseScale = agent.scale.clone();
+        }
+        const bs = agent.userData.baseScale;
+        if (agentIsMoving) {
+          const stretch = 1 + agentHopPhase * 0.14;
+          const squash = 1 - agentHopPhase * 0.08;
+          agent.scale.set(bs.x * squash, bs.y * stretch, bs.z * squash);
+        } else {
+          agent.scale.copy(bs);
+        }
+
+        // splash ripple right as each hop lands
+        if (
+          agentIsMoving &&
+          agentHopPhase < 0.06 &&
+          now - (agent.userData.lastLandTime || 0) > 220
+        ) {
+          agent.userData.lastLandTime = now;
+          spawnRipple(agent.position.x, agent.position.z, 0.8, 0.7, 4.5);
+          spawnRipple(agent.position.x, agent.position.z, 1.1, 0.4, 6.5);
+        }
+
         if (agent.userData.glow) {
           agent.userData.glow.material.opacity =
             0.32 + Math.sin(agentFloatTRef.current) * 0.15;
@@ -1000,6 +1061,7 @@ function FrogLandCanvas({
       window.removeEventListener("resize", onResize);
       window.removeEventListener("keydown", resumeAudioOnGesture);
       window.removeEventListener("pointerdown", resumeAudioOnGesture);
+      window.removeEventListener("hearth:volumechange", handleMusicVolumeChange);
 
       bgMusicRef.current?.pause();
       if (bgMusicRef.current) bgMusicRef.current.src = "";
