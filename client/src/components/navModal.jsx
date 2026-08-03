@@ -5,6 +5,38 @@ import "../pages/styles/navModal.css";
 function NavModal({ party, api, onClose }) {
   const navigate = useNavigate();
 
+  const [musicVolume, setMusicVolume] = useState(() => {
+    const saved = localStorage.getItem("hearth_musicVolume");
+    return saved !== null ? Number(saved) : 70;
+  });
+
+  const [sfxVolume, setSfxVolume] = useState(() => {
+    const saved = localStorage.getItem("hearth_sfxVolume");
+    return saved !== null ? Number(saved) : 50;
+  });
+
+  const handleMusicVolumeChange = (e) => {
+    const value = Number(e.target.value);
+    setMusicVolume(value);
+    localStorage.setItem("hearth_musicVolume", String(value));
+    window.dispatchEvent(
+      new CustomEvent("hearth:volumechange", {
+        detail: { channel: "music", value: value / 100 },
+      }),
+    );
+  };
+
+  const handleSfxVolumeChange = (e) => {
+    const value = Number(e.target.value);
+    setSfxVolume(value);
+    localStorage.setItem("hearth_sfxVolume", String(value));
+    window.dispatchEvent(
+      new CustomEvent("hearth:volumechange", {
+        detail: { channel: "sfx", value: value / 100 },
+      }),
+    );
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
@@ -22,54 +54,59 @@ function NavModal({ party, api, onClose }) {
     <div className="nm-overlay" onClick={onClose}>
       <div className="nm-card" onClick={(e) => e.stopPropagation()}>
         <div className="nm-header">
-          <span className="nm-title">⚙️ SETTINGS</span>
+          <span className="nm-title">Settings</span>
           <button className="nm-close-btn" onClick={onClose}>
-            CLOSE ✕
+            Close
           </button>
         </div>
 
         <div className="nm-body">
           <div className="nm-section">
-            {/* Music Volume */}
+            <p className="nm-section-heading">Sound</p>
+
             <div className="nm-slider-row">
-              <span className="nm-slider-label">🎵 Music Volume</span>
+              <div className="nm-slider-label-row">
+                <span className="nm-slider-label">Music Volume</span>
+                <span className="nm-slider-value">{musicVolume}%</span>
+              </div>
               <input
                 type="range"
                 className="nm-slider"
-                defaultValue={70}
+                value={musicVolume}
                 min={0}
                 max={100}
+                onChange={handleMusicVolumeChange}
               />
             </div>
 
-            {/* Sound Effects Volume */}
             <div className="nm-slider-row">
-              <span className="nm-slider-label">🔊 Sound Effects Volume</span>
+              <div className="nm-slider-label-row">
+                <span className="nm-slider-label">Sound Effects Volume</span>
+                <span className="nm-slider-value">{sfxVolume}%</span>
+              </div>
               <input
                 type="range"
                 className="nm-slider"
-                defaultValue={50}
+                value={sfxVolume}
                 min={0}
                 max={100}
+                onChange={handleSfxVolumeChange}
               />
             </div>
 
-            {/* Live Settings On/Off */}
-            <ToggleRow label="🟢 Live Settings" defaultOn={true} />
+            <p className="nm-section-heading">Preferences</p>
 
-            {/* Notifications */}
-            <ToggleRow label="🔔 Notifications" defaultOn={true} />
+            <ToggleRow label="Live Settings" defaultOn={true} />
+            <ToggleRow label="Notifications" defaultOn={true} />
 
-            {/* Copy Invite Link */}
             {party?.inviteCode && (
-              <button className="nm-invite-btn" onClick={handleCopyInvite}>
-                📬 Copy Invite Link
+              <button className="nm-btn nm-invite-btn" onClick={handleCopyInvite}>
+                Copy Invite Link
               </button>
             )}
 
-            {/* Logout */}
-            <button className="nm-logout-btn" onClick={handleLogout}>
-              🚪 Log Out
+            <button className="nm-btn nm-logout-btn" onClick={handleLogout}>
+              Log Out
             </button>
           </div>
         </div>

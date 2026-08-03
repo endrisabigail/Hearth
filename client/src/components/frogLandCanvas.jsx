@@ -28,10 +28,10 @@ const PALETTE = {
 const TRAVEL_SPEED = 0.002;
 const ARRIVAL_THRESHOLD = 0.018;
 
-const FROG_WORLD_SIZE = PLAZA_WORLD_SIZE;  
-const FROG_WORLD_MIN = -FROG_WORLD_SIZE / 2;  
-const FROG_WORLD_MAX = FROG_WORLD_SIZE / 2;  
-const FROG_WORLD_CENTER = (FROG_WORLD_MIN + FROG_WORLD_MAX) / 2;  
+const FROG_WORLD_SIZE = PLAZA_WORLD_SIZE;
+const FROG_WORLD_MIN = -FROG_WORLD_SIZE / 2;
+const FROG_WORLD_MAX = FROG_WORLD_SIZE / 2;
+const FROG_WORLD_CENTER = (FROG_WORLD_MIN + FROG_WORLD_MAX) / 2;
 const WORLD_SCALE = FROG_WORLD_SIZE / 42;
 
 const HEX_RADIUS = 19.8 * WORLD_SCALE; // outer misty edge of the pond
@@ -363,6 +363,7 @@ function FrogLandCanvas({
     waterMesh.rotation.x = -Math.PI / 2;
     waterMesh.position.set(FROG_WORLD_CENTER, 0, FROG_WORLD_CENTER);
     waterMesh.receiveShadow = true;
+    waterMesh.renderOrder = 0;
     scene.add(waterMesh);
 
 
@@ -611,22 +612,45 @@ function FrogLandCanvas({
     }
 
     // ambient ripples
-    const rippleGeo = new THREE.RingGeometry(0.3, 0.4, 24);
+    // Thicker ring + a soft outer glow ring so ripples read clearly against the water.
+    const rippleGeo = new THREE.RingGeometry(0.35, 0.55, 40);
+    const rippleGlowGeo = new THREE.RingGeometry(0.2, 0.7, 40);
     const ripples = [];
     let ambientRippleTimer = 0;
-    function spawnRipple(x, z, life = 1.8, opacity = 0.5, maxScale = 4) {
+    function spawnRipple(x, z, life = 1.8, opacity = 0.9, maxScale = 6) {
+      // crisp bright inner ring
       const mat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
+        color: 0xf3fbff,
         transparent: true,
         opacity,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(rippleGeo, mat);
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(x, 0.03, z);
+      mesh.position.set(x, 0.04, z);
+      mesh.renderOrder = 5;
       scene.add(mesh);
+
+      // soft wide glow ring trailing just behind it, for readability at a distance
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xbfe9ff,
+        transparent: true,
+        opacity: opacity * 0.55,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const glowMesh = new THREE.Mesh(rippleGlowGeo, glowMat);
+      glowMesh.rotation.x = -Math.PI / 2;
+      glowMesh.position.set(x, 0.035, z);
+      glowMesh.renderOrder = 4;
+      scene.add(glowMesh);
+
       ripples.push({
         mesh,
+        glowMesh,
         born: performance.now(),
         life: life * 1000,
         baseOpacity: opacity,
@@ -690,13 +714,13 @@ function FrogLandCanvas({
 
       ambientRippleTimer -= 1;
       if (ambientRippleTimer <= 0) {
-        ambientRippleTimer = 100 + Math.floor(Math.random() * 70);
+        ambientRippleTimer = 55 + Math.floor(Math.random() * 40);
         const a = Math.random() * Math.PI * 2;
         const r = Math.random() * FIELD_RADIUS * 0.9;
         spawnRipple(
           FROG_WORLD_CENTER + Math.cos(a) * r,
           FROG_WORLD_CENTER + Math.sin(a) * r,
-          2.4,
+          2.6,
         );
       }
       for (let i = ripples.length - 1; i >= 0; i--) {
@@ -706,12 +730,24 @@ function FrogLandCanvas({
         if (progress >= 1) {
           scene.remove(rp.mesh);
           rp.mesh.material.dispose();
+          if (rp.glowMesh) {
+            scene.remove(rp.glowMesh);
+            rp.glowMesh.material.dispose();
+          }
           ripples.splice(i, 1);
           continue;
         }
-        const scale = 0.5 + progress * (rp.maxScale ?? 4);
+        // ease-out growth so the ring expands fast then settles, like a real ripple
+        const eased = 1 - Math.pow(1 - progress, 2);
+        const scale = 0.5 + eased * (rp.maxScale ?? 6);
+        const fade = 1 - Math.pow(progress, 1.4);
         rp.mesh.scale.set(scale, scale, scale);
-        rp.mesh.material.opacity = (rp.baseOpacity ?? 0.5) * (1 - progress);
+        rp.mesh.material.opacity = (rp.baseOpacity ?? 0.9) * fade;
+        if (rp.glowMesh) {
+          const glowScale = scale * 0.9;
+          rp.glowMesh.scale.set(glowScale, glowScale, glowScale);
+          rp.glowMesh.material.opacity = (rp.baseOpacity ?? 0.9) * 0.55 * fade;
+        }
       }
 
       const manualInput =
@@ -1008,9 +1044,14 @@ function FrogLandCanvas({
       });
 
       rippleGeo.dispose();
+      rippleGlowGeo.dispose();
       ripples.forEach((rp) => {
         scene.remove(rp.mesh);
         rp.mesh.material.dispose();
+        if (rp.glowMesh) {
+          scene.remove(rp.glowMesh);
+          rp.glowMesh.material.dispose();
+        }
       });
 
       otherModelsRef.current.forEach((entry) => {
