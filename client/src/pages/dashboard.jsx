@@ -1,4 +1,4 @@
-import React, {
+mport React, {
   useState,
   useEffect,
   useRef,
@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 import PlazaCanvas, { MOVEMENT_BOUNDS, normToWorld as grassNormToWorld } from "../components/plazaCanvas.jsx";
-import FrogLandCanvas from "../components/frogLandCanvas.jsx";
+import FrogLandCanvas, { frogNormToWorld } from "../components/frogLandCanvas.jsx";
 import QuestModal from "../components/questModal.jsx";
 import QuestNodes, { NODE_POSITIONS } from "../components/questNodes.jsx";
 import MessageModal from "../components/messageModal.jsx";
@@ -20,7 +20,6 @@ import "../pages/styles/dashboard.css";
 import "../pages/styles/questModal.css";
 import "../pages/styles/messageModal.css";
 import "../pages/styles/agentModal.css";
-import FrogLandCanvas, { frogNormToWorld } from "../components/frogLandCanvas.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const STAR_LAYER_DEPTHS = [6, 4, 2, 0, -2, -4, -6];
