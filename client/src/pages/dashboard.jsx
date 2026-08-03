@@ -83,8 +83,7 @@ const NAV_ICONS = {
   ),
 };
 
-// cute, hand-drawn hud icons (bell + envelope) — replace the generic
-// emoji glyphs with small illustrated icons in the app's cottagecore palette
+// handrawn icons
 const BELL_ICON = (
   <svg viewBox="0 0 24 24" width="20" height="20">
     <path
@@ -109,23 +108,25 @@ const BELL_ICON = (
   </svg>
 );
 
+// envelope]
 const MAIL_ICON = (
   <svg viewBox="0 0 24 24" width="20" height="20">
-    <rect x="2.6" y="5.4" width="18.8" height="13.4" rx="3" fill="#fdf6e3" stroke="#8b6914" strokeWidth="1.3" />
+    <rect x="2.6" y="6.6" width="18.8" height="12.2" rx="3" fill="#f6ecd2" stroke="#8b6914" strokeWidth="1.3" />
+    <g className="mail-icon-letter">
+      <rect x="5.4" y="3.2" width="13.2" height="9.6" rx="1.2" fill="#fffdf6" stroke="#c9a86a" strokeWidth="1" />
+      <line x1="7.6" y1="5.8" x2="16.4" y2="5.8" stroke="#dccf9e" strokeWidth="1" strokeLinecap="round" />
+      <line x1="7.6" y1="8.2" x2="14" y2="8.2" stroke="#dccf9e" strokeWidth="1" strokeLinecap="round" />
+      <line x1="7.6" y1="10.6" x2="15.2" y2="10.6" stroke="#dccf9e" strokeWidth="1" strokeLinecap="round" />
+    </g>
     <path
-      d="M3.2 6.7 L12 13 L20.8 6.7"
-      fill="none"
+      className="mail-icon-flap"
+      d="M2.6 6.6 L21.4 6.6 L12 13.2 Z"
+      fill="#fdf6e3"
       stroke="#8b6914"
       strokeWidth="1.3"
-      strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <circle cx="12" cy="13.6" r="2" fill="#ff9ecb" stroke="#8b6914" strokeWidth="1" />
-    <path
-      d="M12 12.8c-.5-.6-1.3-.3-1.3.3 0 .6.6 1 1.3 1.5.7-.5 1.3-.9 1.3-1.5 0-.6-.8-.9-1.3-.3z"
-      fill="#fff"
-      opacity="0.9"
-    />
+    <circle cx="12" cy="13" r="2" fill="#ff9ecb" stroke="#8b6914" strokeWidth="1" />
   </svg>
 );
 
@@ -954,7 +955,6 @@ function Dashboard() {
             {focusQuest ? (
               <div className="focus-note-wrap">
                 <div className="focus-note">
-                  <span className="focus-note-tape" />
                   <p className="focus-goal-label">
                     📌{" "}
                     {focusQuest.dueDate
@@ -978,59 +978,6 @@ function Dashboard() {
                 </p>
               )
             )}
-            <style>{`
-              .focus-panel--paper {
-                background: transparent;
-                box-shadow: none;
-                border: none;
-                padding: 0;
-              }
-              .focus-panel--paper .panel-header {
-                background: transparent;
-                padding: 2px 6px 4px;
-              }
-              .focus-note-wrap {
-                display: flex;
-                justify-content: center;
-                padding: 10px 12px 18px;
-              }
-              .focus-note {
-                position: relative;
-                width: 100%;
-                max-width: 260px;
-                background: #fdf6e3;
-                background-image: repeating-linear-gradient(
-                  #fdf6e3,
-                  #fdf6e3 26px,
-                  #ecdfb8 27px
-                );
-                padding: 28px 20px 18px;
-                border-radius: 2px;
-                transform: rotate(-1.6deg);
-                box-shadow:
-                  0 10px 18px rgba(0, 0, 0, 0.3),
-                  0 1px 0 rgba(255, 255, 255, 0.4) inset;
-              }
-              .focus-note-tape {
-                position: absolute;
-                top: -13px;
-                left: 50%;
-                width: 74px;
-                height: 26px;
-                margin-left: -37px;
-                transform: rotate(-3deg);
-                background: rgba(255, 255, 255, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.65);
-                box-shadow: 0 2px 3px rgba(0, 0, 0, 0.18);
-              }
-              .focus-note .focus-goal-label,
-              .focus-note .focus-task,
-              .focus-note .focus-desc,
-              .focus-note .focus-assigned {
-                position: relative;
-                z-index: 1;
-              }
-            `}</style>
           </div>
         )}
       </div>
@@ -1071,172 +1018,28 @@ function Dashboard() {
       {userData?.isPartyOwner && (
         <button
           type="button"
-          className={`floating-add-quest sqb-seed-btn${addQuestBlooming ? " sqb-grown" : ""}`}
+          className={`add-quest-btn${addQuestBlooming ? " add-quest-btn--bloom" : ""}`}
           onClick={() => {
             if (addQuestBlooming) return;
             setAddQuestBlooming(true);
-            // let the bloom animation play before the modal actually opens
+            // let the little bloom play before the modal actually opens
             setTimeout(() => {
               setModalQuest(null);
               setModalOpen(true);
               setAddQuestBlooming(false);
-            }, 550);
+            }, 420);
           }}
-          title="add quest"
-          aria-label="add quest"
+          title="Add quest"
+          aria-label="Add quest"
         >
-          <span className="sqb-stem" />
-          <span className="sqb-leaf sqb-leaf--left" />
-          <span className="sqb-leaf sqb-leaf--right" />
-          <span className="sqb-flower">
-            <span className="sqb-petal" />
-            <span className="sqb-petal" />
-            <span className="sqb-petal" />
-            <span className="sqb-petal" />
-            <span className="sqb-flower-center" />
+          <span className="add-quest-btn-glyph">
+            <span className="add-quest-btn-plus" />
+            <span className="add-quest-btn-petal" />
+            <span className="add-quest-btn-petal" />
+            <span className="add-quest-btn-petal" />
+            <span className="add-quest-btn-petal" />
+            <span className="add-quest-btn-center" />
           </span>
-          <span className="sqb-seed" />
-          <span className="sqb-label">add quest</span>
-          <style>{`
-            .sqb-seed-btn {
-              position: relative;
-              width: 64px;
-              height: 101px;
-              background: transparent;
-              border: none;
-              cursor: pointer;
-              padding: 0;
-              display: flex;
-              align-items: flex-end;
-              justify-content: center;
-              outline-offset: 4px;
-            }
-            .sqb-seed-btn::before {
-              content: "";
-              position: absolute;
-              bottom: 0;
-              width: 64px;
-              height: 11px;
-              background: #6b4a2f;
-              border-radius: 50% 50% 8px 8px / 60% 60% 40% 40%;
-              z-index: 3;
-            }
-            .sqb-seed {
-              position: absolute;
-              bottom: 3px;
-              width: 12px;
-              height: 17px;
-              background: linear-gradient(160deg, #b5834a, #8c6135);
-              border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-              transform-origin: bottom center;
-              transition: transform 0.4s ease, opacity 0.4s ease;
-              z-index: 4;
-            }
-            .sqb-stem {
-              position: absolute;
-              left: 31px;
-              bottom: 7px;
-              width: 3px;
-              height: 0px;
-              background: #3f8f4a;
-              border-radius: 3px;
-              transform-origin: bottom center;
-              transition: height 1.1s cubic-bezier(0.25, 1, 0.3, 1);
-              z-index: 2;
-            }
-            .sqb-leaf {
-              position: absolute;
-              width: 16px;
-              height: 8px;
-              background: #4caf58;
-              border-radius: 0% 100% 0% 100%;
-              opacity: 0;
-              transform: scale(0);
-              transition: opacity 0.5s ease, transform 0.5s ease;
-              z-index: 2;
-            }
-            .sqb-leaf--left {
-              left: 17px;
-              bottom: 20px;
-              transform-origin: right center;
-            }
-            .sqb-leaf--right {
-              left: 31px;
-              bottom: 28px;
-              transform-origin: left center;
-              transform: scale(0) rotate(90deg);
-            }
-            .sqb-flower {
-              position: absolute;
-              left: 20px;
-              bottom: 44px;
-              width: 21px;
-              height: 21px;
-              opacity: 0;
-              transform: scale(0);
-              transition: opacity 0.5s ease 0.1s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
-              z-index: 2;
-            }
-            .sqb-petal {
-              position: absolute;
-              width: 9px;
-              height: 9px;
-              background: #ff9ecb;
-              border-radius: 50%;
-              top: 6px;
-              left: 6px;
-            }
-            .sqb-petal:nth-child(1) { transform: translate(-6px, 0); }
-            .sqb-petal:nth-child(2) { transform: translate(6px, 0); }
-            .sqb-petal:nth-child(3) { transform: translate(0, -6px); }
-            .sqb-petal:nth-child(4) { transform: translate(0, 6px); }
-            .sqb-flower-center {
-              position: absolute;
-              width: 7px;
-              height: 7px;
-              background: #ffd23f;
-              border-radius: 50%;
-              top: 7px;
-              left: 7px;
-              z-index: 1;
-            }
-            .sqb-label {
-              position: absolute;
-              bottom: -22px;
-              font-size: 12px;
-              color: #4a6b4f;
-              letter-spacing: 0.03em;
-              white-space: nowrap;
-              font-family: system-ui, sans-serif;
-            }
-            .sqb-seed-btn:hover .sqb-seed,
-            .sqb-seed-btn.sqb-grown .sqb-seed {
-              transform: translateY(3px) scale(0.6);
-              opacity: 0;
-            }
-            .sqb-seed-btn:hover .sqb-stem,
-            .sqb-seed-btn.sqb-grown .sqb-stem {
-              height: 41px;
-            }
-            .sqb-seed-btn:hover .sqb-leaf,
-            .sqb-seed-btn.sqb-grown .sqb-leaf {
-              opacity: 1;
-              transition-delay: 0.5s;
-            }
-            .sqb-seed-btn:hover .sqb-leaf--left,
-            .sqb-seed-btn.sqb-grown .sqb-leaf--left {
-              transform: scale(1) rotate(10deg);
-            }
-            .sqb-seed-btn:hover .sqb-leaf--right,
-            .sqb-seed-btn.sqb-grown .sqb-leaf--right {
-              transform: scale(1) rotate(80deg);
-            }
-            .sqb-seed-btn.sqb-grown .sqb-flower {
-              opacity: 1;
-              transform: scale(1);
-              transition-delay: 0.25s;
-            }
-          `}</style>
         </button>
       )}
 
