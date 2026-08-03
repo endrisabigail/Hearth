@@ -7,7 +7,6 @@ import "../pages/styles/agentModal.css";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // each companion's own .glb, keyed by the same avatarId used in AVATAR_MAP
-// (dashboard.jsx) — served from /public/models
 const AGENT_MODEL_MAP = {
   apple: "/models/ai-agentApple.glb",
   snail: "/models/ai-agentSnail.glb",
@@ -67,8 +66,6 @@ function AgentAvatar3D({ avatarId }) {
         if (disposed) return;
         model = gltf.scene;
 
-        // re-frame whatever scale/origin this particular character's model
-        // was authored at so every companion fills the little viewport the same
         const box = new THREE.Box3().setFromObject(model);
         const size = new THREE.Vector3();
         box.getSize(size);
@@ -259,7 +256,7 @@ function QuestModal({
   };
   const removeTagDraft = (t) => set("tags", form.tags.filter((x) => x !== t));
 
-  // ---- edit mode -----------------------------------------------------
+  // edit mode 
   const [editing, setEditing] = useState(false);
 
   const startEditing = () => {
@@ -456,7 +453,7 @@ function QuestModal({
     }
   };
 
-  // ---- attachments (pdf) --------------------------------------------------
+  // attachments (pdf)  
   const fileInputRef = useRef(null);
   const [pendingFile, setPendingFile] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -481,9 +478,6 @@ function QuestModal({
     try {
       const formData = new FormData();
       formData.append("file", pendingFile);
-      // NOTE: assumes `api` won't force a JSON content-type header onto
-      // this request — axios sets the multipart boundary itself when
-      // given a FormData body, as long as nothing overrides it.
       const res = await api.post(
         `/quests/${quest._id}/attachments`,
         formData,
@@ -512,9 +506,7 @@ function QuestModal({
   const [showHistory, setShowHistory] = useState(false);
   const editHistory = localQuest?.editHistory || [];
 
-  // ---- checklist ---------------------------------------------------------
-  // Lives alongside comments/attachments: editable any time the quest
-  // already exists, without needing to enter the full "editing" mode.
+  // checklist
   const checklist = localQuest?.checklist || [];
   const [newChecklistText, setNewChecklistText] = useState("");
 
@@ -544,24 +536,27 @@ function QuestModal({
     saveChecklist(checklist.filter((it) => it !== item));
   };
 
-  // ---- "I can help!!" quest breakdown -----------------------------------
+  //quest 
   const [aiOpen, setAiOpen] = useState(false);
   const [aiText, setAiText] = useState(localQuest?.aiBreakdown || "");
   const [aiStreaming, setAiStreaming] = useState(false);
   const [aiError, setAiError] = useState("");
   const aiSocketRef = useRef(null);
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  // only real, already-created quests get a companion socket — nothing to
-  // break down for a locked slot or the "create quest" form
   const canUseAi = Boolean(quest?._id) && !isNew && !isLocked;
+
+  // the description writer 
+  const canUseAiDescription = isOwner && !isLocked;
 
   // whoever's quest it is gets their own companion; otherwise show the
   // viewer's own companion
   const agentAvatarId = localQuest?.assignedTo?.avatarId || viewerAvatarId;
 
+  // ids  
+  const descRequestIdRef = useRef(0);
+
   useEffect(() => {
-    if (!canUseAi || !token) return;
+    if ((!canUseAi && !canUseAiDescription) || !token) return;
 
     const socket = io(`${API_URL}/ai`, {
       auth: { token },
@@ -569,34 +564,60 @@ function QuestModal({
     });
     aiSocketRef.current = socket;
 
-    socket.on("ai:breakdown:start", ({ questId }) => {
-      if (questId !== quest._id) return;
-      setAiStreaming(true);
-      setAiError("");
-      setAiText("");
+    if (canUseAi) {
+      socket.on("ai:breakdown:start", ({ questId }) => {
+        if (questId !== quest._id) return;
+        setAiStreaming(true);
+        setAiError("");
+        setAiText("");
+      });
+
+      socket.on("ai:breakdown:chunk", ({ questId, chunk }) => {
+        if (questId !== quest._id) return;
+        setAiText((prev) => prev + chunk);
+      });
+
+      socket.on("ai:breakdown:done", ({ questId }) => {
+        if (questId !== quest._id) return;
+        setAiStreaming(false);
+      });
+
+      socket.on("ai:breakdown:error", ({ questId, msg }) => {
+        if (questId && questId !== quest._id) return;
+        setAiStreaming(false);
+        setAiError(msg || "couldn't get steps together.");
+      });
+    }
+
+    // "write with ai" description streaming
+    socket.on("ai:description:start", ({ requestId }) => {
+      if (requestId !== descRequestIdRef.current) return;
+      setAiDescLoading(true);
+      setError("");
+      setForm((p) => ({ ...p, description: "" }));
     });
 
-    socket.on("ai:breakdown:chunk", ({ questId, chunk }) => {
-      if (questId !== quest._id) return;
-      setAiText((prev) => prev + chunk);
+    socket.on("ai:description:chunk", ({ requestId, chunk }) => {
+      if (requestId !== descRequestIdRef.current) return;
+      setForm((p) => ({ ...p, description: p.description + chunk }));
     });
 
-    socket.on("ai:breakdown:done", ({ questId }) => {
-      if (questId !== quest._id) return;
-      setAiStreaming(false);
+    socket.on("ai:description:done", ({ requestId }) => {
+      if (requestId !== descRequestIdRef.current) return;
+      setAiDescLoading(false);
     });
 
-    socket.on("ai:breakdown:error", ({ questId, msg }) => {
-      if (questId && questId !== quest._id) return;
-      setAiStreaming(false);
-      setAiError(msg || "couldn't get steps together.");
+    socket.on("ai:description:error", ({ requestId, msg }) => {
+      if (requestId && requestId !== descRequestIdRef.current) return;
+      setAiDescLoading(false);
+      setError(msg || "couldn't write a description.");
     });
 
     return () => {
       socket.disconnect();
       aiSocketRef.current = null;
     };
-  }, [canUseAi, token, quest?._id]);
+  }, [canUseAi, canUseAiDescription, token, quest?._id]);
 
   const handleAskForHelp = (regenerate = false) => {
     setAiOpen(true);
@@ -610,27 +631,25 @@ function QuestModal({
     });
   };
 
-  // ---- "write with AI" description helper --------------------------------
+  // "write with AI" description helper 
   const [aiDescLoading, setAiDescLoading] = useState(false);
-  const handleAiDescription = async () => {
+  const handleAiDescription = () => {
     if (!form.title.trim()) {
       setError("add a title first so ai has something to work with.");
       return;
     }
-    setAiDescLoading(true);
-    setError("");
-    try {
-      // ASSUMPTION: no backend route for this was provided, so this
-      // points at a plausible endpoint — adjust to match your API.
-      const res = await api.post("/quests/ai-description", {
-        title: form.title,
-      });
-      set("description", res.data?.description || "");
-    } catch (e) {
-      setError(e.response?.data?.msg || "couldn't write a description.");
-    } finally {
-      setAiDescLoading(false);
+    if (!aiSocketRef.current) {
+      setError("still connecting to your companion — try again in a sec.");
+      return;
     }
+    setError("");
+    setAiDescLoading(true);
+    const requestId = ++descRequestIdRef.current;
+    aiSocketRef.current.emit("ai:description", {
+      requestId,
+      title: form.title,
+      questId: quest?._id,
+    });
   };
 
   return (

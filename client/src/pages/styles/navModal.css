@@ -115,20 +115,17 @@
   }
 }
 
-/* ---- card: hand-painted parchment ---- */
+/* ---- card: cream & chocolate cottage frame ---- */
 
 .nm-card {
   position: relative;
   z-index: 1;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(255, 250, 235, 0.9), transparent 60%),
-    linear-gradient(175deg, #fdf6e6 0%, #f6ecd2 55%, #eee0bd 100%);
-  border-radius: 30px 26px 32px 24px;
-  border: 3px solid #7c9473;
+  background: #fdfae8;
+  border-radius: 26px;
+  border: 4px solid #5a4635;
   box-shadow:
-    0 4px 0 rgba(124, 148, 115, 0.5),
-    0 20px 46px rgba(20, 34, 24, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    0 6px 0 #3d2e22,
+    0 16px 34px rgba(20, 34, 24, 0.4);
   width: min(360px, 92vw);
   max-height: 85vh;
   overflow: hidden;
@@ -150,15 +147,15 @@
   }
 }
 
-/* header hearth glow */
+/* header */
 
 .nm-header {
-  background: linear-gradient(160deg, #fff6df 0%, #f3dfa8 100%);
+  background: #fff3d6;
   padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 2px dashed rgba(124, 148, 115, 0.35);
+  border-bottom: 3px solid #5a4635;
   position: relative;
 }
 
@@ -182,10 +179,11 @@
 }
 
 .nm-close-btn {
-  background: rgba(124, 148, 115, 0.12);
-  border: 1.5px solid rgba(124, 148, 115, 0.3);
+  background: #fffcf2;
+  border: 2.5px solid #5a4635;
+  box-shadow: 0 3px 0 #5a4635;
   font-size: 12px;
-  color: #5c7a4c;
+  color: #5a4635;
   cursor: pointer;
   padding: 5px 12px;
   border-radius: 999px;
@@ -193,13 +191,18 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.04em;
-  transition: color 0.15s, background 0.15s, transform 0.15s;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .nm-close-btn:hover {
-  color: #3f5732;
-  background: rgba(124, 148, 115, 0.22);
-  transform: scale(1.04);
+  background: #ffe3a8;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 #5a4635;
+}
+
+.nm-close-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #5a4635;
 }
 
 .nm-body {
@@ -282,42 +285,42 @@
   width: 42px;
   height: 23px;
   border-radius: 999px;
-  border: none;
+  border: 2px solid #5a4635;
   cursor: pointer;
   position: relative;
-  transition: background 0.25s, transform 0.15s;
+  transition: background 0.2s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
   flex-shrink: 0;
   padding: 0;
+  box-shadow: 0 3px 0 #5a4635;
 }
 
 .nm-toggle:hover {
-  transform: scale(1.05);
+  transform: translateY(-1px);
 }
 
 .nm-toggle.on {
-  background: linear-gradient(160deg, #8fbf6e, #5c8a45);
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 0 8px rgba(143, 191, 110, 0.55);
+  background: #7ed957;
 }
 
 .nm-toggle.off {
-  background: rgba(124, 148, 115, 0.28);
+  background: #fffcf2;
 }
 
 .nm-toggle::after {
   content: "";
   position: absolute;
-  width: 17px;
-  height: 17px;
-  background: radial-gradient(circle at 35% 30%, #fffce0, #ffdf82 75%);
+  width: 15px;
+  height: 15px;
+  background: #fffcf2;
+  border: 2px solid #5a4635;
   border-radius: 50%;
-  top: 3px;
+  top: 2px;
   transition: left 0.22s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .nm-toggle.on::after {
-  left: 22px;
-  box-shadow: 0 0 6px 2px rgba(255, 223, 130, 0.8), 0 1px 3px rgba(0, 0, 0, 0.2);
+  left: 21px;
+  background: #fff3d6;
 }
 
 .nm-toggle.off::after {
@@ -358,9 +361,10 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(124, 148, 115, 0.2), rgba(124, 148, 115, 0.32));
+  background: #fffcf2;
+  border: 2px solid #5a4635;
   cursor: pointer;
   margin: 0;
 }
@@ -368,40 +372,38 @@
 .nm-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 17px;
-  height: 17px;
-  border-radius: 50% 50% 50% 4px;
-  transform: rotate(45deg);
-  background: radial-gradient(circle at 35% 30%, #a8d488, #5c8a45 80%);
-  border: 2px solid #fdf6e6;
-  box-shadow: 0 1px 4px rgba(40, 60, 40, 0.35);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #7ed957;
+  border: 2.5px solid #5a4635;
+  box-shadow: 0 2px 0 #5a4635;
   cursor: pointer;
-  transition: transform 0.15s;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nm-slider::-webkit-slider-thumb:hover {
-  transform: rotate(45deg) scale(1.14);
+  transform: scale(1.14);
 }
 
 .nm-slider::-moz-range-thumb {
-  width: 17px;
-  height: 17px;
-  border-radius: 50% 50% 50% 4px;
-  transform: rotate(45deg);
-  background: radial-gradient(circle at 35% 30%, #a8d488, #5c8a45 80%);
-  border: 2px solid #fdf6e6;
-  box-shadow: 0 1px 4px rgba(40, 60, 40, 0.35);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #7ed957;
+  border: 2.5px solid #5a4635;
+  box-shadow: 0 2px 0 #5a4635;
   cursor: pointer;
-  transition: transform 0.15s;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nm-slider::-moz-range-thumb:hover {
-  transform: rotate(45deg) scale(1.14);
+  transform: scale(1.14);
 }
 
 .nm-slider::-moz-range-progress {
-  background: linear-gradient(90deg, #a8d488, #5c8a45);
-  height: 6px;
+  background: #7ed957;
+  height: 8px;
   border-radius: 999px;
 }
 
@@ -417,58 +419,70 @@
   cursor: pointer;
   letter-spacing: 0.03em;
   margin-top: 10px;
-  border: none;
   box-sizing: border-box;
-  transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+  transition: background 0.15s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
 }
 
 .nm-btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .nm-btn:active {
-  transform: translateY(0);
+  transform: translateY(2px);
 }
 
 .nm-invite-btn {
   margin-top: 18px;
-  background: linear-gradient(160deg, #8fbf6e, #4c7a3a);
-  color: #fff;
-  box-shadow: 0 3px 0 #3d6530, 0 6px 14px rgba(76, 122, 58, 0.35);
+  background: #7ed957;
+  color: #1e3a12;
+  border: 2.5px solid #38701a;
+  box-shadow: 0 4px 0 #285213;
 }
 
 .nm-invite-btn:hover {
-  background: linear-gradient(160deg, #9bcb7c, #558643);
-  box-shadow: 0 3px 0 #3d6530, 0 8px 18px rgba(76, 122, 58, 0.4);
+  background: #8fe86a;
+  box-shadow: 0 6px 0 #285213;
 }
 
 .nm-invite-btn:active {
-  box-shadow: 0 1px 0 #3d6530, 0 4px 10px rgba(76, 122, 58, 0.3);
+  box-shadow: 0 1px 0 #285213;
 }
 
 .nm-logout-btn {
   margin-top: 22px;
-  background: rgba(124, 148, 115, 0.14);
-  color: #5c7a4c;
-  border: 1.5px solid rgba(124, 148, 115, 0.3);
+  background: #fffcf2;
+  color: #5a4635;
+  border: 2.5px solid #5a4635;
+  box-shadow: 0 3px 0 #5a4635;
 }
 
 .nm-logout-btn:hover {
-  background: rgba(124, 148, 115, 0.24);
+  background: #ffe3a8;
+  box-shadow: 0 5px 0 #5a4635;
+}
+
+.nm-logout-btn:active {
+  box-shadow: 0 1px 0 #5a4635;
 }
 
 .nm-delete-btn {
-  background: #fffaf0;
-  border: 1.5px solid rgba(196, 108, 74, 0.45);
-  color: #b0563b;
+  background: #fffcf2;
+  border: 2.5px solid #ef476f;
+  color: #c72d4f;
+  box-shadow: 0 3px 0 #c72d4f;
 }
 
 .nm-delete-btn:hover:not(:disabled) {
-  background: rgba(196, 108, 74, 0.08);
-  border-color: #b0563b;
+  background: #ffe0e8;
+  box-shadow: 0 5px 0 #c72d4f;
+}
+
+.nm-delete-btn:active:not(:disabled) {
+  box-shadow: 0 1px 0 #c72d4f;
 }
 
 .nm-delete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
