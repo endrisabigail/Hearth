@@ -1,8 +1,132 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import "../pages/styles/agentModal.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// each companion's own .glb, keyed by the same avatarId used in AVATAR_MAP
+// (dashboard.jsx) — served from /public/models
+const AGENT_MODEL_MAP = {
+  apple: "/models/ai-agentApple.glb",
+  snail: "/models/ai-agentSnail.glb",
+  tomato: "/models/ai-agentTomato.glb",
+  fish: "/models/ai-agentFish.glb",
+  frog: "/models/ai-agentFrog.glb",
+};
+
+// fallback emoji for avatarIds that don't have a companion model yet (e.g. mushroom)
+const AGENT_EMOJI_FALLBACK = {
+  mushroom: "🍄",
+};
+
+const prefersReducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+function AgentAvatar3D({ avatarId }) {
+  const mountRef = useRef(null);
+  const [failed, setFailed] = useState(false);
+  const modelSrc = AGENT_MODEL_MAP[avatarId];
+
+  useEffect(() => {
+    if (!modelSrc || !mountRef.current) {
+      setFailed(true);
+      return;
+    }
+    setFailed(false);
+
+    const mount = mountRef.current;
+    const width = mount.clientWidth || 46;
+    const height = mount.clientHeight || 46;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
+    camera.position.set(0, 0.4, 3.2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    mount.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0xfff6e0, 0x2d5a27, 1.15));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+    dir.position.set(2, 3, 2);
+    scene.add(dir);
+
+    let model = null;
+    let mixer = null;
+    let frameId = null;
+    let disposed = false;
+    const clock = new THREE.Clock();
+
+    new GLTFLoader().load(
+      modelSrc,
+      (gltf) => {
+        if (disposed) return;
+        model = gltf.scene;
+
+        // re-frame whatever scale/origin this particular character's model
+        // was authored at so every companion fills the little viewport the same
+        const box = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const scale = 1.6 / (Math.max(size.x, size.y, size.z) || 1);
+        model.scale.setScalar(scale);
+        model.position.sub(center.multiplyScalar(scale));
+        scene.add(model);
+
+        if (gltf.animations?.length) {
+          mixer = new THREE.AnimationMixer(model);
+          mixer.clipAction(gltf.animations[0]).play();
+        }
+
+        const animate = () => {
+          frameId = requestAnimationFrame(animate);
+          const dt = clock.getDelta();
+          if (mixer) {
+            mixer.update(dt);
+          } else if (model && !prefersReducedMotion) {
+            model.rotation.y += dt * 0.7; // gentle idle spin when there's no baked animation
+          }
+          renderer.render(scene, camera);
+        };
+        animate();
+      },
+      undefined,
+      () => {
+        if (!disposed) setFailed(true);
+      },
+    );
+
+    return () => {
+      disposed = true;
+      if (frameId) cancelAnimationFrame(frameId);
+      scene.traverse((obj) => {
+        obj.geometry?.dispose?.();
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach((m) => m?.dispose?.());
+      });
+      renderer.dispose();
+      if (renderer.domElement.parentNode === mount) {
+        mount.removeChild(renderer.domElement);
+      }
+    };
+  }, [modelSrc]);
+
+  if (failed) {
+    return (
+      <span className="qm-agent-fallback">
+        {AGENT_EMOJI_FALLBACK[avatarId] || "🤖"}
+      </span>
+    );
+  }
+
+  return <div ref={mountRef} className="qm-agent-3d" />;
+}
 
 const STATUS_COLOR = {
   "Not Started": "#f5a623",
@@ -81,6 +205,7 @@ function QuestModal({
   customCategories = [],
   onSaveCategory,
   onDeleteCategory,
+  viewerAvatarId,
 }) {
   const isNew = !quest;
   const isLocked = !quest && !isOwner;
@@ -430,6 +555,10 @@ function QuestModal({
   // only real, already-created quests get a companion socket — nothing to
   // break down for a locked slot or the "create quest" form
   const canUseAi = Boolean(quest?._id) && !isNew && !isLocked;
+
+  // whoever's quest it is gets their own companion; otherwise show the
+  // viewer's own companion
+  const agentAvatarId = localQuest?.assignedTo?.avatarId || viewerAvatarId;
 
   useEffect(() => {
     if (!canUseAi || !token) return;
@@ -991,11 +1120,15 @@ function QuestModal({
               )}
               {canUseAi && localQuest.status !== "Completed" && (
                 <button
-                  className="qm-ai-help-bubble"
+                  type="button"
+                  className="qm-agent-help"
                   onClick={() => handleAskForHelp(false)}
                   title="get help starting this quest"
                 >
-                  i can help!!
+                  <AgentAvatar3D avatarId={agentAvatarId} />
+                  <span className="qm-agent-bubble">
+                    i can help you start that!
+                  </span>
                 </button>
               )}
               <h2 className="qm-quest-title">{localQuest.title}</h2>

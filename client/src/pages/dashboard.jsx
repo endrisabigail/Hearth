@@ -83,6 +83,52 @@ const NAV_ICONS = {
   ),
 };
 
+// cute, hand-drawn hud icons (bell + envelope) — replace the generic
+// emoji glyphs with small illustrated icons in the app's cottagecore palette
+const BELL_ICON = (
+  <svg viewBox="0 0 24 24" width="20" height="20">
+    <path
+      d="M12 4.6c-3.1.4-5.4 3-5.4 6.2v2.6c0 .6-.2 1.2-.7 1.7l-1.1 1.2c-.5.5-.1 1.4.6 1.4h13.2c.7 0 1.1-.9.6-1.4l-1.1-1.2c-.5-.5-.7-1.1-.7-1.7v-2.6c0-3.2-2.3-5.8-5.4-6.2"
+      fill="#f6c667"
+      stroke="#8b6914"
+      strokeWidth="1.3"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9.8 17.4a2.3 2.3 0 0 0 4.4 0"
+      fill="none"
+      stroke="#8b6914"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
+    <g transform="translate(12 3.3)">
+      <path d="M-2.4 0 L0 1.3 L-2.4 2.5 Z" fill="#ff9ecb" stroke="#c9457e" strokeWidth="0.4" />
+      <path d="M2.4 0 L0 1.3 L2.4 2.5 Z" fill="#ff9ecb" stroke="#c9457e" strokeWidth="0.4" />
+      <circle r="0.9" fill="#ffd23f" stroke="#c9457e" strokeWidth="0.4" />
+    </g>
+  </svg>
+);
+
+const MAIL_ICON = (
+  <svg viewBox="0 0 24 24" width="20" height="20">
+    <rect x="2.6" y="5.4" width="18.8" height="13.4" rx="3" fill="#fdf6e3" stroke="#8b6914" strokeWidth="1.3" />
+    <path
+      d="M3.2 6.7 L12 13 L20.8 6.7"
+      fill="none"
+      stroke="#8b6914"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="13.6" r="2" fill="#ff9ecb" stroke="#8b6914" strokeWidth="1" />
+    <path
+      d="M12 12.8c-.5-.6-1.3-.3-1.3.3 0 .6.6 1 1.3 1.5.7-.5 1.3-.9 1.3-1.5 0-.6-.8-.9-1.3-.3z"
+      fill="#fff"
+      opacity="0.9"
+    />
+  </svg>
+);
+
 function getSfxVolume() {
   const saved = localStorage.getItem("hearth_sfxVolume");
   return saved !== null ? Number(saved) / 100 : 0.5;
@@ -152,6 +198,7 @@ function Dashboard() {
   const [activeNav, setActiveNav] = useState("map");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQuest, setModalQuest] = useState(null);
+  const [addQuestBlooming, setAddQuestBlooming] = useState(false);
   const [msgModalOpen, setMsgModalOpen] = useState(false);
   const [bellPopoverOpen, setBellPopoverOpen] = useState(false);
   const bellPanelRef = useRef(null);
@@ -634,12 +681,32 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="dashboard-loading">
-        <div className="loading-dots">
-          <span />
-          <span />
-          <span />
+        <div className="loading-fireflies">
+          <span className="loading-firefly loading-firefly--1" />
+          <span className="loading-firefly loading-firefly--2" />
+          <span className="loading-firefly loading-firefly--3" />
+          <span className="loading-firefly loading-firefly--4" />
+          <span className="loading-firefly loading-firefly--5" />
+          <span className="loading-firefly loading-firefly--6" />
         </div>
-        <p>loading your plaza... ✦</p>
+        <div className="loading-card">
+          <img src="/hearth-favicon.png" alt="" className="loading-logo" />
+          <div className="loading-sprout">
+            <span className="loading-sprout-stem" />
+            <span className="loading-sprout-leaf loading-sprout-leaf--left" />
+            <span className="loading-sprout-leaf loading-sprout-leaf--right" />
+            <span className="loading-sprout-bud" />
+          </div>
+          <p className="loading-title">Hearth</p>
+          <p className="loading-subtitle">
+            loading your plaza
+            <span className="loading-ellipsis">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </p>
+        </div>
       </div>
     );
   }
@@ -666,9 +733,20 @@ function Dashboard() {
         }}
       />
       <div className="hud-icon-cluster hud-icon-cluster--right">
+        <button
+          className={`hud-trigger hud-trigger--mail${unreadMailCount > 0 ? " hud-trigger--shake" : ""}`}
+          onClick={() => setMsgModalOpen(true)}
+          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
+        >
+          <span className="hud-trigger-icon">{MAIL_ICON}</span>
+          {unreadMailCount > 0 && (
+            <span className="hud-trigger-badge">{unreadMailCount}</span>
+          )}
+        </button>
+
         <div className="bell-wrap" ref={bellPanelRef}>
           <button
-            className={`bell-trigger${unreadBellCount > 0 ? " bell-trigger--ring" : ""}`}
+            className={`hud-trigger${unreadBellCount > 0 ? " bell-trigger--ring" : ""}`}
             onClick={() => setBellPopoverOpen((o) => !o)}
             title={
               unreadBellCount > 0
@@ -676,9 +754,9 @@ function Dashboard() {
                 : "notifications"
             }
           >
-            <span className="bell-icon">🔔</span>
+            <span className="hud-trigger-icon">{BELL_ICON}</span>
             {unreadBellCount > 0 && (
-              <span className="bell-badge">{unreadBellCount}</span>
+              <span className="hud-trigger-badge">{unreadBellCount}</span>
             )}
           </button>
 
@@ -858,26 +936,6 @@ function Dashboard() {
               )}
           </div>
         )}
-
-        <button
-          className="mail-envelope-trigger mail-envelope-trigger--sidebar"
-          onClick={() => setMsgModalOpen(true)}
-          title={unreadMailCount > 0 ? "you've got mail!" : "check mail"}
-        >
-          <span
-            className={`mail-envelope${unreadMailCount > 0 ? " mail-envelope--shake" : ""}`}
-          >
-            <span className="mail-letter">
-              <span className="mail-letter-line" />
-              <span className="mail-letter-line mail-letter-line--short" />
-            </span>
-            <span className="mail-envelope-flap" />
-            <span className="mail-envelope-body" />
-            {unreadMailCount > 0 && (
-              <span className="mail-envelope-badge">{unreadMailCount}</span>
-            )}
-          </span>
-        </button>
       </div>
 
       {/* right column */}
@@ -1006,146 +1064,177 @@ function Dashboard() {
           customCategories={customCategories}
           onSaveCategory={saveCategory}
           onDeleteCategory={deleteCategory}
+          viewerAvatarId={userData?.avatarId}
         />
       )}
 
       {userData?.isPartyOwner && (
         <button
-          className="floating-add-btn floating-add-btn--sprout"
+          type="button"
+          className={`floating-add-quest sqb-seed-btn${addQuestBlooming ? " sqb-grown" : ""}`}
           onClick={() => {
-            setModalQuest(null);
-            setModalOpen(true);
+            if (addQuestBlooming) return;
+            setAddQuestBlooming(true);
+            // let the bloom animation play before the modal actually opens
+            setTimeout(() => {
+              setModalQuest(null);
+              setModalOpen(true);
+              setAddQuestBlooming(false);
+            }, 550);
           }}
           title="add quest"
+          aria-label="add quest"
         >
-          <span className="sprout-scene">
-            <span className="sprout-sparkle sprout-sparkle--1">✦</span>
-            <span className="sprout-sparkle sprout-sparkle--2">✦</span>
-            <span className="sprout-bud" />
-            <span className="sprout-leaf sprout-leaf--left" />
-            <span className="sprout-leaf sprout-leaf--right" />
-            <span className="sprout-stem" />
-            <span className="sprout-pot" />
-            <span className="sprout-plus">+</span>
+          <span className="sqb-stem" />
+          <span className="sqb-leaf sqb-leaf--left" />
+          <span className="sqb-leaf sqb-leaf--right" />
+          <span className="sqb-flower">
+            <span className="sqb-petal" />
+            <span className="sqb-petal" />
+            <span className="sqb-petal" />
+            <span className="sqb-petal" />
+            <span className="sqb-flower-center" />
           </span>
+          <span className="sqb-seed" />
+          <span className="sqb-label">add quest</span>
           <style>{`
-            .floating-add-btn--sprout {
+            .sqb-seed-btn {
+              position: relative;
+              width: 64px;
+              height: 101px;
               background: transparent;
               border: none;
-              padding: 0;
               cursor: pointer;
-            }
-            .floating-add-btn--sprout:hover .sprout-scene {
-              transform: scale(1.08);
-            }
-            .sprout-scene {
-              position: relative;
-              display: block;
-              width: 52px;
-              height: 52px;
-              transition: transform 0.2s ease;
-            }
-            .sprout-pot {
-              position: absolute;
-              bottom: 2px;
-              left: 50%;
-              transform: translateX(-50%);
-              width: 28px;
-              height: 18px;
-              background: linear-gradient(160deg, #c8860a, #8b6914);
-              border-radius: 4px 4px 12px 12px;
-              box-shadow: 0 3px 6px rgba(0, 0, 0, 0.28);
-            }
-            .sprout-stem {
-              position: absolute;
-              bottom: 17px;
-              left: 50%;
-              width: 4px;
-              height: 15px;
-              margin-left: -2px;
-              background: #4a8f3c;
-              border-radius: 2px;
-              transform-origin: bottom center;
-              animation: sprout-sway 3s ease-in-out infinite;
-            }
-            .sprout-leaf {
-              position: absolute;
-              bottom: 24px;
-              width: 15px;
-              height: 10px;
-              background: linear-gradient(135deg, #86cf60, #4a8f3c);
-              border-radius: 60% 60% 60% 5%;
-              animation: sprout-sway 3s ease-in-out infinite;
-            }
-            .sprout-leaf--left {
-              left: 9px;
-              transform-origin: bottom right;
-              animation-delay: -0.3s;
-            }
-            .sprout-leaf--right {
-              right: 9px;
-              transform: scaleX(-1);
-              transform-origin: bottom left;
-              animation-delay: -0.6s;
-            }
-            .sprout-bud {
-              position: absolute;
-              top: 5px;
-              left: 50%;
-              margin-left: -6px;
-              width: 12px;
-              height: 12px;
-              background: radial-gradient(circle at 35% 30%, #ffe066, #ffb300);
-              border-radius: 50%;
-              box-shadow: 0 0 6px rgba(255, 193, 7, 0.6);
-              animation: sprout-bob 3s ease-in-out infinite;
-            }
-            .sprout-plus {
-              position: absolute;
-              top: -3px;
-              right: -3px;
-              width: 18px;
-              height: 18px;
-              background: #fff8ec;
-              color: #b8860b;
-              border: 2px solid #ffb300;
-              border-radius: 50%;
-              font-size: 12px;
-              font-weight: 800;
-              line-height: 1;
+              padding: 0;
               display: flex;
-              align-items: center;
+              align-items: flex-end;
               justify-content: center;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+              outline-offset: 4px;
             }
-            .sprout-sparkle {
+            .sqb-seed-btn::before {
+              content: "";
               position: absolute;
-              font-size: 9px;
-              color: #ffe066;
+              bottom: 0;
+              width: 64px;
+              height: 11px;
+              background: #6b4a2f;
+              border-radius: 50% 50% 8px 8px / 60% 60% 40% 40%;
+              z-index: 3;
+            }
+            .sqb-seed {
+              position: absolute;
+              bottom: 3px;
+              width: 12px;
+              height: 17px;
+              background: linear-gradient(160deg, #b5834a, #8c6135);
+              border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+              transform-origin: bottom center;
+              transition: transform 0.4s ease, opacity 0.4s ease;
+              z-index: 4;
+            }
+            .sqb-stem {
+              position: absolute;
+              left: 31px;
+              bottom: 7px;
+              width: 3px;
+              height: 0px;
+              background: #3f8f4a;
+              border-radius: 3px;
+              transform-origin: bottom center;
+              transition: height 1.1s cubic-bezier(0.25, 1, 0.3, 1);
+              z-index: 2;
+            }
+            .sqb-leaf {
+              position: absolute;
+              width: 16px;
+              height: 8px;
+              background: #4caf58;
+              border-radius: 0% 100% 0% 100%;
               opacity: 0;
-              animation: sprout-twinkle 2.4s ease-in-out infinite;
+              transform: scale(0);
+              transition: opacity 0.5s ease, transform 0.5s ease;
+              z-index: 2;
             }
-            .sprout-sparkle--1 {
-              top: 0px;
-              left: -3px;
-              animation-delay: 0.4s;
+            .sqb-leaf--left {
+              left: 17px;
+              bottom: 20px;
+              transform-origin: right center;
             }
-            .sprout-sparkle--2 {
-              top: 10px;
-              right: -7px;
-              animation-delay: 1.4s;
+            .sqb-leaf--right {
+              left: 31px;
+              bottom: 28px;
+              transform-origin: left center;
+              transform: scale(0) rotate(90deg);
             }
-            @keyframes sprout-sway {
-              0%, 100% { transform: rotate(-6deg); }
-              50% { transform: rotate(6deg); }
+            .sqb-flower {
+              position: absolute;
+              left: 20px;
+              bottom: 44px;
+              width: 21px;
+              height: 21px;
+              opacity: 0;
+              transform: scale(0);
+              transition: opacity 0.5s ease 0.1s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+              z-index: 2;
             }
-            @keyframes sprout-bob {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-3px); }
+            .sqb-petal {
+              position: absolute;
+              width: 9px;
+              height: 9px;
+              background: #ff9ecb;
+              border-radius: 50%;
+              top: 6px;
+              left: 6px;
             }
-            @keyframes sprout-twinkle {
-              0%, 100% { opacity: 0; transform: scale(0.6); }
-              50% { opacity: 1; transform: scale(1); }
+            .sqb-petal:nth-child(1) { transform: translate(-6px, 0); }
+            .sqb-petal:nth-child(2) { transform: translate(6px, 0); }
+            .sqb-petal:nth-child(3) { transform: translate(0, -6px); }
+            .sqb-petal:nth-child(4) { transform: translate(0, 6px); }
+            .sqb-flower-center {
+              position: absolute;
+              width: 7px;
+              height: 7px;
+              background: #ffd23f;
+              border-radius: 50%;
+              top: 7px;
+              left: 7px;
+              z-index: 1;
+            }
+            .sqb-label {
+              position: absolute;
+              bottom: -22px;
+              font-size: 12px;
+              color: #4a6b4f;
+              letter-spacing: 0.03em;
+              white-space: nowrap;
+              font-family: system-ui, sans-serif;
+            }
+            .sqb-seed-btn:hover .sqb-seed,
+            .sqb-seed-btn.sqb-grown .sqb-seed {
+              transform: translateY(3px) scale(0.6);
+              opacity: 0;
+            }
+            .sqb-seed-btn:hover .sqb-stem,
+            .sqb-seed-btn.sqb-grown .sqb-stem {
+              height: 41px;
+            }
+            .sqb-seed-btn:hover .sqb-leaf,
+            .sqb-seed-btn.sqb-grown .sqb-leaf {
+              opacity: 1;
+              transition-delay: 0.5s;
+            }
+            .sqb-seed-btn:hover .sqb-leaf--left,
+            .sqb-seed-btn.sqb-grown .sqb-leaf--left {
+              transform: scale(1) rotate(10deg);
+            }
+            .sqb-seed-btn:hover .sqb-leaf--right,
+            .sqb-seed-btn.sqb-grown .sqb-leaf--right {
+              transform: scale(1) rotate(80deg);
+            }
+            .sqb-seed-btn.sqb-grown .sqb-flower {
+              opacity: 1;
+              transform: scale(1);
+              transition-delay: 0.25s;
             }
           `}</style>
         </button>

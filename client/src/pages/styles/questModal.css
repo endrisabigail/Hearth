@@ -245,26 +245,92 @@
   margin-bottom: 18px;
 }
 
- 
-.qm-ai-help-bubble {
+
+.qm-agent-help {
   float: right;
   margin-left: 8px;
-  border: 1.5px solid #f5a623;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  animation: qm-help-pulse 2.2s ease-in-out infinite;
+  transition: transform 0.1s;
+}
+
+.qm-agent-help:hover {
+  transform: scale(1.03);
+}
+
+.qm-agent-help:hover .qm-agent-bubble {
+  background: #ffecc4;
+}
+
+.qm-agent-3d,
+.qm-agent-fallback {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6e6, #f0dfb8 70%);
+  border: 2px solid #f5a623;
+  box-shadow: 0 3px 10px rgba(245, 166, 35, 0.3);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.qm-agent-3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.qm-agent-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.qm-agent-bubble {
+  position: relative;
   background: #fff6e6;
-  border-radius: 20px;
-  padding: 4px 12px;
+  border: 1.5px solid #f5a623;
+  border-radius: 16px;
+  padding: 6px 12px;
   font-family: "Nunito", sans-serif;
   font-size: 12px;
   font-weight: 800;
   color: #a86d0c;
-  cursor: pointer;
-  animation: qm-help-pulse 2.2s ease-in-out infinite;
-  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
+  transition: background 0.2s;
 }
 
-.qm-ai-help-bubble:hover {
-  background: #ffecc4;
-  transform: scale(1.03);
+.qm-agent-bubble::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 8px 6px 0;
+  border-style: solid;
+  border-color: transparent #f5a623 transparent transparent;
+}
+
+.qm-agent-bubble::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 7px 5px 0;
+  border-style: solid;
+  border-color: transparent #fff6e6 transparent transparent;
+}
+
+.qm-agent-help:hover .qm-agent-bubble::after {
+  border-right-color: #ffecc4;
 }
 
 @keyframes qm-help-pulse {
@@ -339,7 +405,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qm-ai-help-bubble {
+  .qm-agent-help {
     animation: none !important;
   }
 }

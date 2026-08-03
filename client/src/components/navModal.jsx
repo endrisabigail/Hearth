@@ -52,6 +52,14 @@ function NavModal({ party, api, onClose }) {
 
   return (
     <div className="nm-overlay" onClick={onClose}>
+      <div className="nm-fireflies" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
       <div className="nm-card" onClick={(e) => e.stopPropagation()}>
         <div className="nm-header">
           <span className="nm-title">Settings</span>
