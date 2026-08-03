@@ -35,7 +35,7 @@ const AVATAR_MAP = {
 
 const MOVE_SPEED = 0.0004; // units per ms; multiplied by dt in the game loop
 const SAVE_DEBOUNCE = 1500;
-const PANELS = ["members", "focus"];
+const PANELS = ["members"];
 
 const SOUND_FILES = {
   mail: "/sounds/mail.mp3",
@@ -991,7 +991,7 @@ function Dashboard() {
               className="footer-pill"
               onClick={() => togglePanel(panel)}
             >
-              {panel === "members" ? "👥 members" : "🎯 focus"}
+              {panel === "members" ? "👥 members" : panel}
             </button>
           ))}
         </div>
@@ -1015,37 +1015,55 @@ function Dashboard() {
         />
       )}
 
-      {userData?.isPartyOwner && (
-        <button
-          type="button"
-          className={`add-quest-btn${addQuestBlooming ? " add-quest-btn--grown" : ""}`}
-          onClick={() => {
-            if (addQuestBlooming) return;
-            setAddQuestBlooming(true);
-            // let the bloom animation play before the modal actually opens
-            setTimeout(() => {
-              setModalQuest(null);
-              setModalOpen(true);
-              setAddQuestBlooming(false);
-            }, 550);
-          }}
-          title="Add quest"
-          aria-label="Add quest"
-        >
-          <span className="add-quest-pot" />
-          <span className="add-quest-stem" />
-          <span className="add-quest-leaf add-quest-leaf--left" />
-          <span className="add-quest-leaf add-quest-leaf--right" />
-          <span className="add-quest-flower">
-            <span className="add-quest-petal" />
-            <span className="add-quest-petal" />
-            <span className="add-quest-petal" />
-            <span className="add-quest-petal" />
-            <span className="add-quest-flower-center" />
-          </span>
-          <span className="add-quest-seed" />
-        </button>
-      )}
+      <div className="bottom-dock">
+        {userData?.isPartyOwner && (
+          <button
+            type="button"
+            className={`add-quest-btn${addQuestBlooming ? " add-quest-btn--grown" : ""}`}
+            onClick={() => {
+              if (addQuestBlooming) return;
+              setAddQuestBlooming(true);
+              // let the bloom animation play before the modal actually opens
+              setTimeout(() => {
+                setModalQuest(null);
+                setModalOpen(true);
+                setAddQuestBlooming(false);
+              }, 550);
+            }}
+            title="Add quest"
+            aria-label="Add quest"
+          >
+            <span className="add-quest-pot" />
+            <span className="add-quest-stem" />
+            <span className="add-quest-leaf add-quest-leaf--left" />
+            <span className="add-quest-leaf add-quest-leaf--right" />
+            <span className="add-quest-flower">
+              <span className="add-quest-petal" />
+              <span className="add-quest-petal" />
+              <span className="add-quest-petal" />
+              <span className="add-quest-petal" />
+              <span className="add-quest-flower-center" />
+            </span>
+            <span className="add-quest-seed" />
+          </button>
+        )}
+
+        {!openPanels.focus && (
+          <button
+            type="button"
+            className="focus-toggle-btn"
+            onClick={() => togglePanel("focus")}
+            title="Show focus of the day"
+            aria-label="Show focus of the day"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="8" />
+              <circle cx="12" cy="12" r="4.5" />
+              <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {msgModalOpen && (
         <MessageModal
