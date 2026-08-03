@@ -83,7 +83,7 @@ const NAV_ICONS = {
   ),
 };
 
-// handrawn icons
+// icons
 const BELL_ICON = (
   <svg viewBox="0 0 24 24" width="20" height="20">
     <path
@@ -108,7 +108,7 @@ const BELL_ICON = (
   </svg>
 );
 
-// envelope]
+// envelope 
 const MAIL_ICON = (
   <svg viewBox="0 0 24 24" width="20" height="20">
     <rect x="2.6" y="6.6" width="18.8" height="12.2" rx="3" fill="#f6ecd2" stroke="#8b6914" strokeWidth="1.3" />
@@ -1018,28 +1018,32 @@ function Dashboard() {
       {userData?.isPartyOwner && (
         <button
           type="button"
-          className={`add-quest-btn${addQuestBlooming ? " add-quest-btn--bloom" : ""}`}
+          className={`add-quest-btn${addQuestBlooming ? " add-quest-btn--grown" : ""}`}
           onClick={() => {
             if (addQuestBlooming) return;
             setAddQuestBlooming(true);
-            // let the little bloom play before the modal actually opens
+            // let the bloom animation play before the modal actually opens
             setTimeout(() => {
               setModalQuest(null);
               setModalOpen(true);
               setAddQuestBlooming(false);
-            }, 420);
+            }, 550);
           }}
           title="Add quest"
           aria-label="Add quest"
         >
-          <span className="add-quest-btn-glyph">
-            <span className="add-quest-btn-plus" />
-            <span className="add-quest-btn-petal" />
-            <span className="add-quest-btn-petal" />
-            <span className="add-quest-btn-petal" />
-            <span className="add-quest-btn-petal" />
-            <span className="add-quest-btn-center" />
+          <span className="add-quest-pot" />
+          <span className="add-quest-stem" />
+          <span className="add-quest-leaf add-quest-leaf--left" />
+          <span className="add-quest-leaf add-quest-leaf--right" />
+          <span className="add-quest-flower">
+            <span className="add-quest-petal" />
+            <span className="add-quest-petal" />
+            <span className="add-quest-petal" />
+            <span className="add-quest-petal" />
+            <span className="add-quest-flower-center" />
           </span>
+          <span className="add-quest-seed" />
         </button>
       )}
 

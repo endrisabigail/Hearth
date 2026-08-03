@@ -82,30 +82,35 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 26%, #fffaf0 0%, #f3dfa8 55%, #e4cf9e 100%);
+  background: linear-gradient(160deg, #fff6df 0%, #f3dfa8 100%);
   border: 2px solid #7c9473;
   box-shadow:
-    0 3px 0 rgba(124, 148, 115, 0.4),
-    0 6px 14px rgba(61, 43, 31, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 3px 0 rgba(124, 148, 115, 0.45),
+    0 6px 12px rgba(61, 43, 31, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #6a5227;
   transition:
-    background 0.18s ease,
+    background 0.15s ease,
     color 0.15s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+    box-shadow 0.12s ease,
+    transform 0.12s ease;
 }
 
 .nav-item:hover {
-  transform: translateY(-2px) scale(1.07);
+  transform: translateY(-2px);
   box-shadow:
-    0 3px 0 rgba(124, 148, 115, 0.4),
-    0 9px 18px rgba(61, 43, 31, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 3px 0 rgba(124, 148, 115, 0.45),
+    0 8px 16px rgba(61, 43, 31, 0.26);
+}
+
+.nav-item:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 1px 0 rgba(124, 148, 115, 0.45),
+    0 4px 8px rgba(61, 43, 31, 0.2);
 }
 
 .nav-item.active {
@@ -114,30 +119,7 @@
   color: #fff;
   box-shadow:
     0 3px 0 #355e2a,
-    0 8px 18px rgba(60, 100, 60, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.32);
-}
-
-.nav-item.active::after {
-  content: "";
-  position: absolute;
-  inset: -5px;
-  border-radius: 50%;
-  border: 1.5px dashed rgba(143, 191, 110, 0.55);
-  animation: nav-active-ring 6s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes nav-active-ring {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nav-item.active::after {
-    animation: none !important;
-  }
+    0 8px 16px rgba(60, 100, 60, 0.32);
 }
 
 .nav-icon {
@@ -287,7 +269,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #f0d5ae, #d4a574 78%);
+  background: #d9a463;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -361,11 +343,9 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 26%, #f5ddb6, #d4a574 78%);
+  background: #d9a463;
   border: 2px solid rgba(139, 105, 20, 0.35);
-  box-shadow:
-    inset 0 -3px 6px rgba(107, 74, 33, 0.22),
-    0 2px 6px rgba(61, 43, 31, 0.2);
+  box-shadow: 0 2px 0 rgba(107, 74, 33, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -379,10 +359,8 @@
 
 .member-icon-avatar--owner {
   border-color: #3d6530;
-  background: radial-gradient(circle at 32% 26%, #b9e29a, #5c8a45 80%);
-  box-shadow:
-    inset 0 -3px 6px rgba(45, 74, 47, 0.28),
-    0 2px 6px rgba(61, 43, 31, 0.2);
+  background: #6fa860;
+  box-shadow: 0 2px 0 rgba(45, 74, 47, 0.4);
 }
 
 .member-icon-status {
@@ -722,7 +700,7 @@
   object-fit: cover;
 }
 
-/* standalone hud icons: envelope (messages) + bell (general notifications). */
+/* standalone hud icons */
 
 .hud-icon-cluster {
   position: absolute;
@@ -782,7 +760,8 @@
   transform: translateY(-1px) rotate(-3deg);
 }
 
-/* letter "opens" on hover */
+/* letter "opens" on hover: the flap folds back and the paper slides up,
+   like a lid lifting off an envelope */
 .mail-icon-flap {
   transform-box: fill-box;
   transform-origin: 50% 0%;
@@ -1295,175 +1274,196 @@
 }
 
 /* buttons */
-
-/* bottom-center "add quest" button — a plain circular badge (no label) so
-   its purpose reads instantly; hovering lets the plus bloom into a little
-   flower, a small wink at the app's cottagecore theme without needing text */
 .add-quest-btn {
   position: fixed;
-  bottom: 26px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
-  width: 60px;
-  height: 60px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   border: 3px solid #7c9473;
-  background: radial-gradient(circle at 32% 26%, #fffaf0 0%, #f3dfa8 60%, #e4cf9e 100%);
+  background: linear-gradient(160deg, #fff6df 0%, #f3dfa8 100%);
   box-shadow:
     0 4px 0 rgba(124, 148, 115, 0.45),
-    0 10px 24px rgba(61, 43, 31, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 10px 22px rgba(61, 43, 31, 0.3);
   cursor: pointer;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  animation: add-quest-pulse 2.6s ease-in-out infinite;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  outline-offset: 4px;
 }
 
 .add-quest-btn:hover,
 .add-quest-btn:focus-visible {
-  transform: translateX(-50%) translateY(-3px) scale(1.06);
+  transform: translateX(-50%) translateY(-2px);
   box-shadow:
     0 4px 0 rgba(124, 148, 115, 0.45),
-    0 14px 30px rgba(61, 43, 31, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  animation: none;
+    0 13px 26px rgba(61, 43, 31, 0.36);
 }
 
 .add-quest-btn:active {
-  transform: translateX(-50%) translateY(0) scale(0.97);
+  transform: translateX(-50%) translateY(0);
 }
 
-@keyframes add-quest-pulse {
-
-  0%,
-  100% {
-    box-shadow:
-      0 4px 0 rgba(124, 148, 115, 0.45),
-      0 10px 24px rgba(61, 43, 31, 0.32),
-      0 0 0 0 rgba(245, 166, 35, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  }
-
-  50% {
-    box-shadow:
-      0 4px 0 rgba(124, 148, 115, 0.45),
-      0 10px 24px rgba(61, 43, 31, 0.32),
-      0 0 0 9px rgba(245, 166, 35, 0),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  }
-}
-
-.add-quest-btn-glyph {
-  position: relative;
-  width: 26px;
-  height: 26px;
-}
-
-.add-quest-btn-plus {
+/* soil the seed sits in, at the bottom of the circle */
+.add-quest-pot {
   position: absolute;
-  inset: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.add-quest-btn-plus::before,
-.add-quest-btn-plus::after {
-  content: "";
-  position: absolute;
-  background: #5c7a4c;
-  border-radius: 3px;
-}
-
-.add-quest-btn-plus::before {
+  bottom: -8px;
   left: 50%;
-  top: 2px;
-  bottom: 2px;
-  width: 4px;
-  margin-left: -2px;
+  transform: translateX(-50%);
+  width: 84px;
+  height: 18px;
+  background: #6b4a2f;
+  border-radius: 50%;
+  z-index: 3;
 }
 
-.add-quest-btn-plus::after {
-  top: 50%;
-  left: 2px;
-  right: 2px;
-  height: 4px;
-  margin-top: -2px;
-}
-
-.add-quest-btn-petal {
+.add-quest-seed {
   position: absolute;
+  bottom: 6px;
+  left: 50%;
   width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #ff9ecb;
-  opacity: 0;
-  transform: scale(0.3);
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.add-quest-btn-petal:nth-child(2) {
-  top: 0;
-  left: 50%;
+  height: 15px;
   margin-left: -5.5px;
+  background: linear-gradient(160deg, #b5834a, #8c6135);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  transform-origin: bottom center;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  z-index: 4;
 }
 
-.add-quest-btn-petal:nth-child(3) {
-  bottom: 0;
-  left: 50%;
-  margin-left: -5.5px;
-}
-
-.add-quest-btn-petal:nth-child(4) {
-  left: 0;
-  top: 50%;
-  margin-top: -5.5px;
-}
-
-.add-quest-btn-petal:nth-child(5) {
-  right: 0;
-  top: 50%;
-  margin-top: -5.5px;
-}
-
-.add-quest-btn-center {
+.add-quest-stem {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffd23f;
-  opacity: 0;
-  transform: scale(0.3);
-  transition: opacity 0.25s ease 0.05s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s;
-  top: 50%;
   left: 50%;
-  margin: -5px 0 0 -5px;
+  bottom: 11px;
+  width: 3px;
+  height: 0;
+  margin-left: -1.5px;
+  background: #3f8f4a;
+  border-radius: 3px;
+  transform-origin: bottom center;
+  transition: height 1s cubic-bezier(0.25, 1, 0.3, 1);
+  z-index: 2;
+}
+
+.add-quest-leaf {
+  position: absolute;
+  width: 14px;
+  height: 7px;
+  background: #4caf58;
+  border-radius: 0% 100% 0% 100%;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  z-index: 2;
+}
+
+.add-quest-leaf--left {
+  left: 50%;
+  margin-left: -20px;
+  bottom: 25px;
+  transform-origin: right center;
+}
+
+.add-quest-leaf--right {
+  left: 50%;
+  margin-left: 6px;
+  bottom: 32px;
+  transform-origin: left center;
+  transform: scale(0) rotate(90deg);
+}
+
+.add-quest-flower {
+  position: absolute;
+  left: 50%;
+  bottom: 45px;
+  width: 19px;
+  height: 19px;
+  margin-left: -9.5px;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.45s ease 0.1s, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+  z-index: 2;
+}
+
+.add-quest-petal {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #ff9ecb;
+  border-radius: 50%;
+  top: 5.5px;
+  left: 5.5px;
+}
+
+.add-quest-petal:nth-child(1) {
+  transform: translate(-5.5px, 0);
+}
+
+.add-quest-petal:nth-child(2) {
+  transform: translate(5.5px, 0);
+}
+
+.add-quest-petal:nth-child(3) {
+  transform: translate(0, -5.5px);
+}
+
+.add-quest-petal:nth-child(4) {
+  transform: translate(0, 5.5px);
+}
+
+.add-quest-flower-center {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #ffd23f;
+  border-radius: 50%;
+  top: 6.5px;
+  left: 6.5px;
   z-index: 1;
 }
 
-.add-quest-btn:hover .add-quest-btn-plus,
-.add-quest-btn--bloom .add-quest-btn-plus {
+.add-quest-btn:hover .add-quest-seed,
+.add-quest-btn--grown .add-quest-seed {
+  transform: translateY(3px) scale(0.6);
   opacity: 0;
-  transform: scale(0.5) rotate(45deg);
 }
 
-.add-quest-btn:hover .add-quest-btn-petal,
-.add-quest-btn--bloom .add-quest-btn-petal,
-.add-quest-btn:hover .add-quest-btn-center,
-.add-quest-btn--bloom .add-quest-btn-center {
+.add-quest-btn:hover .add-quest-stem,
+.add-quest-btn--grown .add-quest-stem {
+  height: 36px;
+}
+
+.add-quest-btn:hover .add-quest-leaf,
+.add-quest-btn--grown .add-quest-leaf {
+  opacity: 1;
+  transition-delay: 0.45s;
+}
+
+.add-quest-btn:hover .add-quest-leaf--left,
+.add-quest-btn--grown .add-quest-leaf--left {
+  transform: scale(1) rotate(10deg);
+}
+
+.add-quest-btn:hover .add-quest-leaf--right,
+.add-quest-btn--grown .add-quest-leaf--right {
+  transform: scale(1) rotate(80deg);
+}
+
+.add-quest-btn--grown .add-quest-flower {
   opacity: 1;
   transform: scale(1);
+  transition-delay: 0.2s;
 }
 
 @media (prefers-reduced-motion: reduce) {
 
-  .add-quest-btn,
-  .add-quest-btn-plus,
-  .add-quest-btn-petal,
-  .add-quest-btn-center {
-    animation: none !important;
+  .add-quest-seed,
+  .add-quest-stem,
+  .add-quest-leaf,
+  .add-quest-flower {
     transition: none !important;
   }
 }
