@@ -25,8 +25,7 @@ function AgentAvatarImage({ avatarId }) {
     AGENT_EMOJI_FALLBACK,
     avatarId,
   );
-  const imageSrc = AGENT_IMAGE_MAP.tomato;
-  return (
+  const imageSrc = AGENT_IMAGE_MAP[avatarId] || AGENT_IMAGE_MAP.tomato; return (
     <div className="qm-agent-3d">
       <img
         src={imageSrc}
