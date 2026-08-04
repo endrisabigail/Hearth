@@ -6,10 +6,15 @@
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 18% 15%, rgba(255, 226, 158, 0.35), transparent 45%),
-    radial-gradient(circle at 85% 80%, rgba(122, 168, 150, 0.28), transparent 55%),
-    linear-gradient(165deg, #6f8fa3 0%, #4d6d78 38%, #3a5a55 68%, #2d4a3f 100%);
-  backdrop-filter: blur(4px);
+    radial-gradient(circle at 18% 15%, rgba(255, 226, 158, 0.28), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(122, 168, 150, 0.22), transparent 55%),
+    linear-gradient(165deg,
+      rgba(111, 143, 163, 0.55) 0%,
+      rgba(77, 109, 120, 0.55) 38%,
+      rgba(58, 90, 85, 0.55) 68%,
+      rgba(45, 74, 63, 0.55) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 999;
   display: flex;
   align-items: center;

@@ -3,12 +3,13 @@
   inset: 0;
   background:
     radial-gradient(circle at 30% 20%, rgba(150, 190, 130, 0.12), transparent 55%),
-    rgba(28, 42, 26, 0.58);
+    rgba(28, 42, 26, 0.4);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .qm-card {
@@ -47,6 +48,7 @@
   position: absolute;
   top: 14px;
   right: 16px;
+  z-index: 2;
   background: #fffcf2;
   border: 2.5px solid #5a4635;
   box-shadow: 0 3px 0 #5a4635;
@@ -455,10 +457,75 @@
   padding: 3px 10px;
   border-radius: 20px;
   margin-bottom: 8px;
+  margin-right: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: 2px solid rgba(0, 0, 0, 0.22);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.22);
+}
+
+.qm-priority-badge {
+  display: inline-block;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid rgba(0, 0, 0, 0.22);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.22);
+}
+
+/* ---- checklist ---- */
+
+.qm-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+.qm-checklist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #b5ccb0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b4d38;
+}
+
+.qm-checklist-item:last-child {
+  border-bottom: none;
+}
+
+.qm-checklist-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.qm-checklist-item input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #7ed957;
+  cursor: pointer;
+}
+
+.qm-checklist-item span {
+  overflow-wrap: anywhere;
+}
+
+.qm-checklist-done {
+  text-decoration: line-through;
+  color: #93a98d;
 }
 
 .qm-quest-title {
@@ -524,28 +591,28 @@
 
 .qm-edit-toggle {
   float: right;
-  border: 2px solid #5a4635;
-  background: #fffcf2;
-  border-radius: 20px;
-  padding: 4px 12px;
+  margin-top: 4px;
+  margin-right: 42px;
+  border: none;
+  background: none;
+  box-shadow: none;
+  padding: 0;
   font-family: "Nunito", sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #5a4635;
+  color: #d9776c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
-  box-shadow: 0 2px 0 #5a4635;
-  transition: background 0.15s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .qm-edit-toggle:hover {
-  background: #ffe3a8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 0 #5a4635;
+  color: #c0463a;
 }
 
 .qm-edit-toggle:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 0 #5a4635;
+  color: #a13a2f;
 }
 
 .qm-edit-actions {
@@ -832,10 +899,56 @@
   position: absolute;
   top: -30px;
   font-size: 22px;
+  line-height: 1;
   animation-name: qm-confetti-fall;
   animation-timing-function: ease-in;
   animation-fill-mode: forwards;
   z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.qm-celebrate-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 214, 102, 0.9), transparent 65%);
+  animation: qm-flash 0.6s ease-out forwards;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes qm-flash {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.qm-celebrate-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  border: 4px solid #ffd166;
+  z-index: 1;
+  animation: qm-burst 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes qm-burst {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: scale(9);
+    opacity: 0;
+  }
 }
 
 @keyframes qm-confetti-fall {

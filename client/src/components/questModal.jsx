@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { getAuth, onIdTokenChanged } from "firebase/auth";
 import "../pages/styles/agentModal.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -139,6 +140,11 @@ const PRIORITY_COLOR = {
   medium: "#f5a623",
   high: "#e53935",
 };
+const PRIORITY_POINTS = {
+  low: 3,
+  medium: 5,
+  high: 8,
+};
 
 const COMPLETE_SOUND_SRC = "/sounds/complete.mp3";
 const NEW_SOUND_SRC = "/sounds/new.mp3";
@@ -151,6 +157,8 @@ const CONFETTI_COLORS = [
   "#95d5b2",
   "#ffd166",
 ];
+
+const CONFETTI_SYMBOLS = ["⭐", "✨", "🪙", "🎉"];
 
 function FieldGroup({ label, children }) {
   return (
@@ -207,8 +215,7 @@ function QuestModal({
   const isNew = !quest;
   const isLocked = !quest && !isOwner;
 
-  // Local mirror of the quest so comments / attachments / edits / history
-  // can update in place without closing the modal after every action.
+
   const [localQuest, setLocalQuest] = useState(quest);
   useEffect(() => {
     setLocalQuest(quest);
@@ -241,7 +248,6 @@ function QuestModal({
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  // ---- new-category / tag drafting -----------------------------------
   const [newCategoryDraft, setNewCategoryDraft] = useState("");
   const [tagDraft, setTagDraft] = useState("");
 
@@ -299,17 +305,29 @@ function QuestModal({
       setSaving(false);
     }
   };
-
-  // ---- status / create / delete (unchanged behavior) -----------------
   const handleSaveStatus = async () => {
     setSaving(true);
     setError("");
     try {
-      const res = await api.put(`/quests/${quest._id}/status`, {
-        status: form.status,
-      });
-      applyUpdate(res.data);
-      onClose();
+      if (form.status === "Completed") {
+        const res = await api.post("/quests/complete", { questId: quest._id });
+        const updated =
+          res.data && res.data._id ? res.data : { ...localQuest, status: "Completed" };
+        applyUpdate(updated);
+        setCelebrate(true);
+        try {
+          const audio = new Audio(COMPLETE_SOUND_SRC);
+          audio.volume = 0.8;
+          audio.play().catch(() => { });
+        } catch {
+        }
+      } else {
+        const res = await api.put(`/quests/${quest._id}/status`, {
+          status: form.status,
+        });
+        applyUpdate(res.data);
+        onClose();
+      }
     } catch (e) {
       setError(e.response?.data?.msg || "failed to update status.");
     } finally {
@@ -329,6 +347,7 @@ function QuestModal({
         assignedTo: form.assignedTo || null,
         tags: form.tags,
         priority: form.priority,
+        points: PRIORITY_POINTS[form.priority] ?? form.points,
       });
       let created = res.data;
 
@@ -357,7 +376,7 @@ function QuestModal({
         audio.volume = 0.8;
         audio.play().catch(() => { });
       } catch {
-        // sound is a nice-to-have, never block creation on it
+
       }
 
       onQuestCreated(created);
@@ -387,41 +406,19 @@ function QuestModal({
   // ---- completion + celebration ---------------------------------------
   const [celebrate, setCelebrate] = useState(false);
   const confettiBits = useRef(
-    Array.from({ length: 18 }, (_, i) => ({
+    Array.from({ length: 22 }, (_, i) => ({
       id: i,
       left: Math.round(Math.random() * 100),
       delay: (Math.random() * 0.6).toFixed(2),
       duration: (1.4 + Math.random() * 1.1).toFixed(2),
       color:
         CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      symbol:
+        CONFETTI_SYMBOLS[Math.floor(Math.random() * CONFETTI_SYMBOLS.length)],
       drift: Math.round((Math.random() - 0.5) * 120),
     })),
   ).current;
 
-  const handleComplete = async () => {
-    setSaving(true);
-    setError("");
-    try {
-      const res = await api.post("/quests/complete", { questId: quest._id });
-      const updated =
-        res.data && res.data._id ? res.data : { ...localQuest, status: "Completed" };
-      applyUpdate(updated);
-      setCelebrate(true);
-      try {
-        const audio = new Audio(COMPLETE_SOUND_SRC);
-        audio.volume = 0.8;
-        audio.play().catch(() => { });
-      } catch {
-        // sound is a nice-to-have, never block completion on it
-      }
-    } catch (e) {
-      setError(e.response?.data?.msg || "failed to complete quest.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ---- comments ---------------------------------------------------------
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const comments = localQuest?.comments || [];
@@ -542,14 +539,27 @@ function QuestModal({
   const [aiStreaming, setAiStreaming] = useState(false);
   const [aiError, setAiError] = useState("");
   const aiSocketRef = useRef(null);
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const [token, setToken] = useState(null);
+  useEffect(() => {
+    const auth = getAuth();
+    return onIdTokenChanged(auth, async (user) => {
+      if (!user) {
+        setToken(null);
+        return;
+      }
+      try {
+        setToken(await user.getIdToken());
+      } catch {
+        setToken(null);
+      }
+    });
+  }, []);
   const canUseAi = Boolean(quest?._id) && !isNew && !isLocked;
 
   // the description writer 
   const canUseAiDescription = isOwner && !isLocked;
 
-  // whoever's quest it is gets their own companion; otherwise show the
-  // viewer's own companion
   const agentAvatarId = localQuest?.assignedTo?.avatarId || viewerAvatarId;
 
   // ids  
@@ -622,8 +632,7 @@ function QuestModal({
   const handleAskForHelp = (regenerate = false) => {
     setAiOpen(true);
     if (aiStreaming || !aiSocketRef.current) return;
-    // don't refire if we already have a cached breakdown showing — the
-    // toggle button just opens the panel in that case
+
     if (!regenerate && aiText) return;
     aiSocketRef.current.emit("ai:breakdown", {
       questId: quest._id,
@@ -774,11 +783,14 @@ function QuestModal({
               <select
                 className="qm-select"
                 value={form.priority}
-                onChange={(e) => set("priority", e.target.value)}
+                onChange={(e) => {
+                  const p = e.target.value;
+                  setForm((f) => ({ ...f, priority: p, points: PRIORITY_POINTS[p] ?? f.points }));
+                }}
               >
                 {PRIORITY_OPTIONS.map((p) => (
                   <option key={p} value={p}>
-                    {p}
+                    {p} · {PRIORITY_POINTS[p]} pts
                   </option>
                 ))}
               </select>
@@ -988,15 +1000,6 @@ function QuestModal({
                   onChange={(e) => set("dueDate", e.target.value)}
                 />
               </FieldGroup>
-              <FieldGroup label="points">
-                <input
-                  type="number"
-                  min="1"
-                  className="qm-input"
-                  value={form.points}
-                  onChange={(e) => set("points", Number(e.target.value) || 1)}
-                />
-              </FieldGroup>
             </div>
             <FieldGroup label="category">
               {customCategories.length > 0 ? (
@@ -1069,11 +1072,14 @@ function QuestModal({
               <select
                 className="qm-select"
                 value={form.priority}
-                onChange={(e) => set("priority", e.target.value)}
+                onChange={(e) => {
+                  const p = e.target.value;
+                  setForm((f) => ({ ...f, priority: p, points: PRIORITY_POINTS[p] ?? f.points }));
+                }}
               >
                 {PRIORITY_OPTIONS.map((p) => (
                   <option key={p} value={p}>
-                    {p}
+                    {p} · {PRIORITY_POINTS[p]} pts
                   </option>
                 ))}
               </select>
@@ -1133,7 +1139,11 @@ function QuestModal({
                 {localQuest.priority || "medium"}
               </span>
               {isOwner && localQuest.status !== "Completed" && (
-                <button className="qm-edit-toggle" onClick={startEditing}>
+                <button
+                  type="button"
+                  className="qm-edit-toggle"
+                  onClick={startEditing}
+                >
                   edit
                 </button>
               )}
@@ -1337,15 +1347,6 @@ function QuestModal({
                 </button>
               </div>
             )}
-            {localQuest.status !== "Completed" && (
-              <button
-                className="qm-btn-primary qm-btn-primary--complete"
-                onClick={handleComplete}
-                disabled={saving}
-              >
-                {saving ? "..." : "mark complete & claim points"}
-              </button>
-            )}
             {localQuest.status === "Completed" && !celebrate && (
               <div className="qm-completed-msg">
                 quest completed!
@@ -1458,6 +1459,8 @@ function QuestModal({
 
         {celebrate && (
           <div className="qm-celebrate-overlay">
+            <div className="qm-celebrate-flash" />
+            <div className="qm-celebrate-burst" />
             {confettiBits.map((b) => (
               <span
                 key={b.id}
@@ -1466,15 +1469,15 @@ function QuestModal({
                   left: `${b.left}%`,
                   animationDelay: `${b.delay}s`,
                   animationDuration: `${b.duration}s`,
-                  backgroundColor: b.color,
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
+                  color: b.color,
                   "--drift": `${b.drift}px`,
                 }}
-              />
+              >
+                {b.symbol}
+              </span>
             ))}
             <div className="qm-celebrate-card">
+              <div className="qm-celebrate-icon">🏆</div>
               <h2 className="qm-celebrate-title">quest complete!</h2>
               <p className="qm-celebrate-points">
                 +{localQuest?.points ?? quest?.points ?? 0} pts

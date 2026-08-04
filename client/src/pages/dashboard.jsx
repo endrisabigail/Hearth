@@ -130,6 +130,22 @@ const MAIL_ICON = (
   </svg>
 );
 
+// coin
+const COIN_ICON = (
+  <svg viewBox="0 0 24 24" width="18" height="18">
+    <circle cx="12" cy="12" r="8.6" fill="#ffd23f" stroke="#8b6914" strokeWidth="1.3" />
+    <circle cx="12" cy="12" r="6" fill="none" stroke="#f6c667" strokeWidth="1.1" />
+    <path
+      d="M12 8.4c-1.3 0-2.1.6-2.1 1.5 0 2 4.2.9 4.2 2.9 0 .9-.9 1.4-2.1 1.4s-2.1-.5-2.1-1.4"
+      fill="none"
+      stroke="#8b6914"
+      strokeWidth="1"
+      strokeLinecap="round"
+    />
+    <line x1="12" y1="7.4" x2="12" y2="16.6" stroke="#8b6914" strokeWidth="1" strokeLinecap="round" />
+  </svg>
+);
+
 function getSfxVolume() {
   const saved = localStorage.getItem("hearth_sfxVolume");
   return saved !== null ? Number(saved) / 100 : 0.5;
@@ -639,8 +655,30 @@ function Dashboard() {
     travelTargetRef.current = { x: node.nx, y: node.ny };
   }, []);
 
-  const handleQuestUpdated = (updated) =>
+  const handleQuestUpdated = (updated) => {
     setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
+
+    // ASSUMPTION: /dashboard's user object has a `points` field. Bump it
+    // optimistically the moment *this* user completes a quest that wasn't
+    // already completed — guards against double-counting on later edits to
+    // an already-completed quest, and against counting a party member's
+    // completion as our own. The real source of truth is still the next
+    // /dashboard fetch; this just keeps the top bar from looking stale.
+    const wasAlreadyCompleted =
+      quests.find((q) => q._id === updated._id)?.status === "Completed";
+    const justCompletedByMe =
+      updated.status === "Completed" &&
+      !wasAlreadyCompleted &&
+      updated.completedBy?._id?.toString() === userData?.id?.toString();
+
+    if (justCompletedByMe) {
+      setUserData((prev) =>
+        prev
+          ? { ...prev, points: (prev.points || 0) + (updated.points || 0) }
+          : prev,
+      );
+    }
+  };
   const handleQuestCreated = (created) =>
     setQuests((prev) => [created, ...prev]);
   const handleQuestDeleted = (id) =>
@@ -734,6 +772,13 @@ function Dashboard() {
         }}
       />
       <div className="hud-icon-cluster hud-icon-cluster--right">
+        <div className="hud-points" title="your points">
+          <span className="hud-points-icon">{COIN_ICON}</span>
+          <span className="hud-points-value" key={userData?.points ?? 0}>
+            {userData?.points ?? 0}
+          </span>
+        </div>
+
         <button
           className={`hud-trigger hud-trigger--mail${unreadMailCount > 0 ? " hud-trigger--shake" : ""}`}
           onClick={() => setMsgModalOpen(true)}
