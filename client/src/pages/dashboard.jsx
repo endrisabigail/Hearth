@@ -38,10 +38,10 @@ const SAVE_DEBOUNCE = 1500;
 const PANELS = ["members"];
 
 const SOUND_FILES = {
-  mail: "/sounds/mail.mp3",
-  notify: "/sounds/notify.mp3",
-  newMember: "/sounds/new.mp3",
-  click: "/sounds/click.mp3",
+  mail: "assets/sounds/mail.mp3",
+  notify: "assets/sounds/notify.mp3",
+  newMember: "assets/sounds/new.mp3",
+  click: "assets/sounds/click.mp3",
 };
 
 const NAV_ICONS = {
