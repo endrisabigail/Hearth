@@ -751,8 +751,8 @@ function Dashboard() {
   }
 
   const bellNotifications = notifications.filter((n) => !isMailNotification(n));
-  const unread = notifications.filter(
-    (n) => !n.read && !isMailNotification(n),
+  const unreadMailCount = notifications.filter(
+    (n) => !n.read && isMailNotification(n),
   ).length;
   const unreadBellCount = bellNotifications.filter((n) => !n.read).length;
   const minimizedPanels = PANELS.filter((p) => !openPanels[p]);
