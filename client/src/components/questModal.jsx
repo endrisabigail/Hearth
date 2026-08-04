@@ -7,11 +7,11 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // each companion's own portrait, keyed by the same avatarId used in AVATAR_MAP
 const AGENT_IMAGE_MAP = {
-  apple: "/models/ai-agentApple.png",
-  snail: "/models/ai-agentSnail.png",
-  tomato: "/models/ai-agentTomato.png",
-  fish: "/models/ai-agentFish.png",
-  frog: "/models/ai-agentFrog.png",
+  apple: "/models/ai-agentApple.jpeg",
+  snail: "/models/ai-agentSnail.jpeg",
+  tomato: "/models/ai-agentTomato.jpeg",
+  fish: "/models/ai-agentFish.jpeg",
+  frog: "/models/ai-agentFrog.jpeg",
 };
 
 
