@@ -892,7 +892,7 @@ function PlazaCanvas({
     walkAudio.volume = 0.5;
     walkAudioRef.current = walkAudio;
 
-    const clickAudio = new Audio("/assets/sounds/clickCasual.mp3");
+    const clickAudio = new Audio("/assets/sounds/casualClick.mp3");
     clickAudio.volume = 0.6;
     clickAudioRef.current = clickAudio;
 
