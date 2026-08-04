@@ -38,11 +38,13 @@ const BUSH_COUNT = 130;
 const PX = 64;
 
 // ambient extras
-const FLOWER_PATCH_COUNT = 34;
-const BUTTERFLY_COUNT = 7;
-const FIREFLY_COUNT = 20;
-const LILYPAD_COUNT = 9;
-const FISH_COUNT = 6;
+const FLOWER_PATCH_COUNT = 30; // marigold/poppy wildflower patches around the fields
+const BUTTERFLY_COUNT = 9;
+const FIREFLY_COUNT = 16; // drifting pollen motes over the crops in the evening light
+const TOMATO_ROWS = 6;
+const TOMATO_PER_ROW = 9;
+const HAY_BALE_COUNT = 10;
+const CRATE_COUNT = 8;
 
 export function normToWorld(n) {
   return WORLD_MIN + n * WORLD_SIZE;
@@ -61,10 +63,14 @@ export const MOVEMENT_BOUNDS = {
   maxY: 1 - EDGE_PAD,
 };
 
-// pond  
-export const POND_CENTER_X = WORLD_MAX - 15;
-export const POND_CENTER_Z = WORLD_MAX - 11;
-export const POND_RADIUS = 7.5;
+// tomato garden 
+export const GARDEN_CENTER_X = WORLD_MAX - 15;
+export const GARDEN_CENTER_Z = WORLD_MAX - 11;
+export const GARDEN_RADIUS = 7.5;
+// kept as aliases in case other files still import the old pond names
+export const POND_CENTER_X = GARDEN_CENTER_X;
+export const POND_CENTER_Z = GARDEN_CENTER_Z;
+export const POND_RADIUS = GARDEN_RADIUS;
 
 // character spawn radius
 const SPAWN_CLEAR_RADIUS = 6.5;
@@ -81,15 +87,15 @@ function buildGrassTexture() {
       const x = col * PX;
       const y = row * PX;
 
-      const hue = 118 + ((row * 4 + col) % 5) * 4;
-      ctx.fillStyle = `hsl(${hue}, 52%, 42%)`;
+      const hue = 92 + ((row * 4 + col) % 5) * 4;
+      ctx.fillStyle = `hsl(${hue}, 48%, 40%)`;
       ctx.fillRect(x, y, PX, PX);
 
       ctx.strokeStyle = "rgba(0,0,0,0.06)";
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, PX - 1, PX - 1);
 
-      ctx.fillStyle = `hsl(${hue + 10}, 55%, 52%)`;
+      ctx.fillStyle = `hsl(${hue + 10}, 52%, 50%)`;
       const rng = (row * 4 + col + 1) * 13;
       for (let i = 0; i < 6; i++) {
         const bx = x + ((rng * (i + 1) * 7) % (PX - 8)) + 4;
@@ -98,8 +104,9 @@ function buildGrassTexture() {
         ctx.fillRect(bx + 3, by + 2, 2, 4);
       }
 
+      // little flecks of fallen tomato and gold chaff scattered in the grass
       if ((row + col) % 3 === 0) {
-        ctx.fillStyle = "#f9c6d0";
+        ctx.fillStyle = "#d9503a";
         ctx.beginPath();
         ctx.arc(
           x + 20 + ((col * 7) % 24),
@@ -109,7 +116,7 @@ function buildGrassTexture() {
           Math.PI * 2,
         );
         ctx.fill();
-        ctx.fillStyle = "#fff59d";
+        ctx.fillStyle = "#f4d27a";
         ctx.beginPath();
         ctx.arc(
           x + 20 + ((col * 7) % 24),
@@ -222,10 +229,10 @@ export function buildSkyTexture() {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, "#8fd0ea");
-  grad.addColorStop(0.45, "#bfe8ef");
-  grad.addColorStop(0.75, "#eef3d9");
-  grad.addColorStop(1, "#fdf1de");
+  grad.addColorStop(0, "#7ec3e8");
+  grad.addColorStop(0.42, "#bfe0c8");
+  grad.addColorStop(0.72, "#f3e2a3");
+  grad.addColorStop(1, "#ffcf8f");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 8, 256);
   const tex = new THREE.CanvasTexture(canvas);
@@ -424,18 +431,160 @@ export function buildLilyPad(radius, rand) {
   return mesh;
 }
 
-// shadow under the water
-function buildFish(rand) {
-  const len = 0.9 + rand() * 0.9;
-  const geo = new THREE.SphereGeometry(len * 0.5, 10, 8);
-  geo.scale(1, 0.16, 0.42);
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0x1c3b42,
-    transparent: true,
-    opacity: 0.38,
-    depthWrite: false,
+// a single tomato plant — stem, leafy puffs, and a handful of ripening fruit
+function buildTomatoPlant(rand) {
+  const group = new THREE.Group();
+  const height = 0.55 + rand() * 0.35;
+
+  const stemMat = new THREE.MeshLambertMaterial({ color: 0x3f6b2c });
+  const stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.045, height, 6),
+    stemMat,
+  );
+  stem.position.y = height / 2;
+  stem.castShadow = true;
+  group.add(stem);
+
+  const leafMat = new THREE.MeshLambertMaterial({
+    color: new THREE.Color(`hsl(${96 + rand() * 20}, 45%, ${30 + rand() * 10}%)`),
+    flatShading: true,
   });
-  return new THREE.Mesh(geo, mat);
+  const leafCount = 3 + Math.floor(rand() * 3);
+  for (let i = 0; i < leafCount; i++) {
+    const r = 0.13 + rand() * 0.09;
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), leafMat);
+    leaf.scale.set(1, 0.6, 1);
+    leaf.position.set(
+      (rand() - 0.5) * 0.28,
+      height * (0.45 + rand() * 0.5),
+      (rand() - 0.5) * 0.28,
+    );
+    leaf.rotation.y = rand() * Math.PI;
+    leaf.castShadow = true;
+    group.add(leaf);
+  }
+
+  const ripeMat = new THREE.MeshStandardMaterial({
+    color: 0xd94a2b,
+    roughness: 0.4,
+    metalness: 0.05,
+  });
+  const greenMat = new THREE.MeshStandardMaterial({
+    color: 0x7fa347,
+    roughness: 0.5,
+  });
+  const tomatoCount = 2 + Math.floor(rand() * 3);
+  for (let i = 0; i < tomatoCount; i++) {
+    const r = 0.055 + rand() * 0.035;
+    const tomato = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 8, 8),
+      rand() > 0.25 ? ripeMat : greenMat,
+    );
+    tomato.position.set(
+      (rand() - 0.5) * 0.3,
+      height * (0.35 + rand() * 0.55),
+      (rand() - 0.5) * 0.3,
+    );
+    tomato.castShadow = true;
+    group.add(tomato);
+  }
+
+  group.userData.swaySeed = rand() * Math.PI * 2;
+  return group;
+}
+
+// squat striped hay bale
+function buildHayBale(rand) {
+  const geo = new THREE.CylinderGeometry(0.42, 0.42, 0.62, 14);
+  const mat = new THREE.MeshLambertMaterial({
+    color: new THREE.Color(`hsl(${42 + rand() * 8}, 55%, ${52 + rand() * 8}%)`),
+  });
+  const bale = new THREE.Mesh(geo, mat);
+  bale.rotation.z = Math.PI / 2;
+  bale.castShadow = true;
+  bale.receiveShadow = true;
+  return bale;
+}
+
+// wooden crate stacked with freshly picked tomatoes
+function buildCrate(rand) {
+  const group = new THREE.Group();
+  const woodMat = new THREE.MeshLambertMaterial({ color: 0x8a5a34 });
+  const crate = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.6), woodMat);
+  crate.position.y = 0.2;
+  crate.castShadow = true;
+  crate.receiveShadow = true;
+  group.add(crate);
+
+  const tomatoMat = new THREE.MeshStandardMaterial({ color: 0xd94a2b, roughness: 0.4 });
+  for (let i = 0; i < 6; i++) {
+    const r = 0.07 + rand() * 0.02;
+    const t = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 8), tomatoMat);
+    t.position.set((rand() - 0.5) * 0.4, 0.42 + rand() * 0.08, (rand() - 0.5) * 0.4);
+    t.castShadow = true;
+    group.add(t);
+  }
+  return group;
+}
+
+// plain wooden fence post, ringed around the garden plot
+function buildFencePost() {
+  const woodMat = new THREE.MeshLambertMaterial({ color: 0x8a5a34 });
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.85, 6), woodMat);
+  post.position.y = 0.42;
+  post.castShadow = true;
+  post.receiveShadow = true;
+  return post;
+}
+
+// a friendly scarecrow keeping watch over the crops
+function buildScarecrow() {
+  const group = new THREE.Group();
+  const woodMat = new THREE.MeshLambertMaterial({ color: 0x7a5330 });
+
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.0, 6), woodMat);
+  post.position.y = 1.0;
+  post.castShadow = true;
+  group.add(post);
+
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.3, 6), woodMat);
+  beam.rotation.z = Math.PI / 2;
+  beam.position.y = 1.5;
+  beam.castShadow = true;
+  group.add(beam);
+
+  const shirtMat = new THREE.MeshLambertMaterial({ color: 0xb2472f });
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.7, 8), shirtMat);
+  torso.position.y = 1.35;
+  torso.castShadow = true;
+  group.add(torso);
+
+  const sackMat = new THREE.MeshLambertMaterial({ color: 0xcbab6f });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), sackMat);
+  head.position.y = 1.95;
+  head.castShadow = true;
+  group.add(head);
+
+  const hatMat = new THREE.MeshLambertMaterial({ color: 0x4a3826 });
+  const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 12), hatMat);
+  hatBrim.position.y = 2.1;
+  const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.22, 12), hatMat);
+  hatTop.position.y = 2.24;
+  group.add(hatBrim, hatTop);
+
+  const strawMat = new THREE.MeshLambertMaterial({ color: 0xe0c264 });
+  for (let i = 0; i < 5; i++) {
+    const straw = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.3, 4), strawMat);
+    straw.position.set(-0.55 + i * 0.03, 1.55, 0);
+    straw.rotation.z = Math.PI / 2.6;
+    group.add(straw);
+    const straw2 = straw.clone();
+    straw2.position.x = 0.55 - i * 0.03;
+    straw2.rotation.z = -Math.PI / 2.6;
+    group.add(straw2);
+  }
+
+  return group;
 }
 
 // height (world units) that spawned trees are randomised between
@@ -670,6 +819,11 @@ function PlazaCanvas({
   const agentPrevPlayerPosRef = useRef({ x: null, z: null });
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
+  // ambient farm music plus a footstep loop toggled on/off as the character moves
+  const bgMusicRef = useRef(null);
+  const walkAudioRef = useRef(null);
+  const wasMovingRef = useRef(false);
+
   useEffect(() => {
     hasActiveQuestRef.current = hasActiveQuest;
   }, [hasActiveQuest]);
@@ -689,7 +843,7 @@ function PlazaCanvas({
     const scene = new THREE.Scene();
     const skyTex = buildSkyTexture();
     scene.background = skyTex;
-    scene.fog = new THREE.Fog(0xd6ecdf, WORLD_SIZE * 0.48, WORLD_SIZE * 0.88);
+    scene.fog = new THREE.Fog(0xf0e2b8, WORLD_SIZE * 0.48, WORLD_SIZE * 0.88);
     sceneRef.current = scene;
 
     // Camera 
@@ -709,9 +863,32 @@ function PlazaCanvas({
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
+    // background farm music, loops for the whole session
+    const bgMusic = new Audio("/assets/audio/backgroundTomato.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.35;
+    const resumeMusicOnInteract = () => {
+      bgMusic.play().catch(() => { });
+      window.removeEventListener("pointerdown", resumeMusicOnInteract);
+      window.removeEventListener("keydown", resumeMusicOnInteract);
+    };
+    bgMusic.play().catch(() => {
+      // autoplay is blocked until the user interacts with the page —
+      // pick it back up on their first click or keypress
+      window.addEventListener("pointerdown", resumeMusicOnInteract);
+      window.addEventListener("keydown", resumeMusicOnInteract);
+    });
+    bgMusicRef.current = bgMusic;
+
+    // footstep loop — started/stopped whenever the character starts/stops moving
+    const walkAudio = new Audio("/assets/audio/walkingGround.mp3");
+    walkAudio.loop = true;
+    walkAudio.volume = 0.5;
+    walkAudioRef.current = walkAudio;
+
     // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+    scene.add(new THREE.AmbientLight(0xfff1d6, 2.0));
+    const sun = new THREE.DirectionalLight(0xfff4dd, 1.0);
     sun.position.set(WORLD_CENTER + 5, 10, WORLD_CENTER + 6);
     sun.target.position.set(WORLD_CENTER, 0, WORLD_CENTER);
     sun.castShadow = true;
@@ -791,93 +968,116 @@ function PlazaCanvas({
 
     collisionBoxesRef.current = [];
 
-    // pond
-    const pondSeedA = seededRandom(7);
-    const pondSeedB = seededRandom(7);
-    const shoreShape = buildBlobShape(POND_RADIUS * 1.18, 0.16, 28, pondSeedA);
-    const waterShape = buildBlobShape(POND_RADIUS, 0.18, 28, pondSeedB);
+    // tomato garden — a fenced farm plot where the pond used to be
+    const gardenSeed = seededRandom(7);
+    const plotShape = buildBlobShape(GARDEN_RADIUS * 1.05, 0.12, 28, gardenSeed);
+    const tilledMat = new THREE.MeshLambertMaterial({ color: 0x6b4a30 });
+    const tilledMesh = new THREE.Mesh(new THREE.ShapeGeometry(plotShape), tilledMat);
+    tilledMesh.rotation.x = -Math.PI / 2;
+    tilledMesh.position.set(GARDEN_CENTER_X, 0.008, GARDEN_CENTER_Z);
+    tilledMesh.receiveShadow = true;
+    scene.add(tilledMesh);
 
-    const shoreMat = new THREE.MeshLambertMaterial({ color: 0xe4d6a7 });
-    const shoreMesh = new THREE.Mesh(
-      new THREE.ShapeGeometry(shoreShape),
-      shoreMat,
-    );
-    shoreMesh.rotation.x = -Math.PI / 2;
-    shoreMesh.position.set(POND_CENTER_X, 0.0, POND_CENTER_Z);
-    shoreMesh.receiveShadow = true;
-    scene.add(shoreMesh);
-
-    const waterTex = buildWaterTexture();
-    const waterMat = new THREE.MeshLambertMaterial({
-      map: waterTex,
+    // furrow stripes across the tilled soil, so it reads as a proper crop plot
+    const furrowMat = new THREE.MeshBasicMaterial({
+      color: 0x543a24,
       transparent: true,
-      opacity: 0.92,
+      opacity: 0.35,
+      depthWrite: false,
     });
-    const waterMesh = new THREE.Mesh(
-      new THREE.ShapeGeometry(waterShape),
-      waterMat,
-    );
-    waterMesh.rotation.x = -Math.PI / 2;
-    waterMesh.position.set(POND_CENTER_X, 0.02, POND_CENTER_Z);
-    scene.add(waterMesh);
+    const furrowGroup = new THREE.Group();
+    for (let i = -5; i <= 5; i++) {
+      const furrow = new THREE.Mesh(
+        new THREE.PlaneGeometry(GARDEN_RADIUS * 2.1, 0.12),
+        furrowMat,
+      );
+      furrow.rotation.x = -Math.PI / 2;
+      furrow.position.set(GARDEN_CENTER_X, 0.01, GARDEN_CENTER_Z + i * 0.95);
+      furrowGroup.add(furrow);
+    }
+    scene.add(furrowGroup);
 
-    // block so character can't walk into the pond
+    // rows of tomato plants filling the plot
+    const tomatoRand = seededRandom(157);
+    const tomatoPlants = [];
+    for (let row = 0; row < TOMATO_ROWS; row++) {
+      for (let col = 0; col < TOMATO_PER_ROW; col++) {
+        const rowSpread = (row / (TOMATO_ROWS - 1) - 0.5) * GARDEN_RADIUS * 1.5;
+        const colSpread = (col / (TOMATO_PER_ROW - 1) - 0.5) * GARDEN_RADIUS * 1.7;
+        const px = GARDEN_CENTER_X + colSpread + (tomatoRand() - 0.5) * 0.25;
+        const pz = GARDEN_CENTER_Z + rowSpread + (tomatoRand() - 0.5) * 0.25;
+        const dx = px - GARDEN_CENTER_X;
+        const dz = pz - GARDEN_CENTER_Z;
+        if (dx * dx + dz * dz > (GARDEN_RADIUS * 0.98) * (GARDEN_RADIUS * 0.98)) continue;
+        const plant = buildTomatoPlant(tomatoRand);
+        plant.position.set(px, 0, pz);
+        plant.rotation.y = tomatoRand() * Math.PI * 2;
+        scene.add(plant);
+        tomatoPlants.push(plant);
+      }
+    }
+
+    // wooden fence ringing the plot
+    const fenceRand = seededRandom(211);
+    const FENCE_POSTS = 26;
+    const fencePosts = [];
+    for (let i = 0; i < FENCE_POSTS; i++) {
+      const a = (i / FENCE_POSTS) * Math.PI * 2;
+      const r = GARDEN_RADIUS * 1.12 * (1 + (fenceRand() - 0.5) * 0.06);
+      const post = buildFencePost();
+      post.position.set(
+        GARDEN_CENTER_X + Math.cos(a) * r,
+        0,
+        GARDEN_CENTER_Z + Math.sin(a) * r,
+      );
+      post.rotation.y = fenceRand() * Math.PI;
+      scene.add(post);
+      fencePosts.push(post);
+    }
+
+    // hay bales and crates parked around the field's edge
+    const farmPropRand = seededRandom(233);
+    const farmProps = [];
+    for (let i = 0; i < HAY_BALE_COUNT; i++) {
+      const a = farmPropRand() * Math.PI * 2;
+      const r = GARDEN_RADIUS * (1.25 + farmPropRand() * 0.35);
+      const bale = buildHayBale(farmPropRand);
+      bale.position.set(
+        GARDEN_CENTER_X + Math.cos(a) * r,
+        0.42,
+        GARDEN_CENTER_Z + Math.sin(a) * r,
+      );
+      bale.rotation.y = farmPropRand() * Math.PI;
+      scene.add(bale);
+      farmProps.push(bale);
+    }
+    for (let i = 0; i < CRATE_COUNT; i++) {
+      const a = farmPropRand() * Math.PI * 2;
+      const r = GARDEN_RADIUS * (1.2 + farmPropRand() * 0.4);
+      const crate = buildCrate(farmPropRand);
+      crate.position.set(
+        GARDEN_CENTER_X + Math.cos(a) * r,
+        0,
+        GARDEN_CENTER_Z + Math.sin(a) * r,
+      );
+      crate.rotation.y = farmPropRand() * Math.PI;
+      scene.add(crate);
+      farmProps.push(crate);
+    }
+
+    // scarecrow keeping watch over the crops
+    const scarecrow = buildScarecrow();
+    scarecrow.position.set(GARDEN_CENTER_X, 0, GARDEN_CENTER_Z - GARDEN_RADIUS * 0.55);
+    scarecrow.rotation.y = Math.PI * 0.15;
+    scene.add(scarecrow);
+
+    // block so the character can't walk straight through the fenced garden
     collisionBoxesRef.current.push({
-      cx: worldToNorm(POND_CENTER_X),
-      cy: worldToNorm(POND_CENTER_Z),
-      hw: (POND_RADIUS * 1.05) / WORLD_SIZE,
-      hh: (POND_RADIUS * 1.05) / WORLD_SIZE,
+      cx: worldToNorm(GARDEN_CENTER_X),
+      cy: worldToNorm(GARDEN_CENTER_Z),
+      hw: (GARDEN_RADIUS * 1.05) / WORLD_SIZE,
+      hh: (GARDEN_RADIUS * 1.05) / WORLD_SIZE,
     });
-
-    // lily pads bobbing on the surface
-    const padRand = seededRandom(53);
-    const lilyPads = [];
-    for (let i = 0; i < LILYPAD_COUNT; i++) {
-      const a = padRand() * Math.PI * 2;
-      const r = padRand() * POND_RADIUS * 0.78;
-      const pad = buildLilyPad(0.45 + padRand() * 0.45, padRand);
-      const px = POND_CENTER_X + Math.cos(a) * r;
-      const pz = POND_CENTER_Z + Math.sin(a) * r;
-      pad.position.set(px, 0.03, pz);
-      pad.userData.baseY = 0.03;
-      pad.userData.bobSeed = padRand() * Math.PI * 2;
-      scene.add(pad);
-      lilyPads.push(pad);
-    }
-
-    // small fish shadows swimming slow loops beneath the water
-    const fishRand = seededRandom(61);
-    const fishList = [];
-    for (let i = 0; i < FISH_COUNT; i++) {
-      const fish = buildFish(fishRand);
-      fish.userData.orbitRadius = POND_RADIUS * (0.25 + fishRand() * 0.55);
-      fish.userData.orbitSpeed = 0.15 + fishRand() * 0.2;
-      fish.userData.orbitPhase = fishRand() * Math.PI * 2;
-      fish.userData.orbitOffsetX = (fishRand() - 0.5) * POND_RADIUS * 0.3;
-      fish.userData.orbitOffsetZ = (fishRand() - 0.5) * POND_RADIUS * 0.3;
-      fish.position.y = -0.12;
-      scene.add(fish);
-      fishList.push(fish);
-    }
-
-    const rippleGeo = new THREE.RingGeometry(0.3, 0.42, 24);
-    const ripples = [];
-    let ambientRippleTimer = 0;
-    let lastSplashTime = -999;
-    function spawnRipple(x, z, life = 1.6) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false,
-      });
-      const mesh = new THREE.Mesh(rippleGeo, mat);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(x, 0.035, z);
-      scene.add(mesh);
-      ripples.push({ mesh, born: performance.now(), life: life * 1000 });
-    }
-
     //clouds
     const cloudTex = buildCloudTexture();
     const cloudGroup = new THREE.Group();
@@ -916,10 +1116,10 @@ function PlazaCanvas({
       }
       return false;
     }
-    function insidePond(x, z, pad) {
-      const dx = x - POND_CENTER_X;
-      const dz = z - POND_CENTER_Z;
-      return dx * dx + dz * dz < (POND_RADIUS + pad) * (POND_RADIUS + pad);
+    function inGarden(x, z, pad) {
+      const dx = x - GARDEN_CENTER_X;
+      const dz = z - GARDEN_CENTER_Z;
+      return dx * dx + dz * dz < (GARDEN_RADIUS + pad) * (GARDEN_RADIUS + pad);
     }
     function inClearing(x, z) {
       const dx = x - WORLD_CENTER;
@@ -935,7 +1135,7 @@ function PlazaCanvas({
       const bx = WORLD_MIN + margin + bushRand() * (WORLD_SIZE - margin * 2);
       const bz = WORLD_MIN + margin + bushRand() * (WORLD_SIZE - margin * 2);
       if (inClearing(bx, bz)) continue;
-      if (insidePond(bx, bz, 1.2)) continue;
+      if (inGarden(bx, bz, 1.2)) continue;
       if (tooCloseTo(bushPositions, bx, bz, 1.4)) continue;
 
       const bush = buildBush(bushRand);
@@ -965,9 +1165,9 @@ function PlazaCanvas({
     for (let i = 0; i <= PATH_SEGMENTS; i++) {
       const t = i / PATH_SEGMENTS;
       const wiggle = Math.sin(t * Math.PI * 2.4) * 1.4;
-      const px = THREE.MathUtils.lerp(WORLD_CENTER, POND_CENTER_X, t) + wiggle;
-      const pz = THREE.MathUtils.lerp(WORLD_CENTER, POND_CENTER_Z, t);
-      if (insidePond(px, pz, 1.5)) continue;
+      const px = THREE.MathUtils.lerp(WORLD_CENTER, GARDEN_CENTER_X, t) + wiggle;
+      const pz = THREE.MathUtils.lerp(WORLD_CENTER, GARDEN_CENTER_Z, t);
+      if (inGarden(px, pz, 1.5)) continue;
       const size = 2.6 + pathRand() * 1.2;
       const seg = new THREE.Mesh(new THREE.PlaneGeometry(size, size), pathMat);
       seg.rotation.x = -Math.PI / 2;
@@ -979,9 +1179,9 @@ function PlazaCanvas({
     // flower patches scattered across the grass
     const flowerRand = seededRandom(83);
     const flowerPalettes = [
-      [340, 350, 300],
-      [50, 40, 320],
-      [200, 260, 0],
+      [28, 45, 15], // marigold oranges and golds
+      [50, 40, 340], // sunflower yellow with a hint of pink
+      [10, 350, 30], // poppy red and warm orange
     ];
     const flowerTextures = flowerPalettes.map((hues) =>
       buildFlowerPatchTexture(hues, flowerRand),
@@ -993,7 +1193,7 @@ function PlazaCanvas({
       flowerAttempts++;
       const fx = WORLD_MIN + margin + flowerRand() * (WORLD_SIZE - margin * 2);
       const fz = WORLD_MIN + margin + flowerRand() * (WORLD_SIZE - margin * 2);
-      if (insidePond(fx, fz, 1.6)) continue;
+      if (inGarden(fx, fz, 1.6)) continue;
       if (tooCloseTo(flowerPositions, fx, fz, 2.2)) continue;
       const tex = flowerTextures[Math.floor(flowerRand() * flowerTextures.length)];
       const mat = new THREE.MeshBasicMaterial({
@@ -1079,32 +1279,6 @@ function PlazaCanvas({
       zzzSprites.push(sprite);
     }
 
-    // splash droplet sprites, spawned in little bursts near the shore
-    const splashTex = buildGlowTexture("255,255,255");
-    const droplets = [];
-    function spawnSplash(x, z) {
-      for (let i = 0; i < 4; i++) {
-        const mat = new THREE.SpriteMaterial({
-          map: splashTex,
-          transparent: true,
-          opacity: 0.85,
-          depthWrite: false,
-        });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(0.18, 0.18, 1);
-        const ang = Math.random() * Math.PI * 2;
-        const spd = 0.4 + Math.random() * 0.5;
-        sprite.position.set(x, 0.1, z);
-        sprite.userData = {
-          vx: Math.cos(ang) * spd,
-          vz: Math.sin(ang) * spd,
-          vy: 0.9 + Math.random() * 0.4,
-        };
-        scene.add(sprite);
-        droplets.push({ mesh: sprite, born: performance.now(), life: 500 });
-      }
-    }
-
     // trees
     const treeRand = seededRandom(42);
     const treeLoader = new GLTFLoader();
@@ -1136,7 +1310,7 @@ function PlazaCanvas({
             WORLD_MIN + margin + treeRand() * (WORLD_SIZE - margin * 2);
 
           if (inClearing(tx, tz)) continue;
-          if (insidePond(tx, tz, 1.8)) continue;
+          if (inGarden(tx, tz, 1.8)) continue;
           if (tooCloseTo(treePositions, tx, tz, MIN_TREE_SPACING)) continue;
           if (tooCloseTo(bushPositions, tx, tz, 1.1)) continue;
 
@@ -1183,37 +1357,21 @@ function PlazaCanvas({
       frameRef.current = requestAnimationFrame(animate);
       const model = modelRef.current;
 
-      // cloud drift and water texture animation
+      // cloud drift
       cloudMeshes.forEach((c) => {
         c.position.x += c.userData.driftSpeed;
         if (c.position.x > WORLD_MAX + WORLD_SIZE * 0.25) {
           c.position.x = WORLD_MIN - WORLD_SIZE * 0.25;
         }
       });
-      waterTex.offset.x += 0.0006;
-      waterTex.offset.y += 0.0003;
 
       const now = performance.now();
       const t = now * 0.001;
 
-      // lily pads bob gently on the water
-      lilyPads.forEach((pad) => {
-        pad.position.y = pad.userData.baseY + Math.sin(t * 0.8 + pad.userData.bobSeed) * 0.015;
-      });
-
-      // fish swim slow lissajous loops beneath the surface
-      fishList.forEach((fish) => {
-        const { orbitRadius, orbitSpeed, orbitPhase, orbitOffsetX, orbitOffsetZ } =
-          fish.userData;
-        const angle = t * orbitSpeed + orbitPhase;
-        const nx = POND_CENTER_X + orbitOffsetX + Math.cos(angle) * orbitRadius;
-        const nz = POND_CENTER_Z + orbitOffsetZ + Math.sin(angle * 1.3) * orbitRadius * 0.7;
-        const prevX = fish.position.x;
-        const prevZ = fish.position.z;
-        fish.position.x = nx;
-        fish.position.z = nz;
-        const heading = Math.atan2(nx - prevX, nz - prevZ);
-        if (isFinite(heading)) fish.rotation.y = heading;
+      // tomato plants sway gently in the breeze
+      tomatoPlants.forEach((plant) => {
+        plant.rotation.z = Math.sin(t * 0.6 + plant.userData.swaySeed) * 0.035;
+        plant.rotation.x = Math.cos(t * 0.5 + plant.userData.swaySeed) * 0.02;
       });
 
       // butterflies flutter in lazy loops with a wing-flap scale wobble
@@ -1236,48 +1394,6 @@ function PlazaCanvas({
         f.position.y = u.baseHeight + Math.sin(t * 0.7 + u.phase) * 0.3;
         f.material.opacity = 0.35 + 0.4 * (0.5 + 0.5 * Math.sin(t * u.twinkleSpeed));
       });
-
-      // ambient ripples spawn now and then, and fade out as they expand
-      ambientRippleTimer -= 1;
-      if (ambientRippleTimer <= 0) {
-        ambientRippleTimer = 90 + Math.floor(Math.random() * 60);
-        const a = Math.random() * Math.PI * 2;
-        const r = Math.random() * POND_RADIUS * 0.8;
-        spawnRipple(POND_CENTER_X + Math.cos(a) * r, POND_CENTER_Z + Math.sin(a) * r, 2.2);
-      }
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const rp = ripples[i];
-        const age = now - rp.born;
-        const progress = age / rp.life;
-        if (progress >= 1) {
-          scene.remove(rp.mesh);
-          rp.mesh.geometry === rippleGeo ? null : rp.mesh.geometry.dispose();
-          rp.mesh.material.dispose();
-          ripples.splice(i, 1);
-          continue;
-        }
-        const scale = 0.5 + progress * 4.5;
-        rp.mesh.scale.set(scale, scale, scale);
-        rp.mesh.material.opacity = 0.55 * (1 - progress);
-      }
-
-      for (let i = droplets.length - 1; i >= 0; i--) {
-        const d = droplets[i];
-        const age = now - d.born;
-        const progress = age / d.life;
-        if (progress >= 1) {
-          scene.remove(d.mesh);
-          d.mesh.material.dispose();
-          droplets.splice(i, 1);
-          continue;
-        }
-        const dt = 0.016;
-        d.mesh.position.x += d.mesh.userData.vx * dt;
-        d.mesh.position.z += d.mesh.userData.vz * dt;
-        d.mesh.userData.vy -= 2.2 * dt;
-        d.mesh.position.y = Math.max(0.06, d.mesh.position.y + d.mesh.userData.vy * dt);
-        d.mesh.material.opacity = 0.85 * (1 - progress);
-      }
 
       const manualInput =
         keysRef.current.ArrowUp ||
@@ -1327,19 +1443,17 @@ function PlazaCanvas({
           baseY + Math.sin(floatTRef.current) * (isMoving ? 0.1 : 0.05);
         model.position.z = wz;
 
-        // splash when running right along the pond's edge
-        if (isMoving) {
-          const ddx = wx - POND_CENTER_X;
-          const ddz = wz - POND_CENTER_Z;
-          const distFromCenter = Math.sqrt(ddx * ddx + ddz * ddz);
-          const nearShore =
-            distFromCenter > POND_RADIUS * 0.92 && distFromCenter < POND_RADIUS * 1.3;
-          if (nearShore && now - lastSplashTime > 180) {
-            lastSplashTime = now;
-            const edgeX = POND_CENTER_X + (ddx / distFromCenter) * POND_RADIUS * 1.02;
-            const edgeZ = POND_CENTER_Z + (ddz / distFromCenter) * POND_RADIUS * 1.02;
-            spawnRipple(edgeX, edgeZ, 0.9);
-            spawnSplash(edgeX, edgeZ);
+        // toggle the footstep loop on/off whenever movement starts or stops
+        if (isMoving !== wasMovingRef.current) {
+          wasMovingRef.current = isMoving;
+          const walkAudio = walkAudioRef.current;
+          if (walkAudio) {
+            if (isMoving) {
+              walkAudio.currentTime = 0;
+              walkAudio.play().catch(() => { });
+            } else {
+              walkAudio.pause();
+            }
           }
         }
 
@@ -1536,6 +1650,12 @@ function PlazaCanvas({
       treesCancelled = true;
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointerdown", resumeMusicOnInteract);
+      window.removeEventListener("keydown", resumeMusicOnInteract);
+      bgMusicRef.current?.pause();
+      bgMusicRef.current = null;
+      walkAudioRef.current?.pause();
+      walkAudioRef.current = null;
       grassTex.dispose();
       groundGeo.dispose();
       grassTopMat.dispose();
@@ -1547,11 +1667,6 @@ function PlazaCanvas({
         b.material.dispose();
       });
       cloudTex.dispose();
-      waterTex.dispose();
-      shoreMesh.geometry.dispose();
-      shoreMat.dispose();
-      waterMesh.geometry.dispose();
-      waterMat.dispose();
       cloudMeshes.forEach((c) => {
         c.geometry.dispose();
         c.material.dispose();
@@ -1560,19 +1675,25 @@ function PlazaCanvas({
       dirtTex.dispose();
       pathMat.dispose();
       fireflyTex.dispose();
-      splashTex.dispose();
-      rippleGeo.dispose();
       flowerTextures.forEach((tx) => tx.dispose());
-      lilyPads.forEach((pad) => {
-        scene.remove(pad);
-        pad.geometry.dispose();
-        pad.material.dispose();
+      tilledMesh.geometry.dispose();
+      tilledMat.dispose();
+      furrowGroup.children.forEach((f) => f.geometry.dispose());
+      furrowMat.dispose();
+      tomatoPlants.forEach((plant) => {
+        scene.remove(plant);
+        disposePivot(plant);
       });
-      fishList.forEach((fish) => {
-        scene.remove(fish);
-        fish.geometry.dispose();
-        fish.material.dispose();
+      fencePosts.forEach((post) => {
+        scene.remove(post);
+        disposePivot(post);
       });
+      farmProps.forEach((prop) => {
+        scene.remove(prop);
+        disposePivot(prop);
+      });
+      scene.remove(scarecrow);
+      disposePivot(scarecrow);
       butterflies.forEach((b) => {
         scene.remove(b);
         b.material.map?.dispose();
@@ -1586,14 +1707,6 @@ function PlazaCanvas({
       zzzSprites.forEach((s) => {
         scene.remove(s);
         s.material.dispose();
-      });
-      ripples.forEach((rp) => {
-        scene.remove(rp.mesh);
-        rp.mesh.material.dispose();
-      });
-      droplets.forEach((d) => {
-        scene.remove(d.mesh);
-        d.mesh.material.dispose();
       });
       otherModelsRef.current.forEach((entry) => {
         scene.remove(entry.pivot);
