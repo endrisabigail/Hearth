@@ -825,7 +825,7 @@ function Dashboard() {
                     >
                       <span className="mail-icon">{notifIcon(n)}</span>
                       <div className="mail-content">
-                        <p className="mail-message">{n.message}</p>
+                        <p className="mail-message">{typeof n.message === "string" ? n.message : ""}</p>
                         <p className="mail-time">
                           {new Date(n.createdAt).toLocaleDateString()}
                         </p>

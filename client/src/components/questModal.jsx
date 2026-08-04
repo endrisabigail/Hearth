@@ -230,8 +230,8 @@ function QuestModal({
   };
 
   const [form, setForm] = useState({
-    title: quest?.title || "",
-    description: quest?.description || "",
+    title: typeof quest?.title === "string" ? quest.title : "",
+    description: typeof quest?.description === "string" ? quest.description : "",
     dueDate: quest?.dueDate
       ? new Date(quest.dueDate).toISOString().split("T")[0]
       : "",
@@ -267,8 +267,8 @@ function QuestModal({
   const startEditing = () => {
     setForm((p) => ({
       ...p,
-      title: localQuest.title || "",
-      description: localQuest.description || "",
+      title: typeof localQuest.title === "string" ? localQuest.title : "",
+      description: typeof localQuest.description === "string" ? localQuest.description : "",
       dueDate: localQuest.dueDate
         ? new Date(localQuest.dueDate).toISOString().split("T")[0]
         : "",
@@ -1160,7 +1160,9 @@ function QuestModal({
                 </button>
               )}
               <h2 className="qm-quest-title">{typeof localQuest.title === "string" ? localQuest.title : ""}</h2>
-              <p className="qm-section-text">{typeof localQuest.description === "string" ? localQuest.description : ""}</p>                {localQuest.category || "no category"} · {localQuest.points} pts
+              <p className="qm-quest-meta">
+                {localQuest.category || "no category"} · {localQuest.points} pts
+              </p>
               {localQuest.tags?.length > 0 && (
                 <div className="qm-tag-list">
                   {localQuest.tags.map((t) => (
@@ -1173,7 +1175,7 @@ function QuestModal({
             </div>
             <div className="qm-section-box">
               <label className="qm-label">description</label>
-              <p className="qm-section-text">{localQuest.description}</p>
+              <p className="qm-section-text">{typeof localQuest.description === "string" ? localQuest.description : ""}</p>
             </div>
 
             {aiOpen && (
