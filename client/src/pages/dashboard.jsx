@@ -658,12 +658,13 @@ function Dashboard() {
   const handleQuestUpdated = (updated) => {
     setQuests((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
 
-    // ASSUMPTION: /dashboard's user object has a `points` field. Bump it
-    // optimistically the moment *this* user completes a quest that wasn't
-    // already completed — guards against double-counting on later edits to
-    // an already-completed quest, and against counting a party member's
-    // completion as our own. The real source of truth is still the next
-    // /dashboard fetch; this just keeps the top bar from looking stale.
+    // Bump totalPoints optimistically the moment *this* user completes a
+    // quest that wasn't already completed — guards against double-counting
+    // on later edits to an already-completed quest, and against counting a
+    // party member's completion as our own. The real source of truth is
+    // still the next /dashboard fetch; this just keeps the top bar from
+    // looking stale. (Note: `points` on the user is a per-category Map, not
+    // a number — the running total lives in `totalPoints`.)
     const wasAlreadyCompleted =
       quests.find((q) => q._id === updated._id)?.status === "Completed";
     const justCompletedByMe =
@@ -674,7 +675,7 @@ function Dashboard() {
     if (justCompletedByMe) {
       setUserData((prev) =>
         prev
-          ? { ...prev, points: (prev.points || 0) + (updated.points || 0) }
+          ? { ...prev, totalPoints: (prev.totalPoints || 0) + (updated.points || 0) }
           : prev,
       );
     }
@@ -774,8 +775,8 @@ function Dashboard() {
       <div className="hud-icon-cluster hud-icon-cluster--right">
         <div className="hud-points" title="your points">
           <span className="hud-points-icon">{COIN_ICON}</span>
-          <span className="hud-points-value" key={userData?.points ?? 0}>
-            {userData?.points ?? 0}
+          <span className="hud-points-value" key={userData?.totalPoints ?? 0}>
+            {userData?.totalPoints ?? 0}
           </span>
         </div>
 
