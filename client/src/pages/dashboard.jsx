@@ -41,7 +41,7 @@ const SOUND_FILES = {
   mail: "assets/sounds/mail.mp3",
   notify: "assets/sounds/notify.mp3",
   newMember: "assets/sounds/new.mp3",
-  click: "assets/sounds/click.mp3",
+  click: "assets/sounds/casualClick.mp3",
 };
 
 const NAV_ICONS = {
@@ -616,9 +616,6 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [bellPopoverOpen]);
 
-  // click.mp3 on literally any click anywhere on the dashboard
-  // (capture phase so modals that call e.stopPropagation(), like NavModal's
-  // card, don't silently swallow the click before it reaches document)
   useEffect(() => {
     const handleAnyClick = () => playSound("click");
     document.addEventListener("click", handleAnyClick, true);
