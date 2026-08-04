@@ -1159,10 +1159,8 @@ function QuestModal({
                   </span>
                 </button>
               )}
-              <h2 className="qm-quest-title">{localQuest.title}</h2>
-              <p className="qm-quest-meta">
-                {localQuest.category || "no category"} · {localQuest.points} pts
-              </p>
+              <h2 className="qm-quest-title">{typeof localQuest.title === "string" ? localQuest.title : ""}</h2>
+              <p className="qm-section-text">{typeof localQuest.description === "string" ? localQuest.description : ""}</p>                {localQuest.category || "no category"} · {localQuest.points} pts
               {localQuest.tags?.length > 0 && (
                 <div className="qm-tag-list">
                   {localQuest.tags.map((t) => (
