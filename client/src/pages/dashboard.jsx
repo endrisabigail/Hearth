@@ -1006,8 +1006,8 @@ function Dashboard() {
                       ? `due ${new Date(focusQuest.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
                       : "due soonest"}
                   </p>
-                  <p className="focus-task">{focusQuest.title}</p>
-                  <p className="focus-desc">{focusQuest.description}</p>
+                  <p className="focus-task">{typeof focusQuest.title === "string" ? focusQuest.title : ""}</p>
+                  <p className="focus-desc">{typeof focusQuest.description === "string" ? focusQuest.description : ""}</p>
                   {focusQuest.assignedTo && (
                     <p className="focus-assigned">
                       {AVATAR_MAP[focusQuest.assignedTo.avatarId]}{" "}

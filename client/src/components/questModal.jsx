@@ -36,7 +36,6 @@ function AgentAvatar3D({ avatarId }) {
       return;
     }
     setFailed(false);
-
     const mount = mountRef.current;
     const width = mount.clientWidth || 46;
     const height = mount.clientHeight || 46;
