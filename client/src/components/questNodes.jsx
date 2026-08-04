@@ -200,10 +200,25 @@ export default function QuestNodes({
         chest.add(ring);
       }
 
+      // high-priority quests get a bigger, more urgent presence on the map —
+      // a scaled-up chest plus a pulsing red halo — instead of extra points
+      const isUrgent = quest.priority === "high" && quest.status !== "Completed";
+      if (isUrgent) {
+        chest.scale.setScalar(1.22);
+        const urgencyRing = makeGlowRing(0xff3d1f);
+        urgencyRing.userData.isGlow = true;
+        urgencyRing.scale.setScalar(1.35);
+        urgencyRing.position.y = 0.015;
+        chest.add(urgencyRing);
+      }
+
       // beacon so it's easy to spot and walk to from across the plaza 
       if (quest.status !== "Completed") {
-        const beaconColor =
-          quest.status === "In Progress" ? 0x64b5f6 : 0xffd700;
+        const beaconColor = isUrgent
+          ? 0xff3d1f
+          : quest.status === "In Progress"
+            ? 0x64b5f6
+            : 0xffd700;
         const beacon = makeBeacon(beaconColor);
         chest.add(beacon);
       }

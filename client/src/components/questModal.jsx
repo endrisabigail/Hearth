@@ -32,6 +32,11 @@ function AgentAvatar3D({ avatarId }) {
 
   useEffect(() => {
     if (!modelSrc || !mountRef.current) {
+      if (!modelSrc) {
+        console.warn(
+          `AgentAvatar3D: no .glb mapped for avatarId "${avatarId}" — falling back to emoji.`,
+        );
+      }
       setFailed(true);
       return;
     }
@@ -94,7 +99,11 @@ function AgentAvatar3D({ avatarId }) {
         animate();
       },
       undefined,
-      () => {
+      (err) => {
+        console.error(
+          `AgentAvatar3D: failed to load "${modelSrc}" — check it actually exists at that exact path under your public/ folder (filenames are case-sensitive once deployed) and that the request isn't 404ing in the Network tab.`,
+          err,
+        );
         if (!disposed) setFailed(true);
       },
     );
@@ -138,11 +147,6 @@ const PRIORITY_COLOR = {
   low: "#8bc34a",
   medium: "#f5a623",
   high: "#e53935",
-};
-const PRIORITY_POINTS = {
-  low: 3,
-  medium: 5,
-  high: 8,
 };
 
 const COMPLETE_SOUND_SRC = "/sounds/complete.mp3";
@@ -317,7 +321,14 @@ function QuestModal({
         try {
           const audio = new Audio(COMPLETE_SOUND_SRC);
           audio.volume = 0.8;
-          audio.play().catch(() => { });
+          audio.play().catch((err) => {
+            if (err?.name !== "NotAllowedError") {
+              console.error(
+                `failed to play "${COMPLETE_SOUND_SRC}" — check the file actually exists at that path:`,
+                err,
+              );
+            }
+          });
         } catch {
         }
       } else {
@@ -346,7 +357,7 @@ function QuestModal({
         assignedTo: form.assignedTo || null,
         tags: form.tags,
         priority: form.priority,
-        points: PRIORITY_POINTS[form.priority] ?? form.points,
+        points: form.points,
       });
       let created = res.data;
 
@@ -782,14 +793,11 @@ function QuestModal({
               <select
                 className="qm-select"
                 value={form.priority}
-                onChange={(e) => {
-                  const p = e.target.value;
-                  setForm((f) => ({ ...f, priority: p, points: PRIORITY_POINTS[p] ?? f.points }));
-                }}
+                onChange={(e) => set("priority", e.target.value)}
               >
                 {PRIORITY_OPTIONS.map((p) => (
                   <option key={p} value={p}>
-                    {p} · {PRIORITY_POINTS[p]} pts
+                    {p}
                   </option>
                 ))}
               </select>
@@ -1071,14 +1079,11 @@ function QuestModal({
               <select
                 className="qm-select"
                 value={form.priority}
-                onChange={(e) => {
-                  const p = e.target.value;
-                  setForm((f) => ({ ...f, priority: p, points: PRIORITY_POINTS[p] ?? f.points }));
-                }}
+                onChange={(e) => set("priority", e.target.value)}
               >
                 {PRIORITY_OPTIONS.map((p) => (
                   <option key={p} value={p}>
-                    {p} · {PRIORITY_POINTS[p]} pts
+                    {p}
                   </option>
                 ))}
               </select>
@@ -1155,7 +1160,7 @@ function QuestModal({
                 >
                   <AgentAvatar3D avatarId={agentAvatarId} />
                   <span className="qm-agent-bubble">
-                    i can help you start that!
+                    Need help starting?
                   </span>
                 </button>
               )}

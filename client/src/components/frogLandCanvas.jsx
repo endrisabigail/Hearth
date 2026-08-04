@@ -33,25 +33,27 @@ const FROG_WORLD_MIN = -FROG_WORLD_SIZE / 2;
 const FROG_WORLD_MAX = FROG_WORLD_SIZE / 2;
 const FROG_WORLD_CENTER = (FROG_WORLD_MIN + FROG_WORLD_MAX) / 2;
 const WORLD_SCALE = FROG_WORLD_SIZE / 42;
+const FIELD_GROWTH = 1.5;
+const FIELD_GROWTH_AREA = FIELD_GROWTH ** 2;
 
-const HEX_RADIUS = 19.8 * WORLD_SCALE; // outer misty edge of the pond
-const FIELD_RADIUS = 15.75 * WORLD_SCALE; // where lily pads / cattails may be scattered
+const HEX_RADIUS = 19.8 * WORLD_SCALE * FIELD_GROWTH; // outer misty edge of the pond
+const FIELD_RADIUS = 15.75 * WORLD_SCALE * FIELD_GROWTH; // where lily pads / cattails may be scattered
 const SPAWN_CLEAR_RADIUS = 3.75 * WORLD_SCALE; // kept free so the character never spawns on an obstacle
 
-const CATTAIL_RING_MIN = 16.6 * WORLD_SCALE;
-const CATTAIL_RING_MAX = 19.1 * WORLD_SCALE;
+const CATTAIL_RING_MIN = 16.6 * WORLD_SCALE * FIELD_GROWTH;
+const CATTAIL_RING_MAX = 19.1 * WORLD_SCALE * FIELD_GROWTH;
 // the ring is a circumference, not an area, so its count only needs to scale
-// linearly (WORLD_SCALE) to keep the same spacing between stalks
-const CATTAIL_RING_COUNT = Math.round(28 * WORLD_SCALE);
+// linearly (WORLD_SCALE * FIELD_GROWTH) to keep the same spacing between stalks
+const CATTAIL_RING_COUNT = Math.round(28 * WORLD_SCALE * FIELD_GROWTH);
 
 // large lily pads ("trees")
-const LILY_TREE_COUNT = Math.round(50 * WORLD_SCALE ** 2);
+const LILY_TREE_COUNT = Math.round(50 * WORLD_SCALE ** 2 * FIELD_GROWTH_AREA);
 const MIN_LILY_SPACING = 2.4 * WORLD_SCALE;
 const LILY_RADIUS_MIN = 0.85;
 const LILY_RADIUS_MAX = 1.6;
 
 // cattail clumps ("bushes") — same idea as the lily pads above
-const CATTAIL_BUSH_COUNT = Math.round(75 * WORLD_SCALE ** 2);
+const CATTAIL_BUSH_COUNT = Math.round(75 * WORLD_SCALE ** 2 * FIELD_GROWTH_AREA);
 const MIN_CATTAIL_BUSH_SPACING = 1.2 * WORLD_SCALE;
 const CATTAIL_BUSH_HEIGHT_MIN = 1.0;
 const CATTAIL_BUSH_HEIGHT_MAX = 1.8;

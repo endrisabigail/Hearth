@@ -20,10 +20,21 @@ function buildBreakdownPrompt(quest) {
   ].join("\n");
 }
 
+// "write with ai" 
+function buildDescriptionPrompt(title) {
+  return [
+    "You are a friendly companion character in a gamified quest app called Hearth, helping a user write a short description for a task they're about to add.",
+    "Write 1-3 encouraging sentences describing what this quest involves. No preamble, no restating the title verbatim as a heading, no sign-off — just the description text itself.",
+    "Keep it under 60 words.",
+    "",
+    `Quest title: ${title}`,
+  ].join("\n");
+}
+
 export default function initAiSocket(io) {
   const ai = io.of("/ai");
 
-   ai.use(async (socket, next) => {
+  ai.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
       if (!token) return next(new Error("No token provided"));
@@ -104,8 +115,7 @@ export default function initAiSocket(io) {
       }
     });
 
-    // "I can help!!" button on the quest modal — one-shot task breakdown,
-    // scoped to a single quest rather than the ongoing companion thread.
+    // "I can help!!" 
     socket.on("ai:breakdown", async ({ questId, regenerate }) => {
       if (!questId || typeof questId !== "string") return;
       if (generating) {
@@ -157,6 +167,54 @@ export default function initAiSocket(io) {
         socket.emit("ai:breakdown:error", {
           questId,
           msg: "Couldn't get steps together. Is Ollama running?",
+        });
+      } finally {
+        generating = false;
+      }
+    });
+
+    // "write with ai" on the new/edit quest form 
+    socket.on("ai:description", async ({ requestId, title, questId }) => {
+      if (!requestId || typeof title !== "string" || !title.trim()) return;
+      if (generating) {
+        socket.emit("ai:description:error", {
+          requestId,
+          msg: "Please wait for the current response to finish.",
+        });
+        return;
+      }
+
+      // if a questId is present, keep it scoped to this user's own party 
+      if (questId) {
+        const [user, quest] = await Promise.all([
+          User.findById(socket.userId),
+          Quest.findById(questId),
+        ]);
+        if (
+          quest &&
+          (!user?.partyId || quest.partyId.toString() !== user.partyId.toString())
+        ) {
+          socket.emit("ai:description:error", { requestId, msg: "Not your party." });
+          return;
+        }
+      }
+
+      generating = true;
+      socket.emit("ai:description:start", { requestId });
+
+      try {
+        const prompt = buildDescriptionPrompt(title.trim());
+        await streamChat(
+          [{ role: "user", content: prompt }],
+          (chunk) => socket.emit("ai:description:chunk", { requestId, chunk }),
+        );
+
+        socket.emit("ai:description:done", { requestId });
+      } catch (err) {
+        console.error("AI description error:", err.message);
+        socket.emit("ai:description:error", {
+          requestId,
+          msg: "Couldn't write a description.",
         });
       } finally {
         generating = false;
