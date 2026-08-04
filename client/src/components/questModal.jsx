@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { getAuth, onIdTokenChanged } from "firebase/auth";
 import "../pages/styles/agentModal.css";
@@ -70,8 +70,8 @@ const PRIORITY_COLOR = {
   high: "#e53935",
 };
 
-const COMPLETE_SOUND_SRC = "/sounds/complete.mp3";
-const NEW_SOUND_SRC = "/sounds/new.mp3";
+const COMPLETE_SOUND_SRC = "assets/sounds/complete.mp3";
+const NEW_SOUND_SRC = "assets/sounds/new.mp3";
 
 const CONFETTI_COLORS = [
   "#ffb703",

@@ -881,7 +881,7 @@ function PlazaCanvas({
     bgMusicRef.current = bgMusic;
 
     // footstep loop — started/stopped whenever the character starts/stops moving
-    const walkAudio = new Audio("/assets/audio/walkingGround.mp3");
+    const walkAudio = new Audio("/assets/sounds/walkingGround.mp3");
     walkAudio.loop = true;
     walkAudio.volume = 0.5;
     walkAudioRef.current = walkAudio;
@@ -1719,8 +1719,6 @@ function PlazaCanvas({
     };
   }, []);
 
-  // ai-agent companion — swaps to match whichever avatar the player is
-  // wearing, and reloads if they change avatars
   useEffect(() => {
     if (!sceneRef.current || !avatarId) return;
     let cancelled = false;
