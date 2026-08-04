@@ -1,130 +1,35 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { io } from "socket.io-client";
-import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getAuth, onIdTokenChanged } from "firebase/auth";
 import "../pages/styles/agentModal.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// each companion's own .glb, keyed by the same avatarId used in AVATAR_MAP
-const AGENT_MODEL_MAP = {
-  apple: "/models/ai-agentApple.glb",
-  snail: "/models/ai-agentSnail.glb",
-  tomato: "/models/ai-agentTomato.glb",
-  fish: "/models/ai-agentFish.glb",
-  frog: "/models/ai-agentFrog.glb",
+// each companion's own portrait, keyed by the same avatarId used in AVATAR_MAP
+const AGENT_IMAGE_MAP = {
+  apple: "/models/ai-agentApple.png",
+  snail: "/models/ai-agentSnail.png",
+  tomato: "/models/ai-agentTomato.png",
+  fish: "/models/ai-agentFish.png",
+  frog: "/models/ai-agentFrog.png",
 };
+
 
 const AGENT_EMOJI_FALLBACK = {
   mushroom: "🍄",
 };
 
-const prefersReducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-function AgentAvatar3D({ avatarId }) {
-  const mountRef = useRef(null);
+function AgentAvatarImage({ avatarId }) {
   const [failed, setFailed] = useState(false);
   const hasDeliberateEmoji = Object.prototype.hasOwnProperty.call(
     AGENT_EMOJI_FALLBACK,
     avatarId,
   );
-  // frog is the default companion
-  const modelSrc = hasDeliberateEmoji
+  const imageSrc = hasDeliberateEmoji
     ? null
-    : AGENT_MODEL_MAP[avatarId] || AGENT_MODEL_MAP.frog;
+    : AGENT_IMAGE_MAP[avatarId] || AGENT_IMAGE_MAP.frog;
 
-  useEffect(() => {
-    if (!modelSrc || !mountRef.current) {
-      setFailed(true);
-      return;
-    }
-    setFailed(false);
-    const mount = mountRef.current;
-    const width = mount.clientWidth || 46;
-    const height = mount.clientHeight || 46;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
-    camera.position.set(0, 0.4, 3.2);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    mount.appendChild(renderer.domElement);
-
-    scene.add(new THREE.HemisphereLight(0xfff6e0, 0x2d5a27, 1.15));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.75);
-    dir.position.set(2, 3, 2);
-    scene.add(dir);
-
-    let model = null;
-    let mixer = null;
-    let frameId = null;
-    let disposed = false;
-    const clock = new THREE.Clock();
-
-    new GLTFLoader().load(
-      modelSrc,
-      (gltf) => {
-        if (disposed) return;
-        model = gltf.scene;
-
-        const box = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-        const scale = 1.6 / (Math.max(size.x, size.y, size.z) || 1);
-        model.scale.setScalar(scale);
-        model.position.sub(center.multiplyScalar(scale));
-        scene.add(model);
-
-        if (gltf.animations?.length) {
-          mixer = new THREE.AnimationMixer(model);
-          mixer.clipAction(gltf.animations[0]).play();
-        }
-
-        const animate = () => {
-          frameId = requestAnimationFrame(animate);
-          const dt = clock.getDelta();
-          if (mixer) {
-            mixer.update(dt);
-          } else if (model && !prefersReducedMotion) {
-            model.rotation.y += dt * 0.7; // gentle idle spin when there's no baked animation
-          }
-          renderer.render(scene, camera);
-        };
-        animate();
-      },
-      undefined,
-      (err) => {
-        console.error(
-          `AgentAvatar3D: failed to load "${modelSrc}" — check it actually exists at that exact path under your public/ folder (filenames are case-sensitive once deployed) and that the request isn't 404ing in the Network tab.`,
-          err,
-        );
-        if (!disposed) setFailed(true);
-      },
-    );
-
-    return () => {
-      disposed = true;
-      if (frameId) cancelAnimationFrame(frameId);
-      scene.traverse((obj) => {
-        obj.geometry?.dispose?.();
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-        mats.forEach((m) => m?.dispose?.());
-      });
-      renderer.dispose();
-      if (renderer.domElement.parentNode === mount) {
-        mount.removeChild(renderer.domElement);
-      }
-    };
-  }, [modelSrc]);
-
-  if (failed) {
+  if (!imageSrc || failed) {
     return (
       <span className="qm-agent-fallback">
         {AGENT_EMOJI_FALLBACK[avatarId] || "🐸"}
@@ -132,7 +37,22 @@ function AgentAvatar3D({ avatarId }) {
     );
   }
 
-  return <div ref={mountRef} className="qm-agent-3d" />;
+  return (
+    <div className="qm-agent-3d">
+      <img
+        src={imageSrc}
+        alt=""
+        className="qm-agent-portrait"
+        onError={(e) => {
+          console.error(
+            `AgentAvatarImage: failed to load "${imageSrc}" — check it actually exists at that exact path under your public/ folder (filenames are case-sensitive once deployed) and that the request isn't 404ing in the Network tab.`,
+            e,
+          );
+          setFailed(true);
+        }}
+      />
+    </div>
+  );
 }
 
 const STATUS_COLOR = {
@@ -414,7 +334,7 @@ function QuestModal({
     }
   };
 
-  // completion + celebration 
+  // ---- completion + celebration ---------------------------------------
   const [celebrate, setCelebrate] = useState(false);
   const confettiBits = useRef(
     Array.from({ length: 22 }, (_, i) => ({
@@ -1159,7 +1079,7 @@ function QuestModal({
                   onClick={() => handleAskForHelp(false)}
                   title="get help starting this quest"
                 >
-                  <AgentAvatar3D avatarId={agentAvatarId} />
+                  <AgentAvatarImage avatarId={agentAvatarId} />
                   <span className="qm-agent-bubble">
                     Need help starting?
                   </span>

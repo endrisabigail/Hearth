@@ -319,10 +319,12 @@
   overflow: hidden;
 }
 
-.qm-agent-3d canvas {
+.qm-agent-3d canvas,
+.qm-agent-portrait {
   display: block;
   width: 100% !important;
   height: 100% !important;
+  object-fit: cover;
 }
 
 .qm-agent-fallback {
