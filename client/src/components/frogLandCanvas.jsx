@@ -341,7 +341,7 @@ function FrogLandCanvas({
     let resumeAudioOnGesture = () => { };
     let handleMusicVolumeChange = () => { };
     try {
-      const bgMusic = new Audio("/assets/audio/backgroundFrog.mp3");
+      const bgMusic = new Audio("/assets/sounds/backgroundFrog.mp3");
       bgMusic.loop = true;
       bgMusic.volume = 0.35 * musicVolumeRef.current;
       bgMusicRef.current = bgMusic;

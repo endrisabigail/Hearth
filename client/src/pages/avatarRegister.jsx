@@ -104,7 +104,7 @@ function AvatarRegister() {
     typeof Audio !== "undefined" ? new Audio("/assets/sounds/click.mp3") : null,
   );
   const bgMusic = useRef(
-    typeof Audio !== "undefined" ? new Audio("/assets/audio/Main.mp3") : null,
+    typeof Audio !== "undefined" ? new Audio("/assets/sound/Main.mp3") : null,
   );
   const casualClickSound = useRef(
     typeof Audio !== "undefined"

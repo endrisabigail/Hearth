@@ -873,7 +873,7 @@ function PlazaCanvas({
     mount.addEventListener("pointerdown", onCanvasClick);
 
     // background farm music, loops for the whole session
-    const bgMusic = new Audio("/assets/audio/backgroundTomato.mp3");
+    const bgMusic = new Audio("/assets/sounds/backgroundTomato.mp3");
     bgMusic.loop = true;
     bgMusic.volume = 0.35;
     const resumeMusicOnInteract = () => {
