@@ -7,11 +7,11 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // each companion's own portrait, keyed by the same avatarId used in AVATAR_MAP
 const AGENT_IMAGE_MAP = {
-  apple: "/models/ai-agentApple.jpeg",
-  snail: "/models/ai-agentSnail.jpeg",
-  tomato: "/models/ai-agentTomato.jpeg",
-  fish: "/models/ai-agentFish.jpeg",
-  frog: "/models/ai-agentFrog.jpeg",
+  apple: "/assets/models/ai-agentApple.jpeg",
+  snail: "/assets/models/ai-agentSnail.jpeg",
+  tomato: "/assets/models/ai-agentTomato.jpeg",
+  fish: "/assets/models/ai-agentFish.jpeg",
+  frog: "/assets/models/ai-agentFrog.jpeg",
 };
 
 
@@ -25,9 +25,7 @@ function AgentAvatarImage({ avatarId }) {
     AGENT_EMOJI_FALLBACK,
     avatarId,
   );
-  const imageSrc = hasDeliberateEmoji
-    ? null
-    : AGENT_IMAGE_MAP[avatarId] || AGENT_IMAGE_MAP.frog;
+  const imageSrc = AGENT_IMAGE_MAP.tomato;
 
   if (!imageSrc || failed) {
     return (
