@@ -715,8 +715,8 @@ function Dashboard() {
   };
 
   // new-message notifications live on the envelope; everything else rings the bell
-  const isMailNotification = (n) => n.message?.startsWith("✉️");
-
+  const isMailNotification = (n) =>
+    typeof n.message === "string" && n.message.startsWith("✉️");
   if (loading) {
     return (
       <div className="dashboard-loading">
@@ -751,8 +751,8 @@ function Dashboard() {
   }
 
   const bellNotifications = notifications.filter((n) => !isMailNotification(n));
-  const unreadMailCount = notifications.filter(
-    (n) => !n.read && isMailNotification(n),
+  const unread = notifications.filter(
+    (n) => !n.read && !isMailNotification(n),
   ).length;
   const unreadBellCount = bellNotifications.filter((n) => !n.read).length;
   const minimizedPanels = PANELS.filter((p) => !openPanels[p]);
