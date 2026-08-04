@@ -895,8 +895,7 @@ function PlazaCanvas({
     const clickAudio = new Audio("/assets/sounds/click.mp3");
     clickAudio.volume = 0.6;
     clickAudioRef.current = clickAudio;
-    // short click sfx, played whenever the user clicks inside the plaza viewport
-    const clickAudioRef = useRef(null);
+
     // Lights
     scene.add(new THREE.AmbientLight(0xfff1d6, 2.0));
     const sun = new THREE.DirectionalLight(0xfff4dd, 1.0);
