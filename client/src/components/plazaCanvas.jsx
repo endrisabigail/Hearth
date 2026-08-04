@@ -819,9 +819,9 @@ function PlazaCanvas({
   const agentPrevPlayerPosRef = useRef({ x: null, z: null });
   const onAgentScreenPositionChangeRef = useRef(onAgentScreenPositionChange);
 
-  // ambient farm music plus a footstep loop toggled on/off as the character moves
   const bgMusicRef = useRef(null);
   const walkAudioRef = useRef(null);
+  const clickAudioRef = useRef(null);
   const wasMovingRef = useRef(false);
 
   useEffect(() => {
@@ -863,6 +863,15 @@ function PlazaCanvas({
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
+    const onCanvasClick = () => {
+      const sfx = clickAudioRef.current;
+      if (sfx) {
+        sfx.currentTime = 0;
+        sfx.play().catch(() => { });
+      }
+    };
+    mount.addEventListener("pointerdown", onCanvasClick);
+
     // background farm music, loops for the whole session
     const bgMusic = new Audio("/assets/audio/backgroundTomato.mp3");
     bgMusic.loop = true;
@@ -873,19 +882,21 @@ function PlazaCanvas({
       window.removeEventListener("keydown", resumeMusicOnInteract);
     };
     bgMusic.play().catch(() => {
-      // autoplay is blocked until the user interacts with the page —
-      // pick it back up on their first click or keypress
       window.addEventListener("pointerdown", resumeMusicOnInteract);
       window.addEventListener("keydown", resumeMusicOnInteract);
     });
     bgMusicRef.current = bgMusic;
 
-    // footstep loop — started/stopped whenever the character starts/stops moving
     const walkAudio = new Audio("/assets/sounds/walkingGround.mp3");
     walkAudio.loop = true;
     walkAudio.volume = 0.5;
     walkAudioRef.current = walkAudio;
 
+    const clickAudio = new Audio("/assets/sounds/click.mp3");
+    clickAudio.volume = 0.6;
+    clickAudioRef.current = clickAudio;
+    // short click sfx, played whenever the user clicks inside the plaza viewport
+    const clickAudioRef = useRef(null);
     // Lights
     scene.add(new THREE.AmbientLight(0xfff1d6, 2.0));
     const sun = new THREE.DirectionalLight(0xfff4dd, 1.0);
@@ -1656,6 +1667,9 @@ function PlazaCanvas({
       bgMusicRef.current = null;
       walkAudioRef.current?.pause();
       walkAudioRef.current = null;
+      mount.removeEventListener("pointerdown", onCanvasClick);
+      clickAudioRef.current?.pause();
+      clickAudioRef.current = null;
       grassTex.dispose();
       groundGeo.dispose();
       grassTopMat.dispose();

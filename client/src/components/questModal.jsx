@@ -26,15 +26,6 @@ function AgentAvatarImage({ avatarId }) {
     avatarId,
   );
   const imageSrc = AGENT_IMAGE_MAP.tomato;
-
-  if (!imageSrc || failed) {
-    return (
-      <span className="qm-agent-fallback">
-        {AGENT_EMOJI_FALLBACK[avatarId] || "🐸"}
-      </span>
-    );
-  }
-
   return (
     <div className="qm-agent-3d">
       <img
