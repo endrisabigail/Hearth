@@ -629,7 +629,7 @@ function Dashboard() {
   const prevUnreadBellRef = useRef(0);
   useEffect(() => {
     const unread = notifications.filter(
-      (n) => !n.read && !n.message?.startsWith("✉️"),
+      (n) => !n.read && !(typeof n.message === "string" && n.message.startsWith("✉️")),
     ).length;
     if (unread > prevUnreadBellRef.current) {
       playSound("notify");
@@ -1011,7 +1011,9 @@ function Dashboard() {
                   {focusQuest.assignedTo && (
                     <p className="focus-assigned">
                       {AVATAR_MAP[focusQuest.assignedTo.avatarId]}{" "}
-                      {focusQuest.assignedTo.username}
+                      {typeof focusQuest.assignedTo.username === "string"
+                        ? focusQuest.assignedTo.username
+                        : ""}
                     </p>
                   )}
                 </div>
@@ -1141,10 +1143,11 @@ function Dashboard() {
 }
 
 function MemberIcon({ member, isOwner, isLive }) {
+  const username = typeof member.username === "string" ? member.username : "";
   return (
     <div
       className="member-icon"
-      title={`${member.username}${isOwner ? " · lead" : ""} · ${isLive ? "live" : "away"}`}
+      title={`${username}${isOwner ? " · lead" : ""} · ${isLive ? "live" : "away"}`}
     >
       <div className={`member-icon-avatar${isOwner ? " member-icon-avatar--owner" : ""}`}>
         {AVATAR_MAP[member.avatarId] || "🐾"}
@@ -1153,7 +1156,7 @@ function MemberIcon({ member, isOwner, isLive }) {
         {isLive ? "🟢" : "🌙"}
       </span>
       {isOwner && <span className="member-icon-crown">👑</span>}
-      <p className="member-icon-name">{member.username}</p>
+      <p className="member-icon-name">{username}</p>
     </div>
   );
 }
