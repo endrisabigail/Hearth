@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { getAuth, onIdTokenChanged } from "firebase/auth";
 import "../pages/styles/agentModal.css";

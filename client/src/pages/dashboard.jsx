@@ -730,7 +730,6 @@ function Dashboard() {
           <span className="loading-firefly loading-firefly--6" />
         </div>
         <div className="loading-card">
-          <img src="/hearth-favicon.png" alt="" className="loading-logo" />
           <div className="loading-sprout">
             <span className="loading-sprout-stem" />
             <span className="loading-sprout-leaf loading-sprout-leaf--left" />
