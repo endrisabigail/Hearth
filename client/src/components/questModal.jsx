@@ -16,7 +16,6 @@ const AGENT_MODEL_MAP = {
   frog: "/models/ai-agentFrog.glb",
 };
 
-// fallback emoji for avatarIds that don't have a companion model yet (e.g. mushroom)
 const AGENT_EMOJI_FALLBACK = {
   mushroom: "🍄",
 };
@@ -28,15 +27,17 @@ const prefersReducedMotion =
 function AgentAvatar3D({ avatarId }) {
   const mountRef = useRef(null);
   const [failed, setFailed] = useState(false);
-  const modelSrc = AGENT_MODEL_MAP[avatarId];
+  const hasDeliberateEmoji = Object.prototype.hasOwnProperty.call(
+    AGENT_EMOJI_FALLBACK,
+    avatarId,
+  );
+  // frog is the default companion
+  const modelSrc = hasDeliberateEmoji
+    ? null
+    : AGENT_MODEL_MAP[avatarId] || AGENT_MODEL_MAP.frog;
 
   useEffect(() => {
     if (!modelSrc || !mountRef.current) {
-      if (!modelSrc) {
-        console.warn(
-          `AgentAvatar3D: no .glb mapped for avatarId "${avatarId}" — falling back to emoji.`,
-        );
-      }
       setFailed(true);
       return;
     }
@@ -126,7 +127,7 @@ function AgentAvatar3D({ avatarId }) {
   if (failed) {
     return (
       <span className="qm-agent-fallback">
-        {AGENT_EMOJI_FALLBACK[avatarId] || "🤖"}
+        {AGENT_EMOJI_FALLBACK[avatarId] || "🐸"}
       </span>
     );
   }
@@ -413,7 +414,7 @@ function QuestModal({
     }
   };
 
-  // ---- completion + celebration ---------------------------------------
+  // completion + celebration 
   const [celebrate, setCelebrate] = useState(false);
   const confettiBits = useRef(
     Array.from({ length: 22 }, (_, i) => ({
