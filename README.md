@@ -2,7 +2,8 @@
 # [Hearth](https://hearth-umber-six.vercel.app/) 
 **Gamified Project Management Web App**
 
-Hearth is a fully deployed, full-stack MERN application with Socket.IO as a real-time engine and firebase authentication, that replaces traditional checkboxes with a hand-crafted 3D environment. Built for those who find standard productivity tools clinical, Hearth turns "to-dos" into a digital plaza where every completed task contributes to a evolving world. Hearth also includes an AI companion to help break down tasks/quests to better incentivize users in starting task. 
+Hearth is a fully deployed, full-stack MERN application with Socket.IO as a real-time engine and firebase authentication, that replaces traditional checkboxes with a hand-crafted 3D environment. Built for those who find standard productivity tools clinical, Hearth turns "to-dos" into a digital plaza where every completed task contributes to a evolving world. Hearth also includes an AI companion to help break down tasks/quests to better incentivize users in starting task.
+
 ---
 
 ## Technical Stack
