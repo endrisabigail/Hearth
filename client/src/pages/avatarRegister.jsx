@@ -139,7 +139,7 @@ function AvatarRegister() {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
     controls.enableZoom = false;
-    controls.enableRotate = false; // camera stays put - dragging now only spins the character
+    controls.enableRotate = false; // camera stays put, dragging only spins the character
     controls.autoRotate = false;
     controls.target.set(0, 0.5, 0);
     controlsRef.current = controls;
@@ -372,7 +372,7 @@ function AvatarRegister() {
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
-        // registration already joined the invited party (see /api/auth/register) —
+        // registration already joined the invited party (see /api/auth/register)
         // just send them straight there
         navigate(inviteCode ? `/party/${inviteCode}` : "/dashboard");
       } catch (err) {
