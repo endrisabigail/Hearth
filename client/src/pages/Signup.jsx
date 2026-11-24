@@ -45,13 +45,11 @@ export default function Signup() {
 
   return (
     <AuthLayout>
-      <h1 className="auth__title">Start a Hearth</h1>
-      <p className="auth__lede">
-        {invite ? "You've been invited to a party. Make an account and you'll land right in their plaza." : "Make an account, pick a character, and turn your to-do list into a little world."}
-      </p>
+      <h1 className="auth__title">Create an account</h1>
+      {invite && <p className="auth__lede">You've been invited to a party. Create an account to join it.</p>}
       {firebaseConfigured ? (
         <form className="form" onSubmit={submit}>
-          <Field label="Username" hint="This is what your party sees above your character.">
+          <Field label="Username" hint="Shown above your character in the plaza.">
             <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required data-autofocus />
           </Field>
           <Field label="Email">
@@ -64,7 +62,7 @@ export default function Signup() {
           <Button variant="primary" size="lg" type="submit" loading={loading}>
             Create account
           </Button>
-          <div className="form__row">
+          <div className="form__row form__row--together">
             <span>Already have one?</span>
             <Link to="/login">Sign in</Link>
           </div>

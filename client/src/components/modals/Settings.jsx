@@ -104,7 +104,6 @@ export function PlazaPicker({ open, onClose, homeId, currentId, onPick }) {
                 </span>
                 <span className="plaza-card__text">
                   <span className="plaza-card__name">{t.name}</span>
-                  <span className="plaza-card__line">{t.tagline}</span>
                 </span>
                 {a.id === homeId && <span className="plaza-card__home">Home</span>}
                 {here && <span className="plaza-card__here">You're here</span>}

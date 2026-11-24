@@ -5,7 +5,7 @@ import AuthLayout from "./AuthLayout.jsx";
 import { Button, Field } from "../components/ui/primitives.jsx";
 import { auth, firebaseConfigured } from "../lib/firebase.js";
 import { useAuth } from "../lib/auth.jsx";
-import { enterDemo, isDemo } from "../lib/demo.js";
+import { enterDemo } from "../lib/demo.js";
 
 export function DemoButton({ variant = "ghost" }) {
   const navigate = useNavigate();
@@ -34,8 +34,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isDemo()) navigate("/plaza", { replace: true });
-    else if (ready && user) navigate(location.state?.from || "/plaza", { replace: true });
+    if (ready && user && auth?.currentUser) navigate(location.state?.from || "/plaza", { replace: true });
   }, [ready, user]);
 
   const submit = async (e) => {
@@ -57,8 +56,7 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      <h1 className="auth__title">Welcome back</h1>
-      <p className="auth__lede">Your plaza, your party and your quests are waiting where you left them.</p>
+      <h1 className="auth__title">Sign in</h1>
       {firebaseConfigured ? (
         <form className="form" onSubmit={submit}>
           <Field label="Email">

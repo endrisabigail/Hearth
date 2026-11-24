@@ -61,7 +61,7 @@ export default function JoinParty() {
               </p>
             </div>
           </div>
-          {plaza && <p className="auth__lede">Their plaza is the {plaza.name}. {plaza.tagline}</p>}
+          {plaza && <p className="auth__lede">Plaza: {plaza.name}</p>}
           <Button variant="primary" size="lg" onClick={join} loading={joining || !ready}>
             {user ? "Join this party" : "Sign up to join"}
           </Button>

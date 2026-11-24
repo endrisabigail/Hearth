@@ -298,8 +298,7 @@ code {
     animation: tip 0.15s var(--ease);
   }
   .topbar [data-tip]:hover::after,
-  .rail [data-tip]:hover::after,
-  .focus [data-tip]:hover::after {
+  .rail [data-tip]:hover::after {
     bottom: auto;
     top: calc(100% + 10px);
   }
@@ -394,6 +393,11 @@ textarea.input {
   gap: 10px;
   font-size: 14px;
   flex-wrap: wrap;
+}
+
+.form__row--together {
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .notice {
@@ -1280,7 +1284,7 @@ textarea.input {
 
 .focus {
   right: 14px;
-  top: 84px;
+  bottom: 14px;
   width: 290px;
   padding: 14px 16px 16px;
   display: grid;
@@ -1372,7 +1376,7 @@ textarea.input {
 
 .focus-chip {
   right: 14px;
-  top: 84px;
+  bottom: 14px;
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -1436,12 +1440,16 @@ textarea.input {
   transition: transform 0.12s var(--ease), box-shadow 0.08s;
 }
 
-.dock__add:hover {
-  transform: rotate(90deg) scale(1.04);
+.dock__add svg {
+  transition: transform 0.2s var(--ease);
+}
+
+.dock__add:hover svg {
+  transform: rotate(90deg);
 }
 
 .dock__add:active {
-  transform: translateY(4px) rotate(90deg);
+  transform: translateY(4px);
   box-shadow: 0 0 0 var(--edge);
 }
 
@@ -1581,10 +1589,8 @@ p kbd {
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
-.veil__line {
-  font-weight: 700;
-  opacity: 0.9;
-  min-height: 3em;
+.veil__title {
+  margin-bottom: 10px;
 }
 
 .meter--veil {

@@ -24,7 +24,9 @@ function load() {
     const base = { ...DEFAULTS };
     if (legacyMusic !== null) base.musicVolume = Number(legacyMusic) / 100;
     if (legacySfx !== null) base.sfxVolume = Number(legacySfx) / 100;
-    return { ...base, ...(saved || {}) };
+    const merged = { ...base, ...(saved || {}) };
+    merged.visitTheme = null;
+    return merged;
   } catch {
     return { ...DEFAULTS };
   }
@@ -40,7 +42,8 @@ export function getSettings() {
 export function setSettings(patch) {
   state = { ...state, ...(typeof patch === "function" ? patch(state) : patch) };
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    const { visitTheme, ...persist } = state;
+    localStorage.setItem(KEY, JSON.stringify(persist));
   } catch {}
   listeners.forEach((l) => l(state));
 }

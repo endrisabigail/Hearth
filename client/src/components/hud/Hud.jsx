@@ -329,7 +329,6 @@ export function LoadingVeil({ show, theme, progress }) {
           <div className="veil__inner">
             <img src="/hearth-mark.png" alt="" className="veil__mark" />
             <p className="veil__title">{theme?.name || "Hearth"}</p>
-            <p className="veil__line">{theme?.tagline}</p>
             <div className="meter meter--veil">
               <span style={{ width: `${Math.round((progress || 0.05) * 100)}%` }} />
             </div>

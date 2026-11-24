@@ -67,7 +67,7 @@ export function geometryHeight(geometry) {
 }
 
 export function characterMaterial() {
-  return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0 });
+  return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0, side: THREE.DoubleSide });
 }
 
 export function sceneryMaterial(opts = {}) {

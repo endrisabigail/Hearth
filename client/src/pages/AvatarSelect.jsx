@@ -77,12 +77,9 @@ export default function AvatarSelect() {
             <p className="pick__blurb">{av.blurb}</p>
             <div className="pick__plaza">
               <span className="pick__swatch" style={{ background: `linear-gradient(135deg, ${theme.sky[0]}, ${theme.sky[2]})` }} />
-              <div>
-                <p className="pick__plaza-name">Plaza: {theme.name}</p>
-                <p className="pick__plaza-line">{theme.tagline}</p>
-              </div>
+              <p className="pick__plaza-name">Plaza: {theme.name}</p>
             </div>
-            <p className="pick__companion">Your companion is {av.companionName}, who floats beside you and helps break big quests into small steps.</p>
+            <p className="pick__companion">Companion: {av.companionName}</p>
           </motion.div>
         </AnimatePresence>
         <div className="pick__thumbs" role="tablist" aria-label="Characters">

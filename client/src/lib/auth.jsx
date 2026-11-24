@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { onIdTokenChanged, signOut as fbSignOut } from "firebase/auth";
 import { auth } from "./firebase.js";
 import { isDemo, exitDemo } from "./demo.js";
+import { setSettings } from "./settings.js";
 
 const AuthContext = createContext({ user: null, ready: false });
 
@@ -36,10 +37,8 @@ export function RequireAuth({ children }) {
 }
 
 export async function signOut() {
-  if (isDemo()) {
-    exitDemo();
-    return;
-  }
+  exitDemo();
   localStorage.removeItem("token");
-  if (auth) await fbSignOut(auth);
+  setSettings({ visitTheme: null });
+  if (auth?.currentUser) await fbSignOut(auth);
 }

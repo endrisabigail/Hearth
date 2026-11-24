@@ -13,8 +13,8 @@ const pools = new Map();
 let unlocked = false;
 let music = null;
 let musicSrc = null;
-let fadeRaf = 0;
 let pendingMusic = null;
+const live = new Set();
 
 function pool(name) {
   if (!pools.has(name)) {
@@ -44,17 +44,31 @@ export function sfx(name, gain = 1) {
   } catch {}
 }
 
-function rampTo(audio, target, ms, done) {
-  cancelAnimationFrame(fadeRaf);
+function fade(audio, target, ms, done) {
+  cancelAnimationFrame(audio._fade);
   const start = audio.volume;
   const t0 = performance.now();
   const step = (now) => {
     const k = Math.min(1, (now - t0) / ms);
     audio.volume = Math.max(0, Math.min(1, start + (target - start) * k));
-    if (k < 1) fadeRaf = requestAnimationFrame(step);
+    if (k < 1) audio._fade = requestAnimationFrame(step);
     else done?.();
   };
-  fadeRaf = requestAnimationFrame(step);
+  audio._fade = requestAnimationFrame(step);
+}
+
+function retire(audio) {
+  if (!audio) return;
+  fade(audio, 0, 600, () => {
+    audio.pause();
+    live.delete(audio);
+  });
+  setTimeout(() => {
+    if (audio !== music) {
+      audio.pause();
+      live.delete(audio);
+    }
+  }, 900);
 }
 
 export function playMusic(src) {
@@ -63,24 +77,32 @@ export function playMusic(src) {
     pendingMusic = src;
     return;
   }
-  if (src === musicSrc && music && !music.paused) return;
-  const target = getSettings().musicVolume * 0.6;
-  const old = music;
-  if (old) rampTo(old, 0, 700, () => old.pause());
-  if (!src) {
-    music = null;
-    musicSrc = null;
-    return;
-  }
+  if (src && src === musicSrc && music && !music.paused) return;
+  for (const a of live) if (a !== music) retire(a);
+  retire(music);
+  music = null;
+  musicSrc = src || null;
+  if (!src) return;
   const next = new Audio(src);
   next.loop = true;
   next.volume = 0;
-  musicSrc = src;
   music = next;
-  next.play().then(() => rampTo(next, target, 1400)).catch(() => {});
+  live.add(next);
+  next
+    .play()
+    .then(() => {
+      if (music !== next) {
+        next.pause();
+        live.delete(next);
+        return;
+      }
+      fade(next, getSettings().musicVolume * 0.6, 1400);
+    })
+    .catch(() => live.delete(next));
 }
 
 export function stopMusic() {
+  pendingMusic = null;
   playMusic(null);
 }
 

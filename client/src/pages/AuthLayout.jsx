@@ -4,6 +4,8 @@ import AvatarStage from "../components/AvatarStage.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { applyTheme } from "../lib/avatars.js";
 import { playMusic, stopMusic } from "../lib/sound.js";
+import { exitDemo } from "../lib/demo.js";
+import { setSettings } from "../lib/settings.js";
 
 export function Brand({ small }) {
   return (
@@ -16,6 +18,10 @@ export function Brand({ small }) {
 
 export default function AuthLayout({ children, stage = true, theme = "frog" }) {
   const [music, setMusic] = useState(false);
+  useEffect(() => {
+    exitDemo();
+    setSettings({ visitTheme: null });
+  }, []);
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
