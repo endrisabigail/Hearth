@@ -1,4 +1,3 @@
-![Status](https://img.shields.io/badge/Status-In--Development-green?style=flat-square)
 # [Hearth](https://hearth-umber-six.vercel.app/) 
 **Gamified Project Management Web App**
 
